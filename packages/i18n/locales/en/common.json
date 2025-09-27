@@ -1,0 +1,17 @@
+{
+  "app": {
+    "name": "Crane Proposals",
+    "tagline": "Professional crane service proposals"
+  },
+  "errors": {
+    "unexpected": "An unexpected error occurred"
+  },
+  "auth": {
+    "welcome": "Welcome back",
+    "verifyEmail": "Please verify your email to continue"
+  },
+  "proposal": {
+    "created": "Proposal created successfully",
+    "queued": "Your proposal is being generated"
+  }
+}

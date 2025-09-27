@@ -1,0 +1,34 @@
+# Node
+node_modules/
+dist/
+coverage/
+.pnp*
+
+# Env
+.env
+.env.*
+.env.example
+
+# Logs
+*.log
+logs/
+pnpm-debug.log*
+
+# Editor
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Prisma
+prisma/migrations/*/migration.sql
+
+# Generated artifacts
+.terraform/
+.aws-sam/
+.cdk.out/
+
+docker-data/

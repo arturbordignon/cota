@@ -1,0 +1,54 @@
+{
+  "appName": "Crane Proposals",
+  "dashboard": {
+    "title": "Control Panel",
+    "welcome": "Welcome back, {name}!",
+    "quickAccess": "Quick Access",
+    "credits": "Credit Balance"
+  },
+  "navigation": {
+    "dashboard": "Dashboard",
+    "templates": "Templates",
+    "proposals": "Proposals",
+    "clients": "Clients",
+    "services": "Services",
+    "team": "Team",
+    "plan": "Plan",
+    "prospects": "Prospects",
+    "crm": "Pipeline",
+    "reports": "Reports"
+  },
+  "actions": {
+    "createProposal": "Create Proposal",
+    "addClient": "Add Client",
+    "createTemplate": "Create Template"
+  },
+  "search": {
+    "placeholderPrefix": "Search in {scope}",
+    "action": "Search",
+    "quick": {
+      "proposals": "Proposals",
+      "clients": "Clients",
+      "templates": "Templates"
+    },
+    "scopes": {
+      "all": "Everything",
+      "proposals": "Proposals",
+      "clients": "Clients",
+      "templates": "Templates",
+      "prospects": "Prospects"
+    },
+    "recentLabel": "Recent searches",
+    "recentSamples": [
+      "Maintenance contract",
+      "Proposal 2418",
+      "Client: Capixaba"
+    ]
+  },
+  "topbar": {
+    "openSearch": "Open search",
+    "closeSearch": "Close search",
+    "openNotifications": "View notifications",
+    "openLocale": "Change language"
+  }
+}

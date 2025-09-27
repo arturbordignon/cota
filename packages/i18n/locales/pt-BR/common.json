@@ -1,0 +1,17 @@
+{
+  "app": {
+    "name": "Propostas para Guindastes",
+    "tagline": "Propostas profissionais para serviços de guindaste"
+  },
+  "errors": {
+    "unexpected": "Ocorreu um erro inesperado"
+  },
+  "auth": {
+    "welcome": "Bem-vindo de volta",
+    "verifyEmail": "Confirme seu e-mail para continuar"
+  },
+  "proposal": {
+    "created": "Proposta criada com sucesso",
+    "queued": "Sua proposta está em processamento"
+  }
+}

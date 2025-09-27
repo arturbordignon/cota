@@ -1,0 +1,54 @@
+{
+  "appName": "Propostas para Guindastes",
+  "dashboard": {
+    "title": "Painel de Controle",
+    "welcome": "Bem-vindo de volta, {name}!",
+    "quickAccess": "Acesso Rápido",
+    "credits": "Saldo de Créditos"
+  },
+  "navigation": {
+    "dashboard": "Painel",
+    "templates": "Modelos",
+    "proposals": "Propostas",
+    "clients": "Clientes",
+    "services": "Serviços",
+    "team": "Equipe",
+    "plan": "Plano",
+    "prospects": "Prospecções",
+    "crm": "Pipeline",
+    "reports": "Relatórios"
+  },
+  "actions": {
+    "createProposal": "Criar Proposta",
+    "addClient": "Adicionar Cliente",
+    "createTemplate": "Criar Modelo"
+  },
+  "search": {
+    "placeholderPrefix": "Busque por {scope}",
+    "action": "Pesquisar",
+    "quick": {
+      "proposals": "Propostas",
+      "clients": "Clientes",
+      "templates": "Modelos"
+    },
+    "scopes": {
+      "all": "Tudo",
+      "proposals": "Propostas",
+      "clients": "Clientes",
+      "templates": "Modelos",
+      "prospects": "Prospects"
+    },
+    "recentLabel": "Buscas recentes",
+    "recentSamples": [
+      "Contrato manutenção",
+      "Proposta 2418",
+      "Cliente: Capixaba"
+    ]
+  },
+  "topbar": {
+    "openSearch": "Abrir busca",
+    "closeSearch": "Fechar busca",
+    "openNotifications": "Ver notificações",
+    "openLocale": "Alterar idioma"
+  }
+}
