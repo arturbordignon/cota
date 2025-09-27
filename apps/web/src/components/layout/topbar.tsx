@@ -3,6 +3,7 @@
 import { ReactNode, useState } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { useTranslations } from 'next-intl';
+import { useRouter } from 'next/navigation';
 import { Bell, MagnifyingGlass, X } from '@phosphor-icons/react';
 
 import { Button } from '@/components/ui/button';
@@ -28,6 +29,7 @@ export function Topbar({
   const tActions = useTranslations('actions');
   const tTopbar = useTranslations('topbar');
   const [searchOpen, setSearchOpen] = useState(false);
+  const router = useRouter();
 
   const iconButtonClass =
     'inline-flex h-10 w-10 items-center justify-center rounded-full border border-outline bg-white text-ink shadow-sm transition hover:border-primary hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40';
@@ -83,6 +85,7 @@ export function Topbar({
             type="button"
             className={iconButtonClass}
             aria-label={tTopbar('openNotifications')}
+            onClick={() => router.push('/notifications')}
           >
             <Bell size={18} />
           </button>

@@ -17,6 +17,7 @@ import {
   ChartLine,
 } from "@phosphor-icons/react";
 
+import { useCurrentUser } from "@/components/providers/user-provider";
 import { dashboardNav, type NavKey } from "@/config/navigation";
 import { cn } from "@/lib/utils";
 
@@ -37,6 +38,9 @@ export function Sidebar() {
   const pathname = usePathname();
   const t = useTranslations("navigation");
   const tActions = useTranslations("actions");
+  const { isOwner } = useCurrentUser();
+
+  const availableNav = dashboardNav.filter((item) => (item.key === "activity" ? isOwner : true));
 
   return (
     <aside className="fixed inset-y-0 left-0 z-40 hidden h-screen w-72 flex-col border-r border-outline/40 bg-white/95 px-6 py-8 shadow-xl lg:flex">
@@ -47,7 +51,7 @@ export function Sidebar() {
         </Link>
 
         <nav className="space-y-2">
-          {dashboardNav.map((item) => {
+          {availableNav.map((item) => {
             const Icon = iconMap[item.icon as keyof typeof iconMap] ?? House;
             const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
             const label = t(item.key as NavKey);

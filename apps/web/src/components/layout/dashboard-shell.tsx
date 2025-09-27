@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
 import { MobileNav } from "@/components/layout/mobile-nav";
-import { MobileBottomNav } from "@/components/layout/mobile-bottom-nav";
 
 interface DashboardShellProps extends PropsWithChildren {
   headerActions?: ReactNode;
@@ -26,7 +25,7 @@ export function DashboardShell({
   return (
     <div className="min-h-screen bg-background lg:pl-72">
       <Sidebar />
-      <div className="flex min-h-screen flex-col pb-20 lg:pb-0">
+      <div className="flex min-h-screen flex-col">
         <Topbar
           userName={userName}
           credits={credits}
@@ -37,7 +36,6 @@ export function DashboardShell({
         <main className="flex-1 px-4 py-6 sm:px-6 lg:px-10">
           <div className="mx-auto w-full max-w-6xl space-y-8">{children}</div>
         </main>
-        <MobileBottomNav />
       </div>
     </div>
   );

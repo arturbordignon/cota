@@ -13,6 +13,7 @@
     "clients": "Clientes",
     "services": "Serviços",
     "team": "Equipe",
+    "activity": "Atividades",
     "plan": "Plano",
     "prospects": "Prospecções",
     "crm": "Pipeline",
@@ -50,5 +51,15 @@
     "closeSearch": "Fechar busca",
     "openNotifications": "Ver notificações",
     "openLocale": "Alterar idioma"
+  },
+  "notifications": {
+    "title": "Notificações",
+    "description": "Veja atualizações recentes de propostas, colaboradores e assinaturas.",
+    "markAll": "Marcar todas como lidas",
+    "tone": {
+      "success": "Sucesso",
+      "info": "Atualização",
+      "warning": "Atenção"
+    }
   }
 }

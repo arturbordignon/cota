@@ -13,6 +13,7 @@
     "clients": "Clients",
     "services": "Services",
     "team": "Team",
+    "activity": "Activity",
     "plan": "Plan",
     "prospects": "Prospects",
     "crm": "Pipeline",
@@ -50,5 +51,15 @@
     "closeSearch": "Close search",
     "openNotifications": "View notifications",
     "openLocale": "Change language"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "description": "Review new activity across proposals, teammates, and billing.",
+    "markAll": "Mark all as read",
+    "tone": {
+      "success": "Success",
+      "info": "Update",
+      "warning": "Attention"
+    }
   }
 }

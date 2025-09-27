@@ -25,6 +25,7 @@ model Account {
   auditEvents    AuditEvent[]
   subscriptions  Subscription[]
   proposalUsages  ProposalUsage[]
+  departments    Department[]
   currentPlanId  String?
   currentPlan    Plan?     @relation(fields: [currentPlanId], references: [id])
   assets         ProposalAsset[]
@@ -39,14 +40,69 @@ model User {
   preferredLocale String    @default("pt-BR")
   isActive        Boolean   @default(true)
   lastLoginAt     DateTime?
+  departmentId    String?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
   account         Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
   createdProposals Proposal[] @relation("ProposalCreator")
   auditEvents     AuditEvent[]
+  department      Department? @relation(fields: [departmentId], references: [id])
 
   @@unique([accountId, email])
+  @@index([departmentId])
+}
+
+model Department {
+  id               String              @id @default(uuid())
+  accountId        String
+  name             String
+  slug             String
+  description      String?
+  permissionPreset DepartmentPreset?   @default(VIEW)
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+
+  account          Account            @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  members          User[]
+  permissions      DepartmentPermission[]
+
+  @@index([accountId])
+  @@unique([accountId, slug])
+}
+
+model DepartmentPermission {
+  id            String            @id @default(uuid())
+  departmentId  String
+  module        PermissionModule
+  canView       Boolean           @default(false)
+  canEdit       Boolean           @default(false)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  department    Department        @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+
+  @@index([departmentId])
+  @@unique([departmentId, module])
+}
+
+enum DepartmentPreset {
+  NONE
+  VIEW
+  ALL
+  CUSTOM
+}
+
+enum PermissionModule {
+  DASHBOARD
+  PROPOSALS
+  TEMPLATES
+  PROSPECTS
+  CRM
+  REPORTS
+  PLAN
+  CLIENTS
+  SERVICES
 }
 
 enum UserRole {
@@ -183,6 +239,9 @@ model AuditEvent {
   action     String
   entityType String
   entityId   String
+  summary    String
+  ipAddress  String?
+  userAgent  String?
   metadataJson Json
   createdAt  DateTime @default(now())
 
@@ -190,6 +249,53 @@ model AuditEvent {
   user       User?   @relation(fields: [userId], references: [id])
 
   @@index([accountId])
+}
+
+model Notification {
+  id           String           @id @default(uuid())
+  accountId    String
+  recipientId  String?
+  title        String
+  body         String
+  tone         NotificationTone @default(INFO)
+  metadataJson Json?
+  isRead       Boolean          @default(false)
+  readAt       DateTime?
+  createdAt    DateTime         @default(now())
+
+  account      Account          @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  recipient    User?            @relation(fields: [recipientId], references: [id])
+  logs         NotificationLog[]
+
+  @@index([accountId])
+  @@index([recipientId])
+}
+
+model NotificationLog {
+  id              String               @id @default(uuid())
+  notificationId  String
+  event           NotificationLogEvent @default(CREATED)
+  detailsJson     Json?
+  createdAt       DateTime             @default(now())
+
+  notification    Notification         @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+
+  @@index([notificationId])
+}
+
+enum NotificationTone {
+  SUCCESS
+  INFO
+  WARNING
+  DANGER
+}
+
+enum NotificationLogEvent {
+  CREATED
+  DISPATCHED
+  READ
+  ARCHIVED
+  ERROR
 }
 
 model Plan {

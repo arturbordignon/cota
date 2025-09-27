@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 
+import { useCurrentUser } from "@/components/providers/user-provider";
 import { dashboardNav, type NavKey } from "@/config/navigation";
 import { LocaleSwitcher } from "@/components/layout/locale-switcher";
 import { cn } from "@/lib/utils";
@@ -18,6 +19,9 @@ interface MobileNavProps {
 export function MobileNav({ open, onOpenChange }: MobileNavProps) {
   const pathname = usePathname();
   const t = useTranslations("navigation");
+  const { isOwner } = useCurrentUser();
+
+  const availableNav = dashboardNav.filter((item) => (item.key === "activity" ? isOwner : true));
 
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
@@ -59,7 +63,7 @@ export function MobileNav({ open, onOpenChange }: MobileNavProps) {
 
           <div className="flex-1 overflow-y-auto px-5 py-6">
             <nav className="space-y-1">
-              {dashboardNav.map((item) => {
+              {availableNav.map((item) => {
                 const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
                 return (
                   <Link

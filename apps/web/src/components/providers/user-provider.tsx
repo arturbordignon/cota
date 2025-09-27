@@ -2,7 +2,7 @@
 
 import { PropsWithChildren, createContext, useContext, useMemo, useState } from "react";
 
-export type UserRole = "admin" | "manager" | "viewer";
+export type UserRole = "owner" | "admin" | "manager" | "viewer";
 
 export interface CurrentUser {
   id: string;
@@ -17,13 +17,14 @@ interface UserContextValue {
   user: CurrentUser;
   updateUser: (updates: Partial<CurrentUser>) => void;
   isAdmin: boolean;
+  isOwner: boolean;
 }
 
 const defaultUser: CurrentUser = {
-  id: "user-admin",
+  id: "user-owner",
   name: "Ana Souza",
   email: "ana.souza@servicepro.io",
-  role: "admin",
+  role: "owner",
   department: "comercial",
 };
 
@@ -35,7 +36,8 @@ export function UserProvider({ children }: PropsWithChildren) {
   const value = useMemo<UserContextValue>(() => ({
     user,
     updateUser: (updates: Partial<CurrentUser>) => setUser((prev) => ({ ...prev, ...updates })),
-    isAdmin: user.role === "admin",
+    isAdmin: user.role === "admin" || user.role === "owner",
+    isOwner: user.role === "owner",
   }), [user]);
 
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>;

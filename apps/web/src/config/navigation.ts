@@ -5,6 +5,7 @@ export type NavKey =
   | "clients"
   | "services"
   | "team"
+  | "activity"
   | "prospects"
   | "crm"
   | "reports"
@@ -23,6 +24,7 @@ export const dashboardNav: NavItem[] = [
   { key: "clients", href: "/clients", icon: "users" },
   { key: "services", href: "/services", icon: "briefcase" },
   { key: "team", href: "/team", icon: "userList" },
+  { key: "activity", href: "/activity", icon: "target" },
   { key: "prospects", href: "/prospects", icon: "target" },
   { key: "crm", href: "/crm", icon: "kanban" },
   { key: "reports", href: "/reports", icon: "chart" },
