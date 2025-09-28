@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ChartLine, Sparkle, Table as TableIcon } from "@phosphor-icons/react";
+import { ChartLine, Table as TableIcon } from "@phosphor-icons/react";
 import {
   Bar,
   BarChart,
@@ -534,8 +534,7 @@ export default function ReportsPage() {
 
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="inline-flex items-center gap-2 text-xs text-muted">
-                  <Sparkle size={16} className="text-primary" />
-                  Tradução natural → SQL será exibida para confirmação antes de consultar o banco.
+                 
                 </div>
                 <div className="flex gap-2">
                   <Button variant="ghost" onClick={handleClear}>

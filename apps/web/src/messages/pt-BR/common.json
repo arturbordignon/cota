@@ -14,7 +14,7 @@
     "services": "Serviços",
     "team": "Equipe",
     "activity": "Registros de Logs",
-    "plan": "Plano",
+    "account": "Minha Conta",
     "prospects": "Prospecções",
     "crm": "Pipeline",
     "reports": "Relatórios"
@@ -83,9 +83,9 @@
       "label": "Relatórios",
       "description": "Consultas dinâmicas e métricas."
     },
-    "plan": {
-      "label": "Planos",
-      "description": "Gestão de assinatura e cobrança."
+    "account": {
+      "label": "Conta",
+      "description": "Perfil do usuário e ajustes de assinatura."
     },
     "clients": {
       "label": "Clientes",

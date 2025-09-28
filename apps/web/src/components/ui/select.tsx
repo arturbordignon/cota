@@ -2,11 +2,15 @@
 
 import { CaretDown, Check } from "@phosphor-icons/react";
 import * as SelectPrimitive from "@radix-ui/react-select";
+import type {
+  SelectProps as RadixSelectProps,
+  SelectItemProps as RadixSelectItemProps,
+} from "@radix-ui/react-select";
 import { forwardRef } from "react";
 
 import { cn } from "@/lib/utils";
 
-export interface SelectProps extends SelectPrimitive.SelectProps {
+export interface SelectProps extends RadixSelectProps {
   placeholder?: string;
 }
 
@@ -40,7 +44,7 @@ export function Select({ children, placeholder, ...props }: SelectProps) {
 
 export const SelectItem = forwardRef<
   HTMLDivElement,
-  SelectPrimitive.SelectItemProps & { inset?: boolean }
+  RadixSelectItemProps & { inset?: boolean }
 >(function SelectItem({ className, children, inset, ...props }, ref) {
   return (
     <SelectPrimitive.Item

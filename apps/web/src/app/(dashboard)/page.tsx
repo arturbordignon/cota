@@ -269,10 +269,10 @@ export default function DashboardPage() {
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <Button asChild>
-            <Link href="/plans">{t('ctaButtons.buyCredits')}</Link>
+            <Link href="/account">{t('ctaButtons.buyCredits')}</Link>
           </Button>
           <Button variant="secondary" asChild>
-            <Link href="/plans">{t('ctaButtons.upgradePlan')}</Link>
+            <Link href="/account">{t('ctaButtons.upgradePlan')}</Link>
           </Button>
         </div>
       </Card>

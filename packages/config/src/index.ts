@@ -1,5 +1,29 @@
-import 'dotenv/config';
+import { config as loadEnv } from 'dotenv';
+import { existsSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { z } from 'zod';
+
+const moduleDir = dirname(fileURLToPath(import.meta.url));
+const projectRoot = resolve(moduleDir, '../../..');
+const envCandidates = [
+  process.env.DOTENV_CONFIG_PATH,
+  resolve(projectRoot, '.env'),
+  resolve(projectRoot, '.env.local'),
+  resolve(process.cwd(), '.env'),
+  resolve(process.cwd(), '.env.local')
+];
+
+const seen = new Set<string>();
+for (const candidate of envCandidates) {
+  if (!candidate || seen.has(candidate)) {
+    continue;
+  }
+  seen.add(candidate);
+  if (existsSync(candidate)) {
+    loadEnv({ path: candidate, override: false });
+  }
+}
 
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),

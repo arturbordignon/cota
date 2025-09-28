@@ -24,8 +24,12 @@ model Account {
   savedFields    SavedFieldSet[]
   auditEvents    AuditEvent[]
   subscriptions  Subscription[]
-  proposalUsages  ProposalUsage[]
+  proposalUsages ProposalUsage[]
   departments    Department[]
+  prospects      Prospect[]
+  pipelineStages PipelineStage[]
+  pipelineLeads  PipelineLead[]
+  notifications  Notification[]
   currentPlanId  String?
   currentPlan    Plan?     @relation(fields: [currentPlanId], references: [id])
   assets         ProposalAsset[]
@@ -49,6 +53,7 @@ model User {
   account         Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
   createdProposals Proposal[] @relation("ProposalCreator")
   auditEvents     AuditEvent[]
+  receivedNotifications Notification[] @relation("NotificationRecipient")
   department      Department? @relation(fields: [departmentId], references: [id])
 
   @@unique([accountId, email])
@@ -332,7 +337,7 @@ model Notification {
   createdAt    DateTime         @default(now())
 
   account      Account          @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  recipient    User?            @relation(fields: [recipientId], references: [id])
+  recipient    User?            @relation("NotificationRecipient", fields: [recipientId], references: [id])
   logs         NotificationLog[]
 
   @@index([accountId])

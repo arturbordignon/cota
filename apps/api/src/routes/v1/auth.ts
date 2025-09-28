@@ -109,6 +109,7 @@ const authRoutes: FastifyPluginAsync = async (app) => {
         action: 'account.created',
         entityType: 'Account',
         entityId: result.account.id,
+        summary: `Account ${result.account.name} created`,
         metadataJson: {
           locale,
           at: dayjs().toISOString()

@@ -30,11 +30,16 @@ import pipelineRoutes from './routes/v1/pipeline.js';
 export async function buildServer() {
   const app = fastify({
     logger: {
-      level: env.LOG_LEVEL
-    }
+      level: env.LOG_LEVEL,
+    },
   });
 
-  await app.register(rawBody, { field: 'rawBody', global: false, encoding: 'utf8' });
+  await app.register(rawBody, {
+    field: 'rawBody',
+    global: false,
+    encoding: 'utf8',
+    runFirst: true,
+  });
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await app.register(rateLimit as any, {
@@ -43,14 +48,14 @@ export async function buildServer() {
     addHeaders: {
       'x-ratelimit-limit': false,
       'x-ratelimit-remaining': false,
-      'x-ratelimit-reset': false
-    }
+      'x-ratelimit-reset': false,
+    },
   });
 
   await app.register(cors, { origin: true, credentials: true });
   await app.register(helmet);
   await app.register(multipart, {
-    limits: { files: 5, fileSize: 15 * 1024 * 1024 }
+    limits: { files: 5, fileSize: 15 * 1024 * 1024 },
   });
 
   await app.register(swagger, {
@@ -58,18 +63,18 @@ export async function buildServer() {
       info: {
         title: 'CraneProposals API',
         description: 'API for crane proposal SaaS',
-        version: '0.1.0'
-      }
-    }
+        version: '0.1.0',
+      },
+    },
   });
   await app.register(swaggerUi, {
-    routePrefix: '/docs'
+    routePrefix: '/docs',
   });
 
   await app.register(redis, {
     host: env.REDIS_HOST,
     port: env.REDIS_PORT,
-    password: env.REDIS_PASSWORD || undefined
+    password: env.REDIS_PASSWORD || undefined,
   });
 
   await app.register(prismaPlugin);
@@ -80,8 +85,8 @@ export async function buildServer() {
   await app.register(jwt, {
     secret: env.JWT_ACCESS_SECRET,
     sign: {
-      expiresIn: '15m'
-    }
+      expiresIn: '15m',
+    },
   });
 
   app.decorate('authenticate', async function (request, reply) {
@@ -96,7 +101,7 @@ export async function buildServer() {
 
   app.addHook('preHandler', async (request, reply) => {
     const locale = request.headers['accept-language']?.split(',')[0] ?? 'pt-BR';
-    request.headers['x-locale'] = locale;
+
     reply.header('content-language', locale);
   });
 

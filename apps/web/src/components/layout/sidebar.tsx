@@ -10,11 +10,11 @@ import {
   UsersThree,
   Briefcase,
   UserList,
-  Star,
   PaperPlaneRight,
   Target,
   Kanban,
   ChartLine,
+  UserCircle,
 } from '@phosphor-icons/react';
 
 import { useCurrentUser } from '@/components/providers/user-provider';
@@ -28,10 +28,10 @@ const iconMap = {
   users: UsersThree,
   briefcase: Briefcase,
   userList: UserList,
-  star: Star,
   target: Target,
   kanban: Kanban,
   chart: ChartLine,
+  userCircle: UserCircle,
 };
 
 export function Sidebar() {
@@ -80,7 +80,7 @@ export function Sidebar() {
 
       <Link
         href="/proposals/new"
-        className="mt-6 inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-md transition hover:-translate-y-0.5"
+        className="mt-6 inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white shadow-md transition hover:-translate-y-0.5"
       >
         <PaperPlaneRight size={18} weight="fill" />
         {tActions('createProposal')}

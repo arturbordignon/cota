@@ -16,8 +16,10 @@ export default fp(async (app) => {
     password: env.REDIS_PASSWORD || undefined
   };
 
+  const pdfQueueName = `${env.QUEUE_PREFIX}-pdf-generation`;
+
   const pdfQueue = new Queue<PdfJobData, PdfJobResult>(
-    `${env.QUEUE_PREFIX}:pdf-generation`,
+    pdfQueueName,
     {
       connection
     }

@@ -14,7 +14,7 @@
     "services": "Services",
     "team": "Team",
     "activity": "Audit Logs",
-    "plan": "Plan",
+    "account": "My Account",
     "prospects": "Prospects",
     "crm": "Pipeline",
     "reports": "Reports"
@@ -87,9 +87,9 @@
       "label": "Reports",
       "description": "Dynamic queries and metrics."
     },
-    "plan": {
-      "label": "Plans",
-      "description": "Subscription and billing management."
+    "account": {
+      "label": "Account",
+      "description": "User profile and subscription settings."
     },
     "clients": {
       "label": "Clients",

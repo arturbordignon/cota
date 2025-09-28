@@ -12,7 +12,7 @@ const connection = {
   password: env.REDIS_PASSWORD || undefined
 };
 
-const pdfQueueName = `${env.QUEUE_PREFIX}:pdf-generation`;
+const pdfQueueName = `${env.QUEUE_PREFIX}-pdf-generation`;
 
 const pdfWorker = new Worker(
   pdfQueueName,
