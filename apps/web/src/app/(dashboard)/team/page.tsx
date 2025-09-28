@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import * as Dialog from "@radix-ui/react-dialog";
 import { UserPlus, X } from "@phosphor-icons/react";
 
@@ -14,7 +15,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectItem } from "@/components/ui/select";
 import { permissionModules } from "@/config/permission-modules";
-import { permissionModuleCopy } from "@/config/permission-module-copy";
 import { cloneDepartment, sampleDepartments, type Department } from "@/data/mock/departments";
 
 interface TeamMember {
@@ -60,23 +60,34 @@ interface DepartmentPermissionListProps {
 }
 
 function DepartmentPermissionList({ department }: DepartmentPermissionListProps) {
+  const tModules = useTranslations("common.permissionModules");
+  const tPermissions = useTranslations("common.permissions");
   return (
     <div className="grid gap-2">
       {permissionModules.map((module) => {
         const ability = department.permissions[module] ?? { view: false, edit: false };
-        const copy = permissionModuleCopy[module];
+        const label = tModules(`${module}.label`);
+        const description = tModules(`${module}.description`);
         return (
           <div
             key={module}
             className="grid gap-2 rounded-xl border border-outline/40 bg-[var(--color-surface-muted)]/60 px-4 py-3 md:grid-cols-[1fr_auto]"
           >
             <div>
-              <p className="text-sm font-semibold text-ink">{copy.label}</p>
-              <p className="text-xs text-muted">{copy.description}</p>
+              <p className="text-sm font-semibold text-ink">{label}</p>
+              <p className="text-xs text-muted">{description}</p>
             </div>
             <div className="flex items-center gap-2">
-              <Badge tone={ability.view ? "success" : "warning"}>{ability.view ? "Ver" : "Restrito"}</Badge>
-              <Badge tone={ability.edit ? "info" : "warning"}>{ability.edit ? "Editar" : "Somente ver"}</Badge>
+              <Badge tone={ability.view ? "success" : "warning"}>
+                {ability.view
+                  ? tPermissions("badges.view.enabled")
+                  : tPermissions("badges.view.disabled")}
+              </Badge>
+              <Badge tone={ability.edit ? "info" : "warning"}>
+                {ability.edit
+                  ? tPermissions("badges.edit.enabled")
+                  : tPermissions("badges.edit.disabled")}
+              </Badge>
             </div>
           </div>
         );
@@ -96,6 +107,7 @@ interface AddMemberDialogProps {
 }
 
 function AddMemberDialog({ open, departments, draft, onOpenChange, onDraftChange, onSubmit }: AddMemberDialogProps) {
+  const t = useTranslations("team.dialog");
   const isValid =
     draft.name.trim().length > 2 &&
     draft.email.includes("@") &&
@@ -115,15 +127,13 @@ function AddMemberDialog({ open, departments, draft, onOpenChange, onDraftChange
           >
             <header className="flex items-center justify-between border-b border-outline/30 bg-[var(--color-surface-muted)]/50 px-6 py-4">
               <div>
-                <Dialog.Title className="text-lg font-semibold text-ink">Adicionar membro</Dialog.Title>
-                <Dialog.Description className="text-xs text-muted">
-                  Selecione o departamento correto para aplicar as permissões automaticamente.
-                </Dialog.Description>
+                <Dialog.Title className="text-lg font-semibold text-ink">{t('title')}</Dialog.Title>
+                <Dialog.Description className="text-xs text-muted">{t('description')}</Dialog.Description>
               </div>
               <Dialog.Close asChild>
                 <button
                   type="button"
-                  aria-label="Fechar"
+                  aria-label={t('close')}
                   className="rounded-full border border-outline bg-white p-2 text-ink shadow-sm transition hover:bg-primary-soft"
                 >
                   <X size={16} weight="bold" />
@@ -133,36 +143,36 @@ function AddMemberDialog({ open, departments, draft, onOpenChange, onDraftChange
 
             <div className="grid gap-4 px-6 py-6">
               <div className="space-y-2">
-                <Label htmlFor="member-name">Nome completo</Label>
+                <Label htmlFor="member-name">{t('fields.name')}</Label>
                 <Input
                   id="member-name"
                   value={draft.name}
                   onChange={(event) => onDraftChange("name", event.target.value)}
-                  placeholder="Ex.: Fernanda Matos"
+                  placeholder={t('placeholders.name')}
                   autoFocus
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="member-email">Email corporativo</Label>
+                <Label htmlFor="member-email">{t('fields.email')}</Label>
                 <Input
                   id="member-email"
                   type="email"
                   value={draft.email}
                   onChange={(event) => onDraftChange("email", event.target.value)}
-                  placeholder="nome@suaempresa.com"
+                  placeholder={t('placeholders.email')}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="member-role">Cargo</Label>
+                <Label htmlFor="member-role">{t('fields.role')}</Label>
                 <Input
                   id="member-role"
                   value={draft.role}
                   onChange={(event) => onDraftChange("role", event.target.value)}
-                  placeholder="Ex.: Analista Comercial"
+                  placeholder={t('placeholders.role')}
                 />
               </div>
               <div className="space-y-2">
-                <Label>Departamento</Label>
+                <Label>{t('fields.department')}</Label>
                 <Select value={draft.departmentId} onValueChange={(value) => onDraftChange("departmentId", value)}>
                   {departments.map((department) => (
                     <SelectItem key={department.id} value={department.id}>
@@ -176,11 +186,11 @@ function AddMemberDialog({ open, departments, draft, onOpenChange, onDraftChange
             <footer className="flex justify-end gap-2 border-t border-outline/20 bg-[var(--color-surface-muted)]/40 px-6 py-4">
               <Dialog.Close asChild>
                 <Button type="button" variant="ghost">
-                  Cancelar
+                  {t('actions.cancel')}
                 </Button>
               </Dialog.Close>
               <Button type="submit" disabled={!isValid}>
-                Convidar membro
+                {t('actions.submit')}
               </Button>
             </footer>
           </form>
@@ -192,6 +202,7 @@ function AddMemberDialog({ open, departments, draft, onOpenChange, onDraftChange
 
 export default function TeamPage() {
   const { isAdmin } = useCurrentUser();
+  const t = useTranslations("team");
   const [departments] = useState<Department[]>(() => sampleDepartments.map(cloneDepartment));
   const departmentMap = useMemo<DepartmentRecord>(
     () => Object.fromEntries(departments.map((department) => [department.id, department])),
@@ -226,7 +237,7 @@ export default function TeamPage() {
       id: createMemberId(),
       name,
       email: email.toLowerCase(),
-      role: draft.role.trim() || "Colaborador",
+      role: draft.role.trim() || t('defaults.role'),
       departmentId: draft.departmentId,
     };
 
@@ -257,14 +268,9 @@ export default function TeamPage() {
   if (!isAdmin) {
     return (
       <section className="space-y-6">
-        <PageHeader
-          title="Equipe"
-          description="Sua conta não possui acesso administrativo para gerenciar permissões."
-        />
+        <PageHeader title={t('restricted.title')} description={t('restricted.description')} />
         <Card className="border border-outline/30 bg-white px-6 py-4 text-sm text-muted">
-          <p>
-            Entre em contato com um administrador para solicitar alterações de departamento ou atualização de acessos.
-          </p>
+          <p>{t('restricted.callout')}</p>
         </Card>
       </section>
     );
@@ -273,25 +279,23 @@ export default function TeamPage() {
   return (
     <section className="space-y-6">
       <PageHeader
-        title="Equipe"
-        description="Defina o departamento de cada colaborador para aplicar permissões padronizadas."
+        title={t('title')}
+        description={t('description')}
         action={
           <div className="flex items-center gap-2">
             <Button asChild variant="ghost">
-              <Link href="/departments">Gerenciar departamentos</Link>
+              <Link href="/departments">{t('actions.manageDepartments')}</Link>
             </Button>
             <Button onClick={() => setDialogOpen(true)} className="gap-2">
               <UserPlus size={18} weight="bold" />
-              Adicionar membro
+              {t('actions.addMember')}
             </Button>
           </div>
         }
       />
 
       <Card className="border border-outline/40 bg-white px-6 py-4 text-sm text-muted">
-        <p>
-          As permissões são herdadas do departamento selecionado. Ajuste regras específicas no botão Gerenciar departamentos.
-        </p>
+        <p>{t('infoCard')}</p>
       </Card>
 
       <div className="grid gap-4 lg:grid-cols-2">
@@ -308,11 +312,11 @@ export default function TeamPage() {
                   <p className="text-sm text-muted">{member.role}</p>
                   <p className="text-xs text-muted">{member.email}</p>
                 </div>
-                <Badge tone="info">{department?.name ?? "Sem departamento"}</Badge>
+                <Badge tone="info">{department?.name ?? t('memberCard.badge.noDepartment')}</Badge>
               </div>
 
               <div className="space-y-2">
-                <Label>Departamento</Label>
+                <Label>{t('memberCard.fields.department')}</Label>
                 <Select value={member.departmentId} onValueChange={(value) => updateDepartment(member.id, value)}>
                   {departmentOptions.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
@@ -324,17 +328,17 @@ export default function TeamPage() {
 
               {department ? (
                 <div className="space-y-3">
-                  <p className="text-sm font-semibold text-ink">Permissões herdadas</p>
+                  <p className="text-sm font-semibold text-ink">{t('memberCard.sections.permissions')}</p>
                   <DepartmentPermissionList department={department} />
                 </div>
               ) : null}
 
               <div className="flex justify-end gap-2">
                 <Button variant="ghost" size="sm" onClick={() => revertChanges(member.id)} disabled={!hasChanges}>
-                  Reverter
+                  {t('memberCard.buttons.revert')}
                 </Button>
                 <Button size="sm" onClick={() => persistChanges(member.id)} disabled={!hasChanges}>
-                  Salvar alterações
+                  {t('memberCard.buttons.save')}
                 </Button>
               </div>
             </Card>

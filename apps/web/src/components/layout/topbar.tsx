@@ -47,12 +47,9 @@ export function Topbar({
             <div className="flex items-baseline gap-2">
               <p className="truncate text-xl font-semibold text-ink sm:text-xl">{t('title')}</p>
               <span className="hidden sm:inline-flex items-center gap-1 rounded-full border border-outline/50 bg-white px-2 py-0.5 text-xs font-medium text-muted">
-                {t('credits')}:<span className="text-primary">{credits}</span>
+                {t('credits.label')}:<span className="text-primary">{credits}</span>
               </span>
             </div>
-            <p className="hidden text-xs uppercase tracking-wide text-muted md:block">
-              {t('welcome', { name: userName })}
-            </p>
           </div>
         </div>
 

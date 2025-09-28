@@ -1,0 +1,46 @@
+{
+  "title": "Painel de Controle",
+  "description": "Visão rápida dos créditos e atalhos principais para movimentar o funil de propostas.",
+  "credits": {
+    "label": "Créditos",
+    "value": "100"
+  },
+  "metrics": {
+    "sent": {
+      "label": "Propostas enviadas no mês",
+      "value": "28",
+      "delta": "+12% vs. mês anterior"
+    },
+    "conversion": {
+      "label": "Taxa de aceite",
+      "value": "67%",
+      "delta": "+5% vs. mês anterior"
+    },
+    "time": {
+      "label": "Tempo médio de geração",
+      "value": "6 min",
+      "delta": "-2 min"
+    }
+  },
+  "quickAccess": {
+    "title": "Acesso rápido",
+    "items": {
+      "createProposal": {
+        "description": "Monte uma proposta completa com anexos e totais.",
+        "cta": "Ir agora"
+      },
+      "addClient": {
+        "description": "Salve dados fiscais e contatos para preencher automaticamente.",
+        "cta": "Ir agora"
+      },
+      "createTemplate": {
+        "description": "Personalize modelos reutilizáveis com campos obrigatórios.",
+        "cta": "Ir agora"
+      }
+    }
+  },
+  "ctaButtons": {
+    "buyCredits": "Comprar créditos",
+    "upgradePlan": "Atualizar plano"
+  }
+}

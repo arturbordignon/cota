@@ -1,0 +1,52 @@
+{
+  "title": "Equipe",
+  "description": "Defina o departamento de cada colaborador para aplicar permissões padronizadas.",
+  "infoCard": "As permissões são herdadas do departamento selecionado. Ajuste regras específicas em Gerenciar departamentos.",
+  "actions": {
+    "manageDepartments": "Gerenciar departamentos",
+    "addMember": "Adicionar membro"
+  },
+  "memberCard": {
+    "badge": {
+      "noDepartment": "Sem departamento"
+    },
+    "fields": {
+      "department": "Departamento"
+    },
+    "sections": {
+      "permissions": "Permissões herdadas"
+    },
+    "buttons": {
+      "revert": "Reverter",
+      "save": "Salvar alterações"
+    }
+  },
+  "restricted": {
+    "title": "Equipe",
+    "description": "Sua conta não possui acesso administrativo para gerenciar permissões.",
+    "callout": "Entre em contato com um administrador para solicitar alterações de departamento ou atualização de acessos."
+  },
+  "dialog": {
+    "title": "Adicionar membro",
+    "description": "Selecione o departamento correto para aplicar as permissões automaticamente.",
+    "close": "Fechar",
+    "fields": {
+      "name": "Nome completo",
+      "email": "E-mail corporativo",
+      "role": "Cargo",
+      "department": "Departamento"
+    },
+    "placeholders": {
+      "name": "Ex.: Fernanda Matos",
+      "email": "nome@suaempresa.com",
+      "role": "Ex.: Analista Comercial"
+    },
+    "actions": {
+      "cancel": "Cancelar",
+      "submit": "Convidar membro"
+    }
+  },
+  "defaults": {
+    "role": "Colaborador"
+  }
+}

@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useTranslations } from "next-intl";
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import {
   House,
   Files,
@@ -15,11 +15,11 @@ import {
   Target,
   Kanban,
   ChartLine,
-} from "@phosphor-icons/react";
+} from '@phosphor-icons/react';
 
-import { useCurrentUser } from "@/components/providers/user-provider";
-import { dashboardNav, type NavKey } from "@/config/navigation";
-import { cn } from "@/lib/utils";
+import { useCurrentUser } from '@/components/providers/user-provider';
+import { dashboardNav, type NavKey } from '@/config/navigation';
+import { cn } from '@/lib/utils';
 
 const iconMap = {
   house: House,
@@ -36,11 +36,11 @@ const iconMap = {
 
 export function Sidebar() {
   const pathname = usePathname();
-  const t = useTranslations("navigation");
-  const tActions = useTranslations("actions");
+  const t = useTranslations('navigation');
+  const tActions = useTranslations('actions');
   const { isOwner } = useCurrentUser();
 
-  const availableNav = dashboardNav.filter((item) => (item.key === "activity" ? isOwner : true));
+  const availableNav = dashboardNav.filter((item) => (item.key === 'activity' ? isOwner : true));
 
   return (
     <aside className="fixed inset-y-0 left-0 z-40 hidden h-screen w-72 flex-col border-r border-outline/40 bg-white/95 px-6 py-8 shadow-xl lg:flex">
@@ -53,7 +53,8 @@ export function Sidebar() {
         <nav className="space-y-2">
           {availableNav.map((item) => {
             const Icon = iconMap[item.icon as keyof typeof iconMap] ?? House;
-            const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
+            const isActive =
+              pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
             const label = t(item.key as NavKey);
 
             return (
@@ -61,16 +62,14 @@ export function Sidebar() {
                 key={item.key}
                 href={item.href}
                 className={cn(
-                  "group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition",
-                  isActive
-                    ? "bg-primary text-primary-foreground shadow-sm"
-                    : "text-muted hover:bg-primary-soft hover:text-ink"
+                  'group flex items-center gap-3 rounded-lg px-3 py-2 text-md font-medium transition',
+                  isActive ? 'bg-primary text-white shadow-sm' : 'text-muted hover:bg-primary-soft',
                 )}
               >
                 <Icon
                   size={20}
-                  weight={isActive ? "fill" : "regular"}
-                  className={cn(isActive ? "text-ink" : "text-muted group-hover:text-ink")}
+                  weight={isActive ? 'fill' : 'regular'}
+                  className={cn(isActive ? 'text-white' : 'text-muted')}
                 />
                 <span>{label}</span>
               </Link>
@@ -84,7 +83,7 @@ export function Sidebar() {
         className="mt-6 inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-md transition hover:-translate-y-0.5"
       >
         <PaperPlaneRight size={18} weight="fill" />
-        {tActions("createProposal")}
+        {tActions('createProposal')}
       </Link>
     </aside>
   );

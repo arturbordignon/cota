@@ -10,38 +10,41 @@ export default async function DashboardPage() {
   const tActions = await getTranslations("actions");
 
   const metrics = [
-  {
-    label: 'Propostas enviadas no mês',
-    value: '28',
-    delta: '+12%',
-  },
-  {
-    label: 'Taxa de aceite',
-    value: '67%',
-    delta: '+5% vs. mês anterior',
-  },
-  {
-    label: 'Tempo médio de geração',
-    value: '6 min',
-    delta: '-2 min',
-  },
-];
+    {
+      label: t("metrics.sent.label"),
+      value: t("metrics.sent.value"),
+      delta: t("metrics.sent.delta"),
+    },
+    {
+      label: t("metrics.conversion.label"),
+      value: t("metrics.conversion.value"),
+      delta: t("metrics.conversion.delta"),
+    },
+    {
+      label: t("metrics.time.label"),
+      value: t("metrics.time.value"),
+      delta: t("metrics.time.delta"),
+    },
+  ];
 
-const quickActions = [
+  const quickActions = [
     {
       title: tActions("createProposal"),
       href: "/proposals/new",
-      description: "Monte uma proposta completa com fotos e totais.",
+      description: t("quickAccess.items.createProposal.description"),
+      cta: t("quickAccess.items.createProposal.cta"),
     },
     {
       title: tActions("addClient"),
       href: "/clients/new",
-      description: "Salve dados fiscais e contatos para autofill.",
+      description: t("quickAccess.items.addClient.description"),
+      cta: t("quickAccess.items.addClient.cta"),
     },
     {
       title: tActions("createTemplate"),
       href: "/templates/new",
-      description: "Personalize layouts com campos obrigatórios.",
+      description: t("quickAccess.items.createTemplate.description"),
+      cta: t("quickAccess.items.createTemplate.cta"),
     },
   ];
 
@@ -66,27 +69,24 @@ const quickActions = [
           </Card>
         ))}
       </div>
-      <PageHeader
-        title="Painel de Controle"
-        description="Visão rápida dos créditos e atalhos principais para movimentar o funil de propostas."
-      />
+      <PageHeader title={t("title")} description={t("description")} />
       <Card className="flex flex-col gap-6 rounded-3xl border-none bg-gradient-to-br from-primary-soft to-white px-6 py-6 shadow-md md:flex-row md:items-center md:justify-between">
         <div>
-          <p className="text-sm text-muted">{t("credits")}</p>
-          <p className="font-display text-4xl font-semibold text-ink">100</p>
+          <p className="text-sm text-muted">{t("credits.label")}</p>
+          <p className="font-display text-4xl font-semibold text-ink">{t("credits.value")}</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <Button asChild>
-            <Link href="/plans">{"Comprar Créditos"}</Link>
+            <Link href="/plans">{t("ctaButtons.buyCredits")}</Link>
           </Button>
           <Button variant="secondary" asChild>
-            <Link href="/plans">{"Atualizar Plano"}</Link>
+            <Link href="/plans">{t("ctaButtons.upgradePlan")}</Link>
           </Button>
         </div>
       </Card>
 
       <div>
-        <h2 className="mb-4 text-xl font-semibold text-ink">{t("quickAccess")}</h2>
+        <h2 className="mb-4 text-xl font-semibold text-ink">{t("quickAccess.title")}</h2>
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {quickActions.map((item) => (
             <Card key={item.href} className="group flex flex-col justify-between gap-3 rounded-2xl border border-outline/60 bg-white px-6 py-5 shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
@@ -98,7 +98,7 @@ const quickActions = [
                 className="inline-flex items-center text-sm font-medium text-primary transition-colors group-hover:text-ink"
                 href={item.href}
               >
-                {"Ir agora"}
+                {item.cta}
               </Link>
             </Card>
           ))}

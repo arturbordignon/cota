@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import * as Dialog from "@radix-ui/react-dialog";
 import { SquaresFour, X } from "@phosphor-icons/react";
 
@@ -13,7 +14,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { permissionModules, type PermissionModuleKey } from "@/config/permission-modules";
-import { permissionModuleCopy } from "@/config/permission-module-copy";
 import {
   cloneDepartment,
   clonePermissionMap,
@@ -41,6 +41,9 @@ function createDraft(preset: DepartmentPreset = "none"): DepartmentDraft {
 
 export default function DepartmentsPage() {
   const { isAdmin } = useCurrentUser();
+  const t = useTranslations("departments");
+  const tModules = useTranslations("common.permissionModules");
+  const tPermissions = useTranslations("common.permissions");
   const [departments, setDepartments] = useState<Department[]>(() => sampleDepartments.map(cloneDepartment));
   const [draft, setDraft] = useState<DepartmentDraft>(() => createDraft("view"));
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -48,12 +51,9 @@ export default function DepartmentsPage() {
   if (!isAdmin) {
     return (
       <section className="space-y-6">
-        <PageHeader
-          title="Departamentos"
-          description="Somente administradores podem gerenciar departamentos e permissões."
-        />
+        <PageHeader title={t('restricted.title')} description={t('restricted.description')} />
         <Card className="border border-outline/30 bg-white px-6 py-4 text-sm text-muted">
-          <p>Solicite acesso administrativo para alterar as regras de permissão.</p>
+          <p>{t('restricted.callout')}</p>
         </Card>
       </section>
     );
@@ -151,21 +151,18 @@ export default function DepartmentsPage() {
   return (
     <section className="space-y-6">
       <PageHeader
-        title="Departamentos"
-        description="Defina funções e permissões por departamento para padronizar o acesso da equipe."
+        title={t('title')}
+        description={t('description')}
         action={
           <Button onClick={() => setDialogOpen(true)} className="gap-2">
             <SquaresFour size={18} weight="bold" />
-            Novo departamento
+            {t('actions.new')}
           </Button>
         }
       />
 
       <Card className="border border-outline/40 bg-white px-6 py-4 text-sm text-muted">
-        <p>
-          Cada departamento concentra permissões que serão herdadas pelos membros associados. Utilize presets para agilizar
-          a configuração e ajuste módulos individualmente conforme necessário.
-        </p>
+        <p>{t('infoCard')}</p>
       </Card>
 
       <div className="grid gap-4 xl:grid-cols-2">
@@ -174,14 +171,14 @@ export default function DepartmentsPage() {
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="space-y-2">
                 <div className="space-y-2">
-                  <Label>Nome</Label>
+                  <Label>{t('fields.name')}</Label>
                   <Input
                     value={department.name}
                     onChange={(event) => updateDepartmentField(department.id, "name", event.target.value)}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Descrição</Label>
+                  <Label>{t('fields.description')}</Label>
                   <Textarea
                     value={department.description ?? ""}
                     onChange={(event) => updateDepartmentField(department.id, "description", event.target.value)}
@@ -189,22 +186,27 @@ export default function DepartmentsPage() {
                   />
                 </div>
               </div>
-              <Badge tone="info">{department.permissionPreset ?? "Custom"}</Badge>
+              <Badge tone="info">
+                {t(`presets.badge.${department.permissionPreset ?? 'custom'}`)}
+              </Badge>
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs uppercase tracking-wide text-muted">Aplicar preset:</span>
-              <Button size="sm" variant="ghost" onClick={() => applyPreset(department.id, "none")}>Nenhum</Button>
-              <Button size="sm" variant="outline" onClick={() => applyPreset(department.id, "view")}>
-                Somente ver
+              <span className="text-xs uppercase tracking-wide text-muted">{t('presets.applyLabel')}</span>
+              <Button size="sm" variant="ghost" onClick={() => applyPreset(department.id, "none")}>
+                {t('presets.options.none')}
               </Button>
-              <Button size="sm" onClick={() => applyPreset(department.id, "all")}>Acesso total</Button>
+              <Button size="sm" variant="outline" onClick={() => applyPreset(department.id, "view")}>
+                {t('presets.options.view')}
+              </Button>
+              <Button size="sm" onClick={() => applyPreset(department.id, "all")}>
+                {t('presets.options.all')}
+              </Button>
             </div>
 
             <div className="space-y-2">
               {permissionModules.map((module) => {
                 const ability = department.permissions[module] ?? { view: false, edit: false };
-                const copy = permissionModuleCopy[module];
                 return (
                   <div
                     key={module}
@@ -212,8 +214,8 @@ export default function DepartmentsPage() {
                   >
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <div>
-                        <p className="text-sm font-semibold text-ink">{copy.label}</p>
-                        <p className="text-xs text-muted">{copy.description}</p>
+                        <p className="text-sm font-semibold text-ink">{tModules(`${module}.label`)}</p>
+                        <p className="text-xs text-muted">{tModules(`${module}.description`)}</p>
                       </div>
                       <div className="flex gap-2">
                         <Button
@@ -221,7 +223,7 @@ export default function DepartmentsPage() {
                           variant={ability.view ? "primary" : "outline"}
                           onClick={() => togglePermission(department.id, module, "view")}
                         >
-                          Ver
+                          {tPermissions('actions.view')}
                         </Button>
                         <Button
                           size="sm"
@@ -229,7 +231,7 @@ export default function DepartmentsPage() {
                           onClick={() => togglePermission(department.id, module, "edit")}
                           disabled={!ability.view}
                         >
-                          Editar
+                          {tPermissions('actions.edit')}
                         </Button>
                       </div>
                     </div>
@@ -254,15 +256,13 @@ export default function DepartmentsPage() {
             >
               <header className="flex items-center justify-between border-b border-outline/30 bg-[var(--color-surface-muted)]/50 px-6 py-4">
                 <div>
-                  <Dialog.Title className="text-lg font-semibold text-ink">Novo departamento</Dialog.Title>
-                  <Dialog.Description className="text-xs text-muted">
-                    Defina um nome e escolha um preset para agilizar a configuração das permissões.
-                  </Dialog.Description>
+                  <Dialog.Title className="text-lg font-semibold text-ink">{t('dialog.title')}</Dialog.Title>
+                  <Dialog.Description className="text-xs text-muted">{t('dialog.description')}</Dialog.Description>
                 </div>
                 <Dialog.Close asChild>
                   <button
                     type="button"
-                    aria-label="Fechar"
+                    aria-label={t('dialog.close')}
                     className="rounded-full border border-outline bg-white p-2 text-ink shadow-sm transition hover:bg-primary-soft"
                   >
                     <X size={16} weight="bold" />
@@ -272,27 +272,27 @@ export default function DepartmentsPage() {
 
               <div className="grid gap-4 px-6 py-6">
                 <div className="space-y-2">
-                  <Label htmlFor="department-name">Nome</Label>
+                  <Label htmlFor="department-name">{t('fields.name')}</Label>
                   <Input
                     id="department-name"
                     value={draft.name}
                     onChange={(event) => setDraft((prev) => ({ ...prev, name: event.target.value }))}
-                    placeholder="Ex.: Comercial"
+                    placeholder={t('placeholders.name')}
                     autoFocus
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="department-description">Descrição</Label>
+                  <Label htmlFor="department-description">{t('fields.description')}</Label>
                   <Textarea
                     id="department-description"
                     value={draft.description}
                     onChange={(event) => setDraft((prev) => ({ ...prev, description: event.target.value }))}
                     rows={3}
-                    placeholder="Resumo do propósito desse departamento"
+                    placeholder={t('placeholders.description')}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Preset</Label>
+                  <Label>{t('fields.preset')}</Label>
                   <div className="flex flex-wrap items-center gap-2">
                     <Button
                       type="button"
@@ -300,7 +300,7 @@ export default function DepartmentsPage() {
                       variant={draft.preset === "none" ? "primary" : "outline"}
                       onClick={() => setDraft(createDraft("none"))}
                     >
-                      Nenhum
+                      {t('presets.options.none')}
                     </Button>
                     <Button
                       type="button"
@@ -308,7 +308,7 @@ export default function DepartmentsPage() {
                       variant={draft.preset === "view" ? "primary" : "outline"}
                       onClick={() => setDraft(createDraft("view"))}
                     >
-                      Somente ver
+                      {t('presets.options.view')}
                     </Button>
                     <Button
                       type="button"
@@ -316,22 +316,21 @@ export default function DepartmentsPage() {
                       variant={draft.preset === "all" ? "primary" : "outline"}
                       onClick={() => setDraft(createDraft("all"))}
                     >
-                      Acesso total
+                      {t('presets.options.all')}
                     </Button>
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <p className="text-sm font-semibold text-ink">Permissões</p>
+                  <p className="text-sm font-semibold text-ink">{t('fields.permissions')}</p>
                   {permissionModules.map((module) => {
                     const ability = draft.permissions[module] ?? { view: false, edit: false };
-                    const copy = permissionModuleCopy[module];
                     return (
                       <div key={module} className="rounded-xl border border-outline/40 bg-[var(--color-surface-muted)]/60 p-3">
                         <div className="flex flex-wrap items-center justify-between gap-3">
                           <div>
-                            <p className="text-sm font-semibold text-ink">{copy.label}</p>
-                            <p className="text-xs text-muted">{copy.description}</p>
+                            <p className="text-sm font-semibold text-ink">{tModules(`${module}.label`)}</p>
+                            <p className="text-xs text-muted">{tModules(`${module}.description`)}</p>
                           </div>
                           <div className="flex gap-2">
                             <Button
@@ -340,7 +339,7 @@ export default function DepartmentsPage() {
                               variant={ability.view ? "primary" : "outline"}
                               onClick={() => handleToggleDraftPermission(module, "view")}
                             >
-                              Ver
+                              {tPermissions('actions.view')}
                             </Button>
                             <Button
                               type="button"
@@ -349,7 +348,7 @@ export default function DepartmentsPage() {
                               onClick={() => handleToggleDraftPermission(module, "edit")}
                               disabled={!ability.view}
                             >
-                              Editar
+                              {tPermissions('actions.edit')}
                             </Button>
                           </div>
                         </div>
@@ -362,11 +361,11 @@ export default function DepartmentsPage() {
               <footer className="flex justify-end gap-2 border-t border-outline/20 bg-[var(--color-surface-muted)]/40 px-6 py-4">
                 <Dialog.Close asChild>
                   <Button type="button" variant="ghost">
-                    Cancelar
+                    {t('dialog.actions.cancel')}
                   </Button>
                 </Dialog.Close>
                 <Button type="submit" disabled={!draft.name.trim()}>
-                  Salvar departamento
+                  {t('dialog.actions.submit')}
                 </Button>
               </footer>
             </form>

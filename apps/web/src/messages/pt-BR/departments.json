@@ -1,0 +1,46 @@
+{
+  "title": "Departamentos",
+  "description": "Defina funções e permissões por departamento para padronizar o acesso da equipe.",
+  "infoCard": "Cada departamento concentra permissões herdadas pelos membros associados. Utilize presets para agilizar a configuração e ajuste módulos individualmente conforme necessário.",
+  "actions": {
+    "new": "Novo departamento"
+  },
+  "restricted": {
+    "title": "Departamentos",
+    "description": "Somente administradores podem gerenciar departamentos e permissões.",
+    "callout": "Solicite acesso administrativo para alterar as regras de permissão."
+  },
+  "fields": {
+    "name": "Nome",
+    "description": "Descrição",
+    "preset": "Preset",
+    "permissions": "Permissões"
+  },
+  "placeholders": {
+    "name": "Ex.: Comercial",
+    "description": "Resumo do propósito desse departamento"
+  },
+  "presets": {
+    "applyLabel": "Aplicar preset:",
+    "options": {
+      "none": "Nenhum",
+      "view": "Somente ver",
+      "all": "Acesso total"
+    },
+    "badge": {
+      "none": "Nenhum",
+      "view": "Somente ver",
+      "all": "Acesso total",
+      "custom": "Personalizado"
+    }
+  },
+  "dialog": {
+    "title": "Novo departamento",
+    "description": "Defina um nome e escolha um preset para agilizar a configuração das permissões.",
+    "close": "Fechar",
+    "actions": {
+      "cancel": "Cancelar",
+      "submit": "Salvar departamento"
+    }
+  }
+}

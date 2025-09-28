@@ -5,32 +5,17 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 
-const notifications = [
-  {
-    id: 'notif-1',
-    title: 'Proposta aceita',
-    description: 'A empresa Atlas Engenharia aprovou a proposta #2418.',
-    timestamp: 'Há 2 horas',
-    tone: 'success' as const,
-  },
-  {
-    id: 'notif-2',
-    title: 'Comentário adicionado',
-    description: 'João Lima comentou na proposta #2397 pedindo ajuste de valores.',
-    timestamp: 'Ontem',
-    tone: 'info' as const,
-  },
-  {
-    id: 'notif-3',
-    title: 'Pagamento pendente',
-    description: 'A assinatura da equipe Operations expira em 3 dias.',
-    timestamp: 'Há 3 dias',
-    tone: 'warning' as const,
-  },
-];
+type NotificationEntry = {
+  id: string;
+  title: string;
+  description: string;
+  timestamp: string;
+  tone: 'success' | 'info' | 'warning';
+};
 
 export default async function NotificationsPage() {
   const t = await getTranslations('notifications');
+  const notifications = (t.raw('items') as NotificationEntry[]) ?? [];
 
   return (
     <section className="space-y-6">

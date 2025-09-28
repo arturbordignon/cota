@@ -61,5 +61,59 @@
       "info": "Update",
       "warning": "Attention"
     }
+  },
+  "permissionModules": {
+    "dashboard": {
+      "label": "Dashboard",
+      "description": "Overall performance summary."
+    },
+    "proposals": {
+      "label": "Proposals",
+      "description": "Create, edit, and send proposals."
+    },
+    "templates": {
+      "label": "Templates",
+      "description": "Library of reusable templates."
+    },
+    "prospects": {
+      "label": "Prospects",
+      "description": "Prospecting and qualifying new customers."
+    },
+    "crm": {
+      "label": "Pipeline",
+      "description": "Kanban board and commercial follow-up."
+    },
+    "reports": {
+      "label": "Reports",
+      "description": "Dynamic queries and metrics."
+    },
+    "plan": {
+      "label": "Plans",
+      "description": "Subscription and billing management."
+    },
+    "clients": {
+      "label": "Clients",
+      "description": "Customer records and details."
+    },
+    "services": {
+      "label": "Services",
+      "description": "Catalog of offered services."
+    }
+  },
+  "permissions": {
+    "actions": {
+      "view": "View",
+      "edit": "Edit"
+    },
+    "badges": {
+      "view": {
+        "enabled": "View",
+        "disabled": "Restricted"
+      },
+      "edit": {
+        "enabled": "Edit",
+        "disabled": "View only"
+      }
+    }
   }
 }

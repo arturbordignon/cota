@@ -1,0 +1,33 @@
+{
+  "title": "Notifications",
+  "description": "Review recent updates across proposals, teammates, and billing.",
+  "markAll": "Mark all as read",
+  "tone": {
+    "success": "Success",
+    "info": "Update",
+    "warning": "Attention"
+  },
+  "items": [
+    {
+      "id": "proposalAccepted",
+      "title": "Proposal accepted",
+      "description": "Atlas Engineering approved proposal #2418.",
+      "timestamp": "2 hours ago",
+      "tone": "success"
+    },
+    {
+      "id": "commentAdded",
+      "title": "Comment added",
+      "description": "João Lima left feedback on proposal #2397 requesting pricing adjustments.",
+      "timestamp": "Yesterday",
+      "tone": "info"
+    },
+    {
+      "id": "paymentPending",
+      "title": "Payment pending",
+      "description": "The Operations workspace subscription expires in 3 days.",
+      "timestamp": "3 days ago",
+      "tone": "warning"
+    }
+  ]
+}

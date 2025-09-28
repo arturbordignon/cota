@@ -5,6 +5,7 @@ import "./globals.css";
 
 import { AppProviders } from "@/components/providers/app-providers";
 import { resolveLocale } from "@/lib/locale";
+import { loadMessages } from "@/messages/load-messages";
 import { fontDisplay, fontSans } from "@/lib/fonts";
 import { cn } from "@/lib/utils";
 
@@ -26,7 +27,7 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const locale = resolveLocale();
-  const messages = (await import(`@/messages/${locale}/common.json`)).default;
+  const messages = await loadMessages(locale);
 
   return (
     <html lang={locale} suppressHydrationWarning>

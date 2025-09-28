@@ -1,0 +1,41 @@
+{
+  "title": "Registro de atividades",
+  "description": "Acompanhe ações realizadas pelos membros e eventos automáticos gerados pela plataforma.",
+  "restricted": {
+    "title": "Atividades",
+    "description": "Somente administradores podem visualizar o histórico de auditoria.",
+    "callout": "Solicite acesso administrativo para acompanhar alterações críticas."
+  },
+  "filters": {
+    "searchPlaceholder": "Buscar por pessoa, evento ou contexto",
+    "allModules": "Todos os módulos",
+    "clear": "Limpar filtros"
+  },
+  "states": {
+    "empty": "Nenhum evento encontrado com os filtros atuais."
+  },
+  "categories": {
+    "proposal": "Propostas",
+    "department": "Departamentos",
+    "notifications": "Notificações",
+    "billing": "Cobrança",
+    "user": "Usuários",
+    "system": "Sistema"
+  },
+  "card": {
+    "labels": {
+      "responsible": "Responsável",
+      "when": "Quando",
+      "ip": "IP",
+      "agent": "Agente",
+      "technicalDetails": "Detalhes técnicos"
+    }
+  },
+  "entries": {
+    "proposalAccepted": "Proposta {proposal} aceita por {client}",
+    "departmentUpdated": "Departamento {department} alterou permissões de {module}",
+    "userInvited": "Convidou {invitee} para o departamento {department}",
+    "planChanged": "Plano atualizado de {from} para {to}",
+    "notificationsDispatch": "Resumo diário enviado para {recipients, plural, one {# membro} other {# membros}}"
+  }
+}

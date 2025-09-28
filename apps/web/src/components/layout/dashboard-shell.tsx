@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
-import { PropsWithChildren, ReactNode, useState } from "react";
-import { useRouter } from "next/navigation";
+import { PropsWithChildren, ReactNode, useState } from 'react';
+import { useRouter } from 'next/navigation';
 
-import { Sidebar } from "@/components/layout/sidebar";
-import { Topbar } from "@/components/layout/topbar";
-import { MobileNav } from "@/components/layout/mobile-nav";
+import { Sidebar } from '@/components/layout/sidebar';
+import { Topbar } from '@/components/layout/topbar';
+import { MobileNav } from '@/components/layout/mobile-nav';
 
 interface DashboardShellProps extends PropsWithChildren {
   headerActions?: ReactNode;
@@ -30,11 +30,11 @@ export function DashboardShell({
           userName={userName}
           credits={credits}
           actions={headerActions}
-          onCreateProposal={() => router.push("/proposals/new")}
+          onCreateProposal={() => router.push('/proposals/new')}
           mobileNavTrigger={<MobileNav open={mobileNavOpen} onOpenChange={setMobileNavOpen} />}
         />
         <main className="flex-1 px-4 py-6 sm:px-6 lg:px-10">
-          <div className="mx-auto w-full max-w-6xl space-y-8">{children}</div>
+          <div className="mx-auto w-full space-y-8">{children}</div>
         </main>
       </div>
     </div>

@@ -11,6 +11,7 @@ export interface CurrentUser {
   role: UserRole;
   department: string;
   avatarUrl?: string;
+  token?: string;
 }
 
 interface UserContextValue {
@@ -26,6 +27,7 @@ const defaultUser: CurrentUser = {
   email: "ana.souza@servicepro.io",
   role: "owner",
   department: "comercial",
+  token: process.env.NEXT_PUBLIC_API_TOKEN,
 };
 
 const UserContext = createContext<UserContextValue | undefined>(undefined);

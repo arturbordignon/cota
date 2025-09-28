@@ -1,0 +1,43 @@
+{
+  "title": "Clientes",
+  "description": "Centralize dados fiscais, limites de crédito e histórico para negociar com mais confiança.",
+  "actions": {
+    "add": "Adicionar cliente"
+  },
+  "warnings": {
+    "tokenMissing": "Defina a variável NEXT_PUBLIC_API_TOKEN ou autentique-se para consultar os clientes reais."
+  },
+  "states": {
+    "loading": "Carregando clientes...",
+    "error": "Não foi possível carregar os clientes.",
+    "empty": "Nenhum cliente cadastrado ainda. Utilize o botão acima para adicionar o primeiro contato."
+  },
+  "badges": {
+    "memberSince": "Desde {date}"
+  },
+  "dialog": {
+    "title": "Adicionar cliente",
+    "description": "Informe os dados principais para cadastrar um novo contato.",
+    "fields": {
+      "name": "Nome completo",
+      "company": "Razão social",
+      "email": "E-mail corporativo",
+      "phone": "Telefone",
+      "notes": "Observações"
+    },
+    "errors": {
+      "name": "Informe o nome do cliente",
+      "email": "E-mail inválido"
+    },
+    "placeholders": {
+      "name": "Ex.: Construtora Horizonte",
+      "company": "Nome jurídico",
+      "email": "contato@empresa.com",
+      "phone": "+55 (11) 99999-0000",
+      "notes": "Segmento, preferências, contatos extras"
+    },
+    "cancel": "Cancelar",
+    "save": "Salvar cliente",
+    "saving": "Salvando..."
+  }
+}

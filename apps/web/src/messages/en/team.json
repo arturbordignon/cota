@@ -1,0 +1,52 @@
+{
+  "title": "Team",
+  "description": "Assign each teammate to a department to apply consistent permissions.",
+  "infoCard": "Permissions inherit from the selected department. Update department rules through Manage departments.",
+  "actions": {
+    "manageDepartments": "Manage departments",
+    "addMember": "Add member"
+  },
+  "memberCard": {
+    "badge": {
+      "noDepartment": "No department"
+    },
+    "fields": {
+      "department": "Department"
+    },
+    "sections": {
+      "permissions": "Inherited permissions"
+    },
+    "buttons": {
+      "revert": "Revert",
+      "save": "Save changes"
+    }
+  },
+  "restricted": {
+    "title": "Team",
+    "description": "Your account does not have administrative access to manage permissions.",
+    "callout": "Contact an administrator to request department updates or access changes."
+  },
+  "dialog": {
+    "title": "Invite member",
+    "description": "Select the correct department so permissions are applied automatically.",
+    "close": "Close",
+    "fields": {
+      "name": "Full name",
+      "email": "Work email",
+      "role": "Role",
+      "department": "Department"
+    },
+    "placeholders": {
+      "name": "e.g. Fernanda Matos",
+      "email": "name@yourcompany.com",
+      "role": "e.g. Commercial Analyst"
+    },
+    "actions": {
+      "cancel": "Cancel",
+      "submit": "Send invite"
+    }
+  },
+  "defaults": {
+    "role": "Collaborator"
+  }
+}

@@ -61,5 +61,59 @@
       "info": "Atualização",
       "warning": "Atenção"
     }
+  },
+  "permissionModules": {
+    "dashboard": {
+      "label": "Painel",
+      "description": "Resumo geral de desempenho."
+    },
+    "proposals": {
+      "label": "Propostas",
+      "description": "Criação, edição e envio de propostas."
+    },
+    "templates": {
+      "label": "Modelos",
+      "description": "Biblioteca de modelos reutilizáveis."
+    },
+    "prospects": {
+      "label": "Prospects",
+      "description": "Prospecção e qualificação de novos clientes."
+    },
+    "crm": {
+      "label": "Pipeline",
+      "description": "Kanban e acompanhamento comercial."
+    },
+    "reports": {
+      "label": "Relatórios",
+      "description": "Consultas dinâmicas e métricas."
+    },
+    "plan": {
+      "label": "Planos",
+      "description": "Gestão de assinatura e cobrança."
+    },
+    "clients": {
+      "label": "Clientes",
+      "description": "Cadastro e detalhes dos clientes."
+    },
+    "services": {
+      "label": "Serviços",
+      "description": "Catálogo de serviços oferecidos."
+    }
+  },
+  "permissions": {
+    "actions": {
+      "view": "Ver",
+      "edit": "Editar"
+    },
+    "badges": {
+      "view": {
+        "enabled": "Ver",
+        "disabled": "Restrito"
+      },
+      "edit": {
+        "enabled": "Editar",
+        "disabled": "Somente ver"
+      }
+    }
   }
 }
