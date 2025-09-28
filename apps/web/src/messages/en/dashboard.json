@@ -2,7 +2,7 @@
   "title": "Control Panel",
   "description": "Quick overview of credits and shortcuts to keep the proposal pipeline moving.",
   "credits": {
-    "label": "Credit balance",
+    "label": "Credits",
     "unlimited": "Unlimited",
     "unavailable": "—"
   },

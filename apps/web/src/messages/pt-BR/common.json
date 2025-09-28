@@ -4,7 +4,7 @@
     "title": "Painel de Controle",
     "welcome": "Bem-vindo de volta, {name}!",
     "quickAccess": "Acesso Rápido",
-    "credits": "Saldo de Créditos"
+    "credits": "Créditos"
   },
   "navigation": {
     "dashboard": "Painel",
@@ -40,11 +40,7 @@
       "prospects": "Prospects"
     },
     "recentLabel": "Buscas recentes",
-    "recentSamples": [
-      "Contrato manutenção",
-      "Proposta 2418",
-      "Cliente: Capixaba"
-    ]
+    "recentSamples": ["Contrato manutenção", "Proposta 2418", "Cliente: Capixaba"]
   },
   "topbar": {
     "openSearch": "Abrir busca",

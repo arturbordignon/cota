@@ -2,7 +2,7 @@
   "title": "Painel de Controle",
   "description": "Visão rápida dos créditos e atalhos principais para movimentar o funil de propostas.",
   "credits": {
-    "label": "Saldo de créditos",
+    "label": "Créditos",
     "unlimited": "Ilimitado",
     "unavailable": "—"
   },
