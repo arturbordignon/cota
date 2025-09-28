@@ -2,25 +2,26 @@
   "title": "Control Panel",
   "description": "Quick overview of credits and shortcuts to keep the proposal pipeline moving.",
   "credits": {
-    "label": "Credits",
-    "value": "100"
+    "label": "Credit balance",
+    "unlimited": "Unlimited",
+    "unavailable": "—"
   },
   "metrics": {
     "sent": {
       "label": "Proposals sent this month",
-      "value": "28",
-      "delta": "+12% vs. previous month"
+      "delta": "{value} vs. previous month"
     },
     "conversion": {
       "label": "Acceptance rate",
-      "value": "67%",
-      "delta": "+5% vs. previous month"
+      "delta": "{value} vs. previous month"
     },
     "time": {
       "label": "Average creation time",
-      "value": "6 min",
-      "delta": "-2 min"
-    }
+      "delta": "{value} vs. previous month",
+      "unit": "min"
+    },
+    "noData": "No data yet",
+    "deltaUnavailable": "No comparison yet"
   },
   "quickAccess": {
     "title": "Quick access",
@@ -42,5 +43,11 @@
   "ctaButtons": {
     "buyCredits": "Buy credits",
     "upgradePlan": "Upgrade plan"
+  },
+  "warnings": {
+    "tokenMissing": "Set the variable NEXT_PUBLIC_API_TOKEN or authenticate to load live data."
+  },
+  "states": {
+    "error": "Unable to load dashboard data."
   }
 }

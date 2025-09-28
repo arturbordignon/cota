@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { ChartLine, Sparkle, Table as TableIcon } from "@phosphor-icons/react";
 import {
   Bar,
@@ -10,14 +10,12 @@ import {
   Funnel,
   FunnelChart,
   LabelList,
-  Legend,
-  Line,
-  LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
+import { useQuery } from "@tanstack/react-query";
 
 import { PageHeader } from "@/components/layout/page-header";
 import { Badge } from "@/components/ui/badge";
@@ -28,6 +26,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectItem } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { useApi } from "@/hooks/use-api";
+import { ReportsOverviewResponse } from "@/types/api";
 
 const suggestions = [
   "Receita por cliente nos últimos 90 dias",
@@ -35,8 +35,6 @@ const suggestions = [
   "Tempo médio entre proposta e faturamento",
   "Propostas enviadas por segmento",
 ];
-
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 type ReportPayload = {
   sql: string;
@@ -48,262 +46,42 @@ type ReportPayload = {
   result: unknown;
 };
 
-type MiniMetric = {
-  label: string;
-  value: string;
-  change?: string;
-};
-
-type LineChartConfig = {
-  type: "line";
-  data: Array<{ name: string; value: number; target?: number }>;
-  valueFormatter?: (value: number) => string;
-};
-
-type BarChartConfig = {
-  type: "bar";
-  data: Array<{ name: string; value: number; color?: string }>;
-  valueFormatter?: (value: number) => string;
-};
-
-type TableChartConfig = {
-  type: "table";
-  columns: string[];
-  rows: (string | number)[][];
-};
-
-type FunnelChartConfig = {
-  type: "funnel";
-  data: Array<{ name: string; value: number }>;
-  valueFormatter?: (value: number) => string;
-};
-
-type ReportCard = {
-  id: string;
-  title: string;
-  description: string;
-  period: string;
-  changeLabel?: string;
-  metrics: MiniMetric[];
-  content: LineChartConfig | BarChartConfig | TableChartConfig | FunnelChartConfig;
-};
-
-const formatPercent = (value: number, options?: { signed?: boolean; decimals?: number }) => {
-  const decimals = options?.decimals ?? 1;
-  const percent = value * 100;
-  const pow = Math.pow(10, decimals);
-  const rounded = Math.round(percent * pow) / pow;
-  const formatted = Math.abs(rounded).toFixed(decimals).replace('.', ',');
-  if (options?.signed) {
-    const sign = rounded >= 0 ? '+' : '-';
-    return `${sign}${formatted}%`;
-  }
-  return `${formatted}%`;
-};
 const toCurrency = (value: number) =>
   value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
 
-const performanceReports: ReportCard[] = [
-  {
-    id: 'conversion',
-    title: 'Taxa de conversão',
-    description: 'Percentual de propostas aceitas versus enviadas.',
-    period: 'Últimos 8 meses',
-    changeLabel: '+5,4% vs. período anterior',
-    metrics: [
-      { label: 'Taxa média', value: '62%', change: '+3%' },
-      { label: 'Propostas enviadas', value: '148' },
-      { label: 'Aceites', value: '92' },
-      { label: 'Meta', value: '65%' },
-    ],
-    content: {
-      type: 'line',
-      data: [
-        { name: 'Set', value: 0.45, target: 0.55 },
-        { name: 'Out', value: 0.48, target: 0.57 },
-        { name: 'Nov', value: 0.52, target: 0.58 },
-        { name: 'Dez', value: 0.55, target: 0.6 },
-        { name: 'Jan', value: 0.6, target: 0.62 },
-        { name: 'Fev', value: 0.63, target: 0.63 },
-        { name: 'Mar', value: 0.65, target: 0.64 },
-        { name: 'Abr', value: 0.68, target: 0.65 },
-      ],
-      valueFormatter: (value) => formatPercent(value),
-    },
-  },
-  {
-    id: 'cycle',
-    title: 'Ciclo médio',
-    description: 'Dias entre criação e aceite das propostas comerciais.',
-    period: 'Último semestre',
-    metrics: [
-      { label: 'Ciclo atual', value: '21 dias', change: '-2 dias' },
-      { label: 'Ciclo alvo', value: '18 dias' },
-      { label: 'Melhor mês', value: '19 dias' },
-    ],
-    content: {
-      type: 'line',
-      data: [
-        { name: 'Nov', value: 30, target: 24 },
-        { name: 'Dez', value: 28, target: 23 },
-        { name: 'Jan', value: 26, target: 22 },
-        { name: 'Fev', value: 24, target: 21 },
-        { name: 'Mar', value: 22, target: 20 },
-        { name: 'Abr', value: 21, target: 19 },
-      ],
-      valueFormatter: (value) => `${value.toFixed(0)} dias`,
-    },
-  },
-];
+const STATUS_BADGES: Record<string, { label: string; tone: 'neutral' | 'info' | 'warning' | 'success' | 'danger' }> = {
+  DRAFT: { label: 'Rascunho', tone: 'neutral' },
+  PENDING: { label: 'Pendente', tone: 'warning' },
+  SENT: { label: 'Enviada', tone: 'info' },
+  ACCEPTED: { label: 'Aceita', tone: 'success' },
+  DECLINED: { label: 'Recusada', tone: 'danger' },
+  EXPIRED: { label: 'Expirada', tone: 'danger' },
+  default: { label: 'Outros', tone: 'neutral' },
+};
+const TONE_COLORS: Record<'neutral' | 'info' | 'warning' | 'success' | 'danger', string> = {
+  neutral: 'var(--color-outline)',
+  info: 'var(--color-primary)',
+  warning: 'var(--color-warning)',
+  success: 'var(--color-success)',
+  danger: 'var(--color-danger)',
+};
 
-const performanceDetail = [
-  { consultant: 'Ana Souza', proposals: 24, accepted: 18, conversion: 0.75, cycle: 18 },
-  { consultant: 'Marcos Dias', proposals: 21, accepted: 14, conversion: 0.67, cycle: 20 },
-  { consultant: 'Fernanda Alves', proposals: 18, accepted: 10, conversion: 0.56, cycle: 23 },
-  { consultant: 'João Lima', proposals: 15, accepted: 9, conversion: 0.6, cycle: 24 },
-];
+type BarDatum = { name: string; value: number; color?: string };
 
-const revenueReports: ReportCard[] = [
-  {
-    id: 'revenue-clients',
-    title: 'Receita por cliente',
-    description: 'Top clientes pelo valor contratado nos últimos 90 dias.',
-    period: '90 dias',
-    metrics: [
-      { label: 'Ticket médio', value: 'R$ 18,4 mil' },
-      { label: 'Clientes ativos', value: '27' },
-    ],
-    content: {
-      type: 'bar',
-      data: [
-        { name: 'Atlas', value: 42000 },
-        { name: 'MetalF.', value: 36500 },
-        { name: 'LogInt.', value: 29800 },
-        { name: 'SkyLift', value: 22100 },
-        { name: 'Rodarte', value: 18700 },
-        { name: 'PortLoad', value: 16400 },
-      ],
-      valueFormatter: toCurrency,
-    },
-  },
-  {
-    id: 'segment-table',
-    title: 'Receita por segmento',
-    description: 'Resumo de propostas e faturamento por segmento.',
-    period: 'Últimos 60 dias',
-    metrics: [
-      { label: 'Segmentos', value: '6' },
-      { label: 'Receita total', value: 'R$ 612 mil' },
-    ],
-    content: {
-      type: 'table',
-      columns: ['Segmento', 'Propostas', 'Receita', 'Taxa de aceite'],
-      rows: [
-        ['Construção Pesada', 38, 'R$ 280.000', '68%'],
-        ['Logística', 22, 'R$ 142.500', '59%'],
-        ['Energia', 18, 'R$ 110.200', '64%'],
-        ['Industrial', 14, 'R$ 79.500', '57%'],
-        ['Portuário', 9, 'R$ 54.800', '72%'],
-        ['Agrícola', 7, 'R$ 45.600', '61%'],
-      ],
-    },
-  },
-];
-
-const revenueDetail = [
-  { segment: 'Construção', clients: 8, avgTicket: 23500, growth: 0.18 },
-  { segment: 'Logística', clients: 6, avgTicket: 19800, growth: 0.12 },
-  { segment: 'Energia', clients: 5, avgTicket: 22100, growth: 0.09 },
-  { segment: 'Industrial', clients: 4, avgTicket: 19875, growth: -0.04 },
-];
-
-const operationsReports: ReportCard[] = [
-  {
-    id: 'pipeline',
-    title: 'Pipeline operacional',
-    description: 'Quantidade de propostas por etapa do processo comercial.',
-    period: 'Mensal',
-    metrics: [
-      { label: 'Total negociado', value: 'R$ 1,8 mi' },
-      { label: 'Fechadas', value: '68' },
-      { label: 'Taxa de avanço', value: '31%' },
-    ],
-    content: {
-      type: 'funnel',
-      data: [
-        { name: 'Criadas', value: 220 },
-        { name: 'Enviadas', value: 180 },
-        { name: 'Negociação', value: 110 },
-        { name: 'Fechadas', value: 68 },
-        { name: 'Faturadas', value: 54 },
-      ],
-      valueFormatter: (value) => `${value} propostas`,
-    },
-  },
-  {
-    id: 'team-performance',
-    title: 'Performance por consultor',
-    description: 'Propostas enviadas, aceites e ticket médio por membro da equipe.',
-    period: 'Últimos 30 dias',
-    metrics: [
-      { label: 'Equipe ativa', value: '8 membros' },
-    ],
-    content: {
-      type: 'table',
-      columns: ['Consultor', 'Enviadas', 'Aceites', 'Ticket médio'],
-      rows: [
-        ['Ana Souza', 24, '18', 'R$ 19.200'],
-        ['Marcos Dias', 21, '14', 'R$ 16.450'],
-        ['Fernanda Alves', 18, '10', 'R$ 14.800'],
-        ['João Lima', 15, '9', 'R$ 13.100'],
-      ],
-    },
-  },
-];
-
-const operationsDetail = [
-  { stage: 'Criadas', duration: '-', dropoff: 0 },
-  { stage: 'Enviadas', duration: '3 dias', dropoff: 0.18 },
-  { stage: 'Negociação', duration: '9 dias', dropoff: 0.39 },
-  { stage: 'Fechadas', duration: '6 dias', dropoff: 0.38 },
-  { stage: 'Faturadas', duration: '4 dias', dropoff: 0.21 },
-];
-
-function LineChartViz(config: LineChartConfig) {
-  const formatter = config.valueFormatter ?? ((value: number) => value.toLocaleString('pt-BR'));
-  return (
-    <div className="h-60">
-      <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={config.data} margin={{ top: 8, right: 16, bottom: 8, left: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="var(--color-outline)" />
-          <XAxis dataKey="name" stroke="var(--color-muted)" />
-          <YAxis stroke="var(--color-muted)" tickFormatter={formatter} width={70} />
-          <Tooltip formatter={(value: number) => formatter(value)} contentStyle={{ borderRadius: 12 }} labelStyle={{ fontWeight: 600 }} />
-          <Legend />
-          <Line type="monotone" dataKey="value" name="Realizado" stroke="var(--color-primary)" strokeWidth={3} dot />
-          {config.data.some((item) => item.target !== undefined) ? (
-            <Line type="monotone" dataKey="target" name="Meta" stroke="var(--color-success)" strokeDasharray="4 4" />
-          ) : null}
-        </LineChart>
-      </ResponsiveContainer>
-    </div>
-  );
-}
-
-function BarChartViz(config: BarChartConfig) {
-  const formatter = config.valueFormatter ?? toCurrency;
+function BarChartViz({ data, valueFormatter }: { data: BarDatum[]; valueFormatter?: (value: number) => string }) {
+  const formatter = valueFormatter ?? ((value: number) => value.toLocaleString('pt-BR'));
   return (
     <div className="h-64">
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={config.data} margin={{ top: 8, right: 16, bottom: 24, left: -10 }}>
+        <BarChart data={data} margin={{ top: 8, right: 16, bottom: 24, left: -10 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--color-outline)" vertical={false} />
           <XAxis dataKey="name" stroke="var(--color-muted)" />
           <YAxis stroke="var(--color-muted)" tickFormatter={(value) => formatter(value)} width={70} />
           <Tooltip formatter={(value: number) => formatter(value)} contentStyle={{ borderRadius: 12 }} />
           <Bar dataKey="value" radius={[12, 12, 4, 4]}>
             <LabelList position="top" formatter={(value: number) => formatter(value)} />
-            {config.data.map((entry, index) => (
-              <Cell key={entry.name} fill={entry.color ?? `hsl(35 ${66 - index * 8}% ${55 - index * 4}%)`} />
+            {data.map((entry, index) => (
+              <Cell key={entry.name} fill={entry.color ?? `hsl(215 ${65 - index * 6}% ${58 - index * 3}%)`} />
             ))}
           </Bar>
         </BarChart>
@@ -312,9 +90,11 @@ function BarChartViz(config: BarChartConfig) {
   );
 }
 
-function FunnelChartViz(config: FunnelChartConfig) {
-  const formatter = config.valueFormatter ?? ((value: number) => `${value}`);
-  const first = config.data[0]?.value ?? 0;
+type FunnelDatum = { name: string; value: number };
+
+function FunnelChartViz({ data, valueFormatter }: { data: FunnelDatum[]; valueFormatter?: (value: number) => string }) {
+  const formatter = valueFormatter ?? ((value: number) => value.toLocaleString('pt-BR'));
+  const first = data[0]?.value ?? 0;
   return (
     <div className="h-72">
       <ResponsiveContainer width="100%" height="100%">
@@ -327,7 +107,7 @@ function FunnelChartViz(config: FunnelChartConfig) {
             contentStyle={{ borderRadius: 12 }}
           />
           <Funnel
-            data={config.data.map((item, index) => ({
+            data={data.map((item, index) => ({
               ...item,
               fill: `hsl(215 ${65 - index * 6}% ${60 - index * 4}%)`,
             }))}
@@ -335,7 +115,7 @@ function FunnelChartViz(config: FunnelChartConfig) {
             nameKey="name"
             isAnimationActive={false}
           >
-            <LabelList position="right" formatter={(value: number) => `${value}`} fill="var(--color-muted)" />
+            <LabelList position="right" formatter={(value: number) => formatter(value)} fill="var(--color-muted)" />
           </Funnel>
         </FunnelChart>
       </ResponsiveContainer>
@@ -343,7 +123,7 @@ function FunnelChartViz(config: FunnelChartConfig) {
   );
 }
 
-function ReportTable({ columns, rows }: TableChartConfig) {
+function SimpleTable({ columns, rows }: { columns: string[]; rows: (string | number)[][] }) {
   return (
     <div className="overflow-auto rounded-lg border border-outline/40">
       <table className="w-full min-w-[360px] text-left text-xs">
@@ -372,28 +152,77 @@ function ReportTable({ columns, rows }: TableChartConfig) {
   );
 }
 
-function renderContent(content: ReportCard['content']) {
-  switch (content.type) {
-    case 'line':
-      return <LineChartViz {...content} />;
-    case 'bar':
-      return <BarChartViz {...content} />;
-    case 'funnel':
-      return <FunnelChartViz {...content} />;
-    case 'table':
-      return <ReportTable {...content} />;
-    default:
-      return null;
-  }
-}
-
 export default function ReportsPage() {
+  const api = useApi();
+  const overviewQuery = useQuery({
+    queryKey: ['reports', 'overview'],
+    queryFn: () => api.get<ReportsOverviewResponse>('/reports/overview'),
+    enabled: Boolean(api.token),
+  });
+  const overview = overviewQuery.data?.data;
+  const isTokenMissing = !api.token;
+
   const [query, setQuery] = useState('');
   const [dateRange, setDateRange] = useState('');
   const [visualization, setVisualization] = useState<'table' | 'bar' | 'line'>('table');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [report, setReport] = useState<ReportPayload | null>(null);
+
+  const overviewError = overviewQuery.error as Error | null;
+  const statusEntries = useMemo(() => {
+    if (!overview?.proposalsByStatus) return [] as Array<{ status: string; label: string; count: number; tone: 'neutral' | 'info' | 'warning' | 'success' | 'danger' }>;
+    return Object.entries(overview.proposalsByStatus).map(([status, count]) => {
+      const entry = STATUS_BADGES[status] ?? STATUS_BADGES.default;
+      return { status, label: entry.label, count, tone: entry.tone };
+    });
+  }, [overview?.proposalsByStatus]);
+
+  const topClients = useMemo(() => overview?.topClients ?? [], [overview?.topClients]);
+  const recentProposals = useMemo(() => overview?.recentProposals ?? [], [overview?.recentProposals]);
+  const pipelineSummary = useMemo(() => overview?.pipelineSummary ?? [], [overview?.pipelineSummary]);
+
+  const totalProposals = useMemo(() => statusEntries.reduce((acc, entry) => acc + entry.count, 0), [statusEntries]);
+
+  const statusChartData = useMemo(() =>
+    statusEntries.map((entry) => ({
+      name: entry.label,
+      value: entry.count,
+      color: TONE_COLORS[entry.tone],
+    })),
+  [statusEntries]);
+
+  const topClientsChartData = useMemo(() =>
+    topClients.map((client) => ({
+      name: client.client,
+      value: client.value ?? 0,
+    })),
+  [topClients]);
+
+  const pipelineChartData = useMemo(
+    () => pipelineSummary.map((stage) => ({ name: stage.name, value: stage.leadCount })),
+    [pipelineSummary]
+  );
+
+  const totalPipelineLeads = useMemo(
+    () => pipelineSummary.reduce((acc, stage) => acc + stage.leadCount, 0),
+    [pipelineSummary]
+  );
+
+  const totalPipelineValue = useMemo(
+    () => pipelineSummary.reduce((acc, stage) => acc + (stage.totalValue ?? 0), 0),
+    [pipelineSummary]
+  );
+
+  const pipelineTableRows = useMemo(
+    () =>
+      pipelineSummary.map((stage) => [
+        stage.name,
+        stage.leadCount,
+        stage.totalValue != null ? toCurrency(stage.totalValue) : '—',
+      ]),
+    [pipelineSummary]
+  );
 
   const parseRange = (value: string) => {
     const parts = value.split('-').map((part) => part.trim());
@@ -416,8 +245,8 @@ export default function ReportsPage() {
       return;
     }
 
-    if (!API_BASE) {
-      setError('Configure NEXT_PUBLIC_API_BASE_URL para gerar relatórios.');
+    if (!api.token) {
+      setError('Autentique-se para gerar relatórios.');
       return;
     }
 
@@ -425,25 +254,11 @@ export default function ReportsPage() {
     setError(null);
 
     try {
-      const response = await fetch(`${API_BASE}/api/v1/reports/run`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          question: query,
-          visualization,
-          dateRange: parseRange(dateRange),
-        }),
+      const payload = await api.post<{ data: ReportPayload }>('/reports/run', {
+        question: query,
+        visualization,
+        dateRange: parseRange(dateRange),
       });
-
-      if (!response.ok) {
-        const payload = await response.json().catch(() => ({ message: 'Não foi possível gerar o relatório.' }));
-        setError(payload.message ?? 'Não foi possível gerar o relatório.');
-        setReport(null);
-        return;
-      }
-
-      const payload = (await response.json()) as { data: ReportPayload };
       setReport(payload.data);
     } catch (err) {
       console.error(err);
@@ -463,181 +278,206 @@ export default function ReportsPage() {
 
   return (
     <section className="space-y-6">
+      {isTokenMissing ? (
+        <Card className="border border-warning/40 bg-warning-soft px-6 py-4 text-sm text-warning">
+          Defina a variável `NEXT_PUBLIC_API_TOKEN` ou autentique-se para consultar seus dados reais.
+        </Card>
+      ) : null}
+
+      {overviewError && !isTokenMissing ? (
+        <Card className="border border-danger/40 bg-danger-soft/20 px-6 py-4 text-sm text-danger">
+          Não foi possível carregar os indicadores: {overviewError.message}
+        </Card>
+      ) : null}
+
+      {overview && statusEntries.length > 0 ? (
+        <div className="grid gap-4 lg:grid-cols-3">
+          {statusEntries.map((entry) => (
+            <Card key={entry.status} className="rounded-3xl border border-outline/40 bg-white px-5 py-4 shadow-sm">
+              <p className="text-xs uppercase tracking-wide text-muted">{entry.label}</p>
+              <p className="mt-2 text-2xl font-semibold text-ink">{entry.count}</p>
+            </Card>
+          ))}
+        </div>
+      ) : null}
+
+      {overview ? (
+        <div className="grid gap-4 lg:grid-cols-3">
+          <Card className="lg:col-span-2 space-y-3 border border-outline/40 bg-white px-6 py-5 shadow-sm">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-ink">Top clientes (últimas propostas aceitas)</h3>
+              <Badge tone="info">Atualizado</Badge>
+            </div>
+            <div className="overflow-auto rounded-lg border border-outline/40">
+              <table className="w-full min-w-[320px] text-left text-sm">
+                <thead className="bg-[var(--color-surface-muted)]/40 text-xs uppercase tracking-wide text-muted">
+                  <tr>
+                    <th className="px-4 py-2">Cliente</th>
+                    <th className="px-4 py-2 text-right">Valor</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {topClients.slice(0, 5).map((client) => (
+                    <tr key={client.client} className="border-t border-outline/30">
+                      <td className="px-4 py-2 text-ink">{client.client}</td>
+                      <td className="px-4 py-2 text-right text-primary">{toCurrency(client.value)}</td>
+                    </tr>
+                  ))}
+                  {topClients.length === 0 ? (
+                    <tr>
+                      <td colSpan={2} className="px-4 py-6 text-center text-muted">
+                        Nenhum cliente com propostas aceitas neste período.
+                      </td>
+                    </tr>
+                  ) : null}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+          <Card className="space-y-3 border border-outline/40 bg-white px-6 py-5 shadow-sm">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-ink">Propostas recentes</h3>
+              <Badge tone="neutral">Últimos 30 dias</Badge>
+            </div>
+            <div className="space-y-2 text-sm">
+              {recentProposals.slice(0, 6).map((item) => (
+                <div key={item.id} className="rounded-lg border border-outline/30 bg-[var(--color-surface-muted)]/40 px-3 py-2">
+                  <p className="font-semibold text-ink">{item.title ?? 'Sem título'}</p>
+                  <p className="text-xs text-muted">{item.client ?? 'Sem cliente'} • {new Date(item.createdAt).toLocaleDateString('pt-BR')}</p>
+                  <Badge tone={STATUS_BADGES[item.status]?.tone ?? 'neutral'} className="mt-1">
+                    {STATUS_BADGES[item.status]?.label ?? item.status}
+                  </Badge>
+                </div>
+              ))}
+              {recentProposals.length === 0 ? (
+                <p className="rounded-lg border border-dashed border-outline/40 bg-white/80 px-3 py-4 text-center text-xs text-muted">
+                  Nenhuma proposta criada no período.
+                </p>
+              ) : null}
+            </div>
+          </Card>
+        </div>
+      ) : null}
+
       <PageHeader
         title="Relatórios dinâmicos"
         description="Peça insights com linguagem natural. Geramos a consulta SQL e apresentamos os dados como tabela ou gráfico."
       />
 
-      <Tabs defaultValue="performance" className="space-y-4">
+
+
+      <Tabs defaultValue="overview" className="space-y-4">
         <TabsList className="flex w-full flex-wrap gap-2">
-          <TabsTrigger value="performance">Performance comercial</TabsTrigger>
-          <TabsTrigger value="revenue">Receita & clientes</TabsTrigger>
-          <TabsTrigger value="operations">Pipeline & operações</TabsTrigger>
+          <TabsTrigger value="overview">Visão geral</TabsTrigger>
           <TabsTrigger value="custom">Gerador personalizado</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="performance">
-          <div className="grid gap-4 lg:grid-cols-2">
-            {performanceReports.map((card) => (
-              <Card key={card.id} className="space-y-4 p-6">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <h3 className="text-base font-semibold text-ink">{card.title}</h3>
-                    <p className="text-xs text-muted">{card.description}</p>
+        <TabsContent value="overview">
+          {overviewQuery.isLoading ? (
+            <Card className="p-6 text-sm text-muted">Carregando indicadores...</Card>
+          ) : overview ? (
+            <div className="space-y-4">
+              <div className="grid gap-4 lg:grid-cols-2">
+                <Card className="space-y-4 p-6">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-semibold text-ink">Propostas por status</h3>
+                    <Badge tone="neutral">{totalProposals.toLocaleString('pt-BR')} no período</Badge>
                   </div>
-                  <Badge tone="info">{card.period}</Badge>
+                  {statusChartData.length > 0 ? (
+                    <BarChartViz data={statusChartData} valueFormatter={(value) => Number(value).toLocaleString('pt-BR')} />
+                  ) : (
+                    <p className="text-xs text-muted">Sem propostas registradas neste período.</p>
+                  )}
+                </Card>
+
+                <Card className="space-y-4 p-6">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-semibold text-ink">Receita por cliente</h3>
+                    <Badge tone="info">Top 5</Badge>
+                  </div>
+                  {topClientsChartData.length > 0 ? (
+                    <BarChartViz data={topClientsChartData} valueFormatter={(value) => toCurrency(Number(value))} />
+                  ) : (
+                    <p className="text-xs text-muted">Nenhum cliente com propostas aceitas ainda.</p>
+                  )}
+                </Card>
+              </div>
+
+              <div className="grid gap-4 lg:grid-cols-2">
+                <Card className="space-y-4 p-6">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-semibold text-ink">Resumo do pipeline</h3>
+                    <Badge tone="info">
+                      {totalPipelineLeads.toLocaleString('pt-BR')} leads • {toCurrency(totalPipelineValue)}
+                    </Badge>
+                  </div>
+                  {pipelineTableRows.length > 0 ? (
+                    <SimpleTable columns={['Etapa', 'Leads', 'Valor estimado']} rows={pipelineTableRows} />
+                  ) : (
+                    <p className="text-xs text-muted">Cadastre etapas e leads no pipeline para acompanhar aqui.</p>
+                  )}
+                </Card>
+
+                <Card className="space-y-4 p-6">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-semibold text-ink">Distribuição do pipeline</h3>
+                    <Badge tone="neutral">Leads por etapa</Badge>
+                  </div>
+                  {pipelineChartData.length > 0 ? (
+                    <FunnelChartViz
+                      data={pipelineChartData}
+                      valueFormatter={(value) => `${Number(value).toLocaleString('pt-BR')} leads`}
+                    />
+                  ) : (
+                    <p className="text-xs text-muted">Nenhum lead nas etapas do pipeline.</p>
+                  )}
+                </Card>
+              </div>
+
+              <Card className="space-y-4 p-6">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-ink">Propostas recentes</h3>
+                  <Badge tone="neutral">Últimos 30 dias</Badge>
                 </div>
-                {card.changeLabel ? <p className="text-xs font-medium text-success">{card.changeLabel}</p> : null}
-                <div className="border-b border-outline/20 pb-4">{renderContent(card.content)}</div>
-                <div className="grid gap-3 sm:grid-cols-3">
-                  {card.metrics.map((metric) => (
-                    <div key={metric.label} className="space-y-1 rounded-lg bg-[var(--color-surface-muted)]/40 px-3 py-2">
-                      <p className="text-[10px] uppercase tracking-wide text-muted">{metric.label}</p>
-                      <p className="text-sm font-semibold text-ink">{metric.value}</p>
-                      {metric.change ? <p className="text-xs text-success">{metric.change}</p> : null}
-                    </div>
-                  ))}
+                <div className="overflow-auto rounded-lg border border-outline/40">
+                  <table className="w-full min-w-[520px] text-left text-xs">
+                    <thead className="bg-[var(--color-surface-muted)]/50 text-muted">
+                      <tr>
+                        <th className="px-4 py-3 font-semibold uppercase tracking-wide">Título</th>
+                        <th className="px-4 py-3 font-semibold uppercase tracking-wide">Cliente</th>
+                        <th className="px-4 py-3 font-semibold uppercase tracking-wide">Status</th>
+                        <th className="px-4 py-3 font-semibold uppercase tracking-wide">Criada em</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {recentProposals.length > 0 ? (
+                        recentProposals.map((item) => (
+                          <tr key={item.id} className="even:bg-[var(--color-surface-muted)]/30">
+                            <td className="px-4 py-2 text-ink">{item.title ?? 'Sem título'}</td>
+                            <td className="px-4 py-2 text-ink">{item.client ?? 'Sem cliente'}</td>
+                            <td className="px-4 py-2 text-ink">
+                              <Badge tone={STATUS_BADGES[item.status]?.tone ?? 'neutral'}>
+                                {STATUS_BADGES[item.status]?.label ?? item.status}
+                              </Badge>
+                            </td>
+                            <td className="px-4 py-2 text-ink">{new Date(item.createdAt).toLocaleDateString('pt-BR')}</td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={4} className="px-4 py-4 text-center text-muted">
+                            Nenhuma proposta criada no período analisado.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
                 </div>
               </Card>
-            ))}
-          </div>
-
-          <Card className="mt-4 p-6">
-            <h3 className="text-sm font-semibold text-ink">Painel por consultor</h3>
-            <p className="text-xs text-muted">Detalhamento de produtividade, conversão e ciclo médio por membro da equipe.</p>
-            <div className="mt-3 overflow-auto rounded-lg border border-outline/40">
-              <table className="w-full min-w-[480px] text-left text-xs">
-                <thead className="bg-[var(--color-surface-muted)]/50 text-muted">
-                  <tr>
-                    <th className="px-4 py-3 font-semibold uppercase tracking-wide">Consultor</th>
-                    <th className="px-4 py-3 font-semibold uppercase tracking-wide">Propostas</th>
-                    <th className="px-4 py-3 font-semibold uppercase tracking-wide">Aceites</th>
-                    <th className="px-4 py-3 font-semibold uppercase tracking-wide">Taxa</th>
-                    <th className="px-4 py-3 font-semibold uppercase tracking-wide">Ciclo médio</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {performanceDetail.map((row) => (
-                    <tr key={row.consultant} className="even:bg-[var(--color-surface-muted)]/30">
-                      <td className="px-4 py-2 text-ink">{row.consultant}</td>
-                      <td className="px-4 py-2 text-ink">{row.proposals}</td>
-                      <td className="px-4 py-2 text-ink">{row.accepted}</td>
-                      <td className="px-4 py-2 text-ink">{formatPercent(row.conversion)}</td>
-                      <td className="px-4 py-2 text-ink">{row.cycle} dias</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
             </div>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="revenue">
-          <div className="grid gap-4 lg:grid-cols-2">
-            {revenueReports.map((card) => (
-              <Card key={card.id} className="space-y-4 p-6">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <h3 className="text-base font-semibold text-ink">{card.title}</h3>
-                    <p className="text-xs text-muted">{card.description}</p>
-                  </div>
-                  <Badge tone="info">{card.period}</Badge>
-                </div>
-                {card.changeLabel ? <p className="text-xs font-medium text-success">{card.changeLabel}</p> : null}
-                <div className="border-b border-outline/20 pb-4">{renderContent(card.content)}</div>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {card.metrics.map((metric) => (
-                    <div key={metric.label} className="space-y-1 rounded-lg bg-[var(--color-surface-muted)]/40 px-3 py-2">
-                      <p className="text-[10px] uppercase tracking-wide text-muted">{metric.label}</p>
-                      <p className="text-sm font-semibold text-ink">{metric.value}</p>
-                      {metric.change ? <p className="text-xs text-success">{metric.change}</p> : null}
-                    </div>
-                  ))}
-                </div>
-              </Card>
-            ))}
-          </div>
-
-          <Card className="mt-4 p-6">
-            <h3 className="text-sm font-semibold text-ink">KPI por segmento</h3>
-            <p className="text-xs text-muted">Clientes ativos, ticket médio e crescimento em relação ao período anterior.</p>
-            <div className="mt-3 overflow-auto rounded-lg border border-outline/40">
-              <table className="w-full min-w-[520px] text-left text-xs">
-                <thead className="bg-[var(--color-surface-muted)]/50 text-muted">
-                  <tr>
-                    <th className="px-4 py-3 font-semibold uppercase tracking-wide">Segmento</th>
-                    <th className="px-4 py-3 font-semibold uppercase tracking-wide">Clientes</th>
-                    <th className="px-4 py-3 font-semibold uppercase tracking-wide">Ticket médio</th>
-                    <th className="px-4 py-3 font-semibold uppercase tracking-wide">Crescimento</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {revenueDetail.map((row) => (
-                    <tr key={row.segment} className="even:bg-[var(--color-surface-muted)]/30">
-                      <td className="px-4 py-2 text-ink">{row.segment}</td>
-                      <td className="px-4 py-2 text-ink">{row.clients}</td>
-                      <td className="px-4 py-2 text-ink">{toCurrency(row.avgTicket)}</td>
-                      <td className={row.growth >= 0 ? "px-4 py-2 text-success" : "px-4 py-2 text-danger"}>
-                        {formatPercent(row.growth, { signed: true })}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="operations">
-          <div className="grid gap-4 lg:grid-cols-2">
-            {operationsReports.map((card) => (
-              <Card key={card.id} className="space-y-4 p-6">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <h3 className="text-base font-semibold text-ink">{card.title}</h3>
-                    <p className="text-xs text-muted">{card.description}</p>
-                  </div>
-                  <Badge tone="info">{card.period}</Badge>
-                </div>
-                {card.changeLabel ? <p className="text-xs font-medium text-success">{card.changeLabel}</p> : null}
-                <div className="border-b border-outline/20 pb-4">{renderContent(card.content)}</div>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {card.metrics.map((metric) => (
-                    <div key={metric.label} className="space-y-1 rounded-lg bg-[var(--color-surface-muted)]/40 px-3 py-2">
-                      <p className="text-[10px] uppercase tracking-wide text-muted">{metric.label}</p>
-                      <p className="text-sm font-semibold text-ink">{metric.value}</p>
-                      {metric.change ? <p className="text-xs text-success">{metric.change}</p> : null}
-                    </div>
-                  ))}
-                </div>
-              </Card>
-            ))}
-          </div>
-
-          <Card className="mt-4 p-6">
-            <h3 className="text-sm font-semibold text-ink">Tempo por etapa</h3>
-            <p className="text-xs text-muted">Visão detalhada do tempo médio e percentual de queda em cada fase do pipeline.</p>
-            <div className="mt-3 overflow-auto rounded-lg border border-outline/40">
-              <table className="w-full min-w-[520px] text-left text-xs">
-                <thead className="bg-[var(--color-surface-muted)]/50 text-muted">
-                  <tr>
-                    <th className="px-4 py-3 font-semibold uppercase tracking-wide">Etapa</th>
-                    <th className="px-4 py-3 font-semibold uppercase tracking-wide">Tempo médio</th>
-                    <th className="px-4 py-3 font-semibold uppercase tracking-wide">Queda</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {operationsDetail.map((row) => (
-                    <tr key={row.stage} className="even:bg-[var(--color-surface-muted)]/30">
-                      <td className="px-4 py-2 text-ink">{row.stage}</td>
-                      <td className="px-4 py-2 text-ink">{row.duration}</td>
-                      <td className="px-4 py-2 text-ink">{row.dropoff ? formatPercent(row.dropoff) : '—'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </Card>
+          ) : (
+            <Card className="p-6 text-sm text-muted">Nenhum dado disponível ainda.</Card>
+          )}
         </TabsContent>
 
         <TabsContent value="custom">
@@ -710,17 +550,7 @@ export default function ReportsPage() {
             </Card>
 
             <div className="grid gap-4 lg:grid-cols-2">
-              <Card className="p-6">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-ink">Consulta SQL</h3>
-                  <Badge tone="info">Preview</Badge>
-                </div>
-                <pre className="mt-3 max-h-60 overflow-auto rounded-lg bg-[var(--color-surface-muted)]/60 p-4 text-xs text-muted">
-                  {report?.sql ?? 'A consulta gerada aparecerá aqui após solicitar um relatório.'}
-                </pre>
-              </Card>
-
-              <Card className="flex flex-col gap-4 border border-dashed border-outline px-6 py-6 text-sm text-muted">
+              <Card className="flex flex-col gap-4 border border-dashed border-outline px-6 py-6 text-sm text-muted lg:col-span-2">
                 {error ? (
                   <p>{error}</p>
                 ) : report ? (
@@ -773,6 +603,7 @@ export default function ReportsPage() {
           </div>
         </TabsContent>
       </Tabs>
+
     </section>
   );
 }

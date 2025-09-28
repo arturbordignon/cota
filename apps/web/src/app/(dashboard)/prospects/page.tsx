@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { MagnifyingGlass, MapPin, Buildings } from "@phosphor-icons/react";
+import { useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { Buildings, MagnifyingGlass, MapPin } from "@phosphor-icons/react";
 
 import { PageHeader } from "@/components/layout/page-header";
 import { Badge } from "@/components/ui/badge";
@@ -10,35 +11,68 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectItem } from "@/components/ui/select";
+import { useApi } from "@/hooks/use-api";
+import { ProspectsResponse } from "@/types/api";
 
-const mockProspects = [
-  {
-    name: "Construtora Atlas",
-    segment: "Construção Pesada",
-    location: "Campinas, SP",
-    opportunity: "Nova usina logística - previsão Q4",
-  },
-  {
-    name: "Porto Leste Operações",
-    segment: "Logística Portuária",
-    location: "Santos, SP",
-    opportunity: "Ampliação de pátio e novos guindastes",
-  },
-  {
-    name: "Terraplanagem Horizonte Norte",
-    segment: "Terraplanagem",
-    location: "Curitiba, PR",
-    opportunity: "Condomínio industrial - 6 meses de obras",
-  },
+const REGION_OPTIONS = [
+  { value: "", label: "Brasil inteiro" },
+  { value: "Sudeste", label: "Sudeste" },
+  { value: "Sul", label: "Sul" },
+  { value: "Estados Unidos", label: "Estados Unidos" },
+];
+
+const SEGMENT_OPTIONS = [
+  { value: "", label: "Todos" },
+  { value: "Construção", label: "Construção" },
+  { value: "Logística", label: "Logística" },
+  { value: "Indústria", label: "Indústria pesada" },
+  { value: "Energia", label: "Energia" },
 ];
 
 export default function ProspectsPage() {
+  const api = useApi();
   const [keywords, setKeywords] = useState("");
-  const [region, setRegion] = useState("brasil");
-  const [segment, setSegment] = useState("todos");
+  const [debouncedKeywords, setDebouncedKeywords] = useState("");
+  const [region, setRegion] = useState(REGION_OPTIONS[0].value);
+  const [segment, setSegment] = useState(SEGMENT_OPTIONS[0].value);
+
+  useEffect(() => {
+    const handle = window.setTimeout(() => setDebouncedKeywords(keywords.trim()), 300);
+    return () => window.clearTimeout(handle);
+  }, [keywords]);
+
+  const prospectsQuery = useQuery({
+    queryKey: ['prospects', debouncedKeywords, region, segment],
+    queryFn: () => {
+      const params = new URLSearchParams();
+      if (debouncedKeywords) params.set('search', debouncedKeywords);
+      if (region) params.set('region', region);
+      if (segment) params.set('segment', segment);
+      return api.get<ProspectsResponse>(`/prospects${params.size ? `?${params.toString()}` : ''}`);
+    },
+    enabled: Boolean(api.token),
+  });
+
+  const prospects = useMemo(() => prospectsQuery.data?.data ?? [], [prospectsQuery.data]);
+  const isTokenMissing = !api.token;
+  const loadError = prospectsQuery.error as Error | null;
+
+  const segmentsFromData = useMemo(() => {
+    const values = new Set<string>();
+    prospects.forEach((prospect) => {
+      if (prospect.segment) values.add(prospect.segment);
+    });
+    return Array.from(values).sort();
+  }, [prospects]);
 
   return (
     <section className="space-y-6">
+      {isTokenMissing ? (
+        <Card className="border border-warning/40 bg-warning-soft px-6 py-4 text-sm text-warning">
+          Defina a variável `NEXT_PUBLIC_API_TOKEN` ou autentique-se para visualizar seus prospects reais.
+        </Card>
+      ) : null}
+
       <PageHeader
         title="Buscar prospects"
         description="Encontre empresas com potencial de contratação para guindastes, movimentação de carga e apoio a obras."
@@ -62,57 +96,91 @@ export default function ProspectsPage() {
           <div className="space-y-2">
             <Label>Estado/Região</Label>
             <Select value={region} onValueChange={setRegion}>
-              <SelectItem value="brasil">Brasil inteiro</SelectItem>
-              <SelectItem value="sudeste">Sudeste</SelectItem>
-              <SelectItem value="sul">Sul</SelectItem>
-              <SelectItem value="usa">Estados Unidos</SelectItem>
+              {REGION_OPTIONS.map((option) => (
+                <SelectItem key={option.value || 'all'} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
             </Select>
           </div>
           <div className="space-y-2">
             <Label>Segmento</Label>
             <Select value={segment} onValueChange={setSegment}>
-              <SelectItem value="todos">Todos</SelectItem>
-              <SelectItem value="construcao">Construção</SelectItem>
-              <SelectItem value="logistica">Logística</SelectItem>
-              <SelectItem value="industria">Indústria pesada</SelectItem>
+              {SEGMENT_OPTIONS.concat(
+                segmentsFromData
+                  .filter((value) => !SEGMENT_OPTIONS.some((option) => option.value === value))
+                  .map((value) => ({ value, label: value }))
+              ).map((option) => (
+                <SelectItem key={option.value || 'all'} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
             </Select>
           </div>
         </div>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-xs text-muted">
-            Resultados fictícios. Integração futura com provedor de dados B2B ou Google Search/Places API.
+            Em breve: integrações com provedores externos de dados (Google, APIs de prospecção) para sugestões em tempo real.
           </p>
-          <Button variant="primary">Buscar prospects</Button>
+          <Button variant="primary" onClick={() => prospectsQuery.refetch()} disabled={!api.token}>
+            Buscar prospects
+          </Button>
         </div>
       </Card>
 
+      {loadError && !isTokenMissing ? (
+        <Card className="border border-danger/40 bg-danger-soft/20 px-6 py-4 text-sm text-danger">
+          Não foi possível carregar os prospects: {loadError.message}
+        </Card>
+      ) : null}
+
       <div className="grid gap-4 xl:grid-cols-3">
-        {mockProspects.map((prospect) => (
-          <Card key={prospect.name} className="flex flex-col gap-4 border border-outline/60 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
-            <div>
-              <div className="flex items-center justify-between">
-                <h3 className="text-base font-semibold text-ink">{prospect.name}</h3>
-                <Badge tone="info">{prospect.segment}</Badge>
-              </div>
-              <div className="mt-1 flex items-center gap-2 text-sm text-muted">
-                <MapPin size={16} weight="bold" />
-                {prospect.location}
-              </div>
-            </div>
-            <div className="rounded-lg border border-outline/60 bg-[var(--color-surface-muted)] px-3 py-2 text-sm text-ink">
-              <Buildings size={16} className="mr-2 inline text-primary" />
-              {prospect.opportunity}
-            </div>
-            <div className="mt-auto flex gap-2">
-              <Button variant="outline" size="sm">
-                Ver detalhes
-              </Button>
-              <Button variant="ghost" size="sm">
-                Adicionar ao CRM
-              </Button>
-            </div>
+        {prospectsQuery.isLoading ? (
+          Array.from({ length: 3 }).map((_, index) => (
+            <Card
+              key={`prospect-skeleton-${index}`}
+              className="h-40 animate-pulse rounded-3xl border border-outline/40 bg-white/70"
+            />
+          ))
+        ) : prospects.length === 0 ? (
+          <Card className="col-span-full border border-outline/40 bg-white px-6 py-10 text-center text-sm text-muted">
+            Nenhum prospect cadastrado ainda. Utilize o botão acima para buscar novamente ou cadastre manualmente quando a integração estiver disponível.
           </Card>
-        ))}
+        ) : (
+          prospects.map((prospect) => (
+            <Card
+              key={prospect.id}
+              className="flex flex-col gap-4 border border-outline/60 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
+            >
+              <div>
+                <div className="flex items-center justify-between">
+                  <h3 className="text-base font-semibold text-ink">{prospect.name}</h3>
+                  {prospect.segment ? <Badge tone="info">{prospect.segment}</Badge> : null}
+                </div>
+                <div className="mt-1 flex items-center gap-2 text-sm text-muted">
+                  <MapPin size={16} weight="bold" />
+                  {[prospect.city, prospect.state ?? prospect.region].filter(Boolean).join(', ') || '—'}
+                </div>
+              </div>
+              <div className="rounded-lg border border-outline/60 bg-[var(--color-surface-muted)] px-3 py-2 text-sm text-ink">
+                <Buildings size={16} className="mr-2 inline text-primary" />
+                {prospect.opportunity ?? 'Sem oportunidade cadastrada.'}
+              </div>
+              <div className="text-xs text-muted">
+                {prospect.email ? <p>E-mail: {prospect.email}</p> : null}
+                {prospect.phone ? <p>Telefone: {prospect.phone}</p> : null}
+              </div>
+              <div className="mt-auto flex gap-2">
+                <Button variant="outline" size="sm" disabled>
+                  Ver detalhes
+                </Button>
+                <Button variant="ghost" size="sm" disabled>
+                  Adicionar ao CRM
+                </Button>
+              </div>
+            </Card>
+          ))
+        )}
       </div>
     </section>
   );

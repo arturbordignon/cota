@@ -1,8 +1,8 @@
 {
-  "title": "Registro de atividades",
-  "description": "Acompanhe ações realizadas pelos membros e eventos automáticos gerados pela plataforma.",
+  "title": "Registros de logs",
+  "description": "Audite ações realizadas pelos membros e eventos automáticos gerados pela plataforma.",
   "restricted": {
-    "title": "Atividades",
+    "title": "Registros de logs",
     "description": "Somente administradores podem visualizar o histórico de auditoria.",
     "callout": "Solicite acesso administrativo para acompanhar alterações críticas."
   },
@@ -12,7 +12,8 @@
     "clear": "Limpar filtros"
   },
   "states": {
-    "empty": "Nenhum evento encontrado com os filtros atuais."
+    "empty": "Nenhum evento encontrado com os filtros atuais.",
+    "error": "Não foi possível carregar o registro de atividades."
   },
   "categories": {
     "proposal": "Propostas",

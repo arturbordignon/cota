@@ -67,6 +67,15 @@ export function useApi() {
     [request]
   );
 
+  const patch = useCallback(
+    <T>(path: string, body: unknown) =>
+      request<T>(path, {
+        method: "PATCH",
+        body: JSON.stringify(body),
+      }),
+    [request]
+  );
+
   const del = useCallback(<T>(path: string) => request<T>(path, { method: "DELETE" }), [request]);
 
   return {
@@ -75,6 +84,7 @@ export function useApi() {
     get,
     post,
     put,
+    patch,
     del,
   };
 }

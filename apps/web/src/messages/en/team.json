@@ -18,7 +18,8 @@
     },
     "buttons": {
       "revert": "Revert",
-      "save": "Save changes"
+      "save": "Save changes",
+      "saving": "Saving..."
     }
   },
   "restricted": {
@@ -43,10 +44,14 @@
     },
     "actions": {
       "cancel": "Cancel",
-      "submit": "Send invite"
+      "submit": "Send invite",
+      "saving": "Inviting..."
     }
   },
   "defaults": {
     "role": "Collaborator"
+  },
+  "states": {
+    "empty": "No team members yet. Use the button above to send the first invite."
   }
 }

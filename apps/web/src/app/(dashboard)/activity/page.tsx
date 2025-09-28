@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useFormatter, useTranslations } from "next-intl";
 import { FunnelSimple, MagnifyingGlass } from "@phosphor-icons/react";
+import { useQuery } from "@tanstack/react-query";
 
 import { useCurrentUser } from "@/components/providers/user-provider";
 import { PageHeader } from "@/components/layout/page-header";
@@ -12,22 +13,15 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectItem } from "@/components/ui/select";
-import { mockAuditLogs } from "@/data/mock/audit-events";
+import { useApi } from "@/hooks/use-api";
+import { AuditEventsResponse } from "@/types/api";
 
 const categoryKeys = ["proposal", "department", "notifications", "billing", "user", "system"] as const;
 type ActivityCategory = (typeof categoryKeys)[number];
 
-function getCategory(event: string): ActivityCategory {
-  if (event.startsWith("proposal.")) return "proposal";
-  if (event.startsWith("department.")) return "department";
-  if (event.startsWith("notifications.")) return "notifications";
-  if (event.startsWith("billing.")) return "billing";
-  if (event.startsWith("user.")) return "user";
-  return "system";
-}
-
 export default function ActivityPage() {
   const { isOwner } = useCurrentUser();
+  const api = useApi();
   const t = useTranslations('activity');
   const tCategories = useTranslations('activity.categories');
   const format = useFormatter();
@@ -42,15 +36,31 @@ export default function ActivityPage() {
   const [query, setQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
 
-  const filteredLogs = useMemo(() => {
-    return mockAuditLogs.filter((entry) => {
-      const category = getCategory(entry.event);
-      const matchesCategory = categoryFilter === "all" || category === categoryFilter;
-      const searchTarget = `${entry.actor} ${entry.actorEmail} ${entry.event} ${entry.summary}`.toLowerCase();
-      const matchesQuery = searchTarget.includes(query.toLowerCase());
-      return matchesCategory && matchesQuery;
-    });
-  }, [categoryFilter, query]);
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+
+  useEffect(() => {
+    const handle = window.setTimeout(() => {
+      setDebouncedQuery(query);
+    }, 300);
+    return () => window.clearTimeout(handle);
+  }, [query]);
+
+  const auditEventsQuery = useQuery({
+    queryKey: ['audit-events', categoryFilter, debouncedQuery],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (categoryFilter !== 'all') {
+        params.set('category', categoryFilter);
+      }
+      if (debouncedQuery.trim().length > 0) {
+        params.set('search', debouncedQuery.trim());
+      }
+      return api.get<AuditEventsResponse>(`/audit-events${params.size ? `?${params.toString()}` : ''}`);
+    },
+    enabled: isOwner && Boolean(api.token),
+  });
+
+  const events = auditEventsQuery.data?.data ?? [];
 
   if (!isOwner) {
     return (
@@ -97,12 +107,23 @@ export default function ActivityPage() {
       </Card>
 
       <div className="space-y-3">
-        {filteredLogs.length === 0 ? (
+        {auditEventsQuery.isLoading ? (
+          <Card className="border border-outline/30 bg-white px-6 py-8 text-center text-sm text-muted">
+            Carregando eventos...
+          </Card>
+        ) : events.length === 0 ? (
           <Card className="border border-outline/30 bg-white px-6 py-8 text-center text-sm text-muted">
             {t('states.empty')}
           </Card>
         ) : null}
-        {filteredLogs.map((log) => (
+        {auditEventsQuery.error && !isTokenMissing ? (
+          <Card className="border border-danger/40 bg-danger-soft/20 px-6 py-4 text-sm text-danger">
+            {t('states.error')} {(auditEventsQuery.error as Error).message}
+          </Card>
+        ) : null}
+        {events.map((log) => {
+          const metadataText = JSON.stringify(log.metadata ?? {}, null, 2);
+          return (
           <Card key={log.id} className="space-y-3 border border-outline/60 bg-white p-5 shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="space-y-1">
@@ -111,7 +132,7 @@ export default function ActivityPage() {
                 </p>
                 <p className="text-xs text-muted">{log.event}</p>
               </div>
-              <Badge tone="info">{tCategories(getCategory(log.event))}</Badge>
+              <Badge tone="info">{tCategories(log.category as ActivityCategory | 'system')}</Badge>
             </div>
 
             <div className="grid gap-2 text-sm text-muted md:grid-cols-2">
@@ -132,15 +153,16 @@ export default function ActivityPage() {
               <div className="space-y-1">
                 <p className="text-xs uppercase tracking-wide text-muted">{t('card.labels.technicalDetails')}</p>
                 <Textarea
-                  value={JSON.stringify(log.metadata, null, 2)}
+                  value={metadataText}
                   readOnly
                   className="text-xs"
-                  rows={Math.min(6, JSON.stringify(log.metadata, null, 2).split('\n').length + 1)}
+                  rows={Math.min(6, metadataText.split('\n').length + 1)}
                 />
               </div>
             ) : null}
           </Card>
-        ))}
+        );
+        })}
       </div>
     </section>
   );

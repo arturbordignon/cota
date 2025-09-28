@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import * as Dialog from "@radix-ui/react-dialog";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { UserPlus, X } from "@phosphor-icons/react";
 
 import { useCurrentUser } from "@/components/providers/user-provider";
@@ -14,60 +15,30 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectItem } from "@/components/ui/select";
-import { permissionModules } from "@/config/permission-modules";
-import { cloneDepartment, sampleDepartments, type Department } from "@/data/mock/departments";
-
-interface TeamMember {
-  id: string;
-  name: string;
-  role: string;
-  email: string;
-  departmentId: string;
-}
-
-type CreateMemberPayload = Omit<TeamMember, "id">;
-
-type DepartmentRecord = Record<string, Department>;
-
-const initialMembers: TeamMember[] = [
-  {
-    id: "1",
-    name: "Marcos Dias",
-    role: "Diretor Comercial",
-    email: "marcos@empresa.com",
-    departmentId: sampleDepartments[0]?.id ?? "",
-  },
-  {
-    id: "2",
-    name: "Fernanda Alves",
-    role: "Coordenadora de Operações",
-    email: "fernanda@empresa.com",
-    departmentId: sampleDepartments[1]?.id ?? "",
-  },
-];
-
-const defaultDepartmentId = sampleDepartments[0]?.id ?? "";
-
-function createMemberId() {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return crypto.randomUUID();
-  }
-  return Math.random().toString(36).slice(2);
-}
+import { permissionModules, type PermissionModuleKey } from "@/config/permission-modules";
+import { useApi } from "@/hooks/use-api";
+import {
+  DepartmentSummary,
+  TeamMemberSummary,
+  TeamOverviewResponse,
+} from "@/types/api";
 
 interface DepartmentPermissionListProps {
-  department: Department;
+  department: DepartmentSummary;
 }
 
 function DepartmentPermissionList({ department }: DepartmentPermissionListProps) {
   const tModules = useTranslations("common.permissionModules");
   const tPermissions = useTranslations("common.permissions");
+
   return (
     <div className="grid gap-2">
       {permissionModules.map((module) => {
-        const ability = department.permissions[module] ?? { view: false, edit: false };
+        const key = module as PermissionModuleKey;
+        const ability = department.permissions[key] ?? { view: false, edit: false };
         const label = tModules(`${module}.label`);
         const description = tModules(`${module}.description`);
+
         return (
           <div
             key={module}
@@ -96,20 +67,37 @@ function DepartmentPermissionList({ department }: DepartmentPermissionListProps)
   );
 }
 
+interface AddMemberDraft {
+  fullName: string;
+  email: string;
+  jobTitle: string;
+  departmentId: string;
+}
 
 interface AddMemberDialogProps {
   open: boolean;
-  departments: Department[];
-  draft: CreateMemberPayload;
+  departments: DepartmentSummary[];
+  draft: AddMemberDraft;
   onOpenChange: (open: boolean) => void;
-  onDraftChange: (field: keyof CreateMemberPayload, value: string) => void;
+  onDraftChange: (field: keyof AddMemberDraft, value: string) => void;
   onSubmit: () => void;
+  isSubmitting: boolean;
+  errorMessage?: string;
 }
 
-function AddMemberDialog({ open, departments, draft, onOpenChange, onDraftChange, onSubmit }: AddMemberDialogProps) {
+function AddMemberDialog({
+  open,
+  departments,
+  draft,
+  onOpenChange,
+  onDraftChange,
+  onSubmit,
+  isSubmitting,
+  errorMessage,
+}: AddMemberDialogProps) {
   const t = useTranslations("team.dialog");
   const isValid =
-    draft.name.trim().length > 2 &&
+    draft.fullName.trim().length > 2 &&
     draft.email.includes("@") &&
     departments.some((department) => department.id === draft.departmentId);
 
@@ -121,7 +109,7 @@ function AddMemberDialog({ open, departments, draft, onOpenChange, onDraftChange
           <form
             onSubmit={(event) => {
               event.preventDefault();
-              if (isValid) onSubmit();
+              if (isValid && !isSubmitting) onSubmit();
             }}
             className="w-full max-w-xl overflow-hidden rounded-2xl bg-white shadow-2xl"
           >
@@ -146,8 +134,8 @@ function AddMemberDialog({ open, departments, draft, onOpenChange, onDraftChange
                 <Label htmlFor="member-name">{t('fields.name')}</Label>
                 <Input
                   id="member-name"
-                  value={draft.name}
-                  onChange={(event) => onDraftChange("name", event.target.value)}
+                  value={draft.fullName}
+                  onChange={(event) => onDraftChange('fullName', event.target.value)}
                   placeholder={t('placeholders.name')}
                   autoFocus
                 />
@@ -158,7 +146,7 @@ function AddMemberDialog({ open, departments, draft, onOpenChange, onDraftChange
                   id="member-email"
                   type="email"
                   value={draft.email}
-                  onChange={(event) => onDraftChange("email", event.target.value)}
+                  onChange={(event) => onDraftChange('email', event.target.value)}
                   placeholder={t('placeholders.email')}
                 />
               </div>
@@ -166,14 +154,14 @@ function AddMemberDialog({ open, departments, draft, onOpenChange, onDraftChange
                 <Label htmlFor="member-role">{t('fields.role')}</Label>
                 <Input
                   id="member-role"
-                  value={draft.role}
-                  onChange={(event) => onDraftChange("role", event.target.value)}
+                  value={draft.jobTitle}
+                  onChange={(event) => onDraftChange('jobTitle', event.target.value)}
                   placeholder={t('placeholders.role')}
                 />
               </div>
               <div className="space-y-2">
                 <Label>{t('fields.department')}</Label>
-                <Select value={draft.departmentId} onValueChange={(value) => onDraftChange("departmentId", value)}>
+                <Select value={draft.departmentId} onValueChange={(value) => onDraftChange('departmentId', value)}>
                   {departments.map((department) => (
                     <SelectItem key={department.id} value={department.id}>
                       {department.name}
@@ -181,6 +169,7 @@ function AddMemberDialog({ open, departments, draft, onOpenChange, onDraftChange
                   ))}
                 </Select>
               </div>
+              {errorMessage ? <p className="text-sm text-danger">{errorMessage}</p> : null}
             </div>
 
             <footer className="flex justify-end gap-2 border-t border-outline/20 bg-[var(--color-surface-muted)]/40 px-6 py-4">
@@ -189,8 +178,8 @@ function AddMemberDialog({ open, departments, draft, onOpenChange, onDraftChange
                   {t('actions.cancel')}
                 </Button>
               </Dialog.Close>
-              <Button type="submit" disabled={!isValid}>
-                {t('actions.submit')}
+              <Button type="submit" disabled={!isValid || isSubmitting}>
+                {isSubmitting ? t('actions.saving') : t('actions.submit')}
               </Button>
             </footer>
           </form>
@@ -200,69 +189,129 @@ function AddMemberDialog({ open, departments, draft, onOpenChange, onDraftChange
   );
 }
 
+interface MemberRow extends TeamMemberSummary {
+  displayName: string;
+}
+
 export default function TeamPage() {
   const { isAdmin } = useCurrentUser();
   const t = useTranslations("team");
-  const [departments] = useState<Department[]>(() => sampleDepartments.map(cloneDepartment));
-  const departmentMap = useMemo<DepartmentRecord>(
+  const api = useApi();
+  const queryClient = useQueryClient();
+
+  const [departments, setDepartments] = useState<DepartmentSummary[]>([]);
+  const [members, setMembers] = useState<MemberRow[]>([]);
+  const [baselines, setBaselines] = useState<Record<string, string | null>>({});
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [draft, setDraft] = useState<AddMemberDraft>({
+    fullName: "",
+    email: "",
+    jobTitle: "",
+    departmentId: "",
+  });
+  const [savingMemberId, setSavingMemberId] = useState<string | null>(null);
+
+  const teamQuery = useQuery({
+    queryKey: ['team', 'overview'],
+    queryFn: () => api.get<TeamOverviewResponse>('/team'),
+    enabled: isAdmin && Boolean(api.token),
+  });
+
+  useEffect(() => {
+    if (teamQuery.data) {
+      const response = teamQuery.data.data;
+      setDepartments(response.departments);
+
+      const mappedMembers: MemberRow[] = response.members.map((member) => ({
+        ...member,
+        displayName: member.fullName ?? member.email.split('@')[0],
+      }));
+      setMembers(mappedMembers);
+
+      const nextBaselines: Record<string, string | null> = {};
+      mappedMembers.forEach((member) => {
+        nextBaselines[member.id] = member.departmentId ?? null;
+      });
+      setBaselines(nextBaselines);
+
+      if (response.departments.length > 0) {
+        setDraft((prev) => ({
+          ...prev,
+          departmentId: response.departments[0]?.id ?? '',
+        }));
+      }
+    }
+  }, [teamQuery.data]);
+
+  const departmentMap = useMemo(
     () => Object.fromEntries(departments.map((department) => [department.id, department])),
     [departments]
   );
 
-  const [members, setMembers] = useState<TeamMember[]>(initialMembers);
-  const [baselines, setBaselines] = useState<Record<string, string>>(() =>
-    Object.fromEntries(initialMembers.map((member) => [member.id, member.departmentId]))
+  const departmentOptions = useMemo(
+    () => departments.map((department) => ({ value: department.id, label: department.name })),
+    [departments]
   );
 
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [draft, setDraft] = useState<CreateMemberPayload>(() => ({
-    name: "",
-    email: "",
-    role: "",
-    departmentId: defaultDepartmentId,
-  }));
-
-  const departmentOptions = departments.map((department) => ({ value: department.id, label: department.name }));
-
-  const handleDraftChange = (field: keyof CreateMemberPayload, value: string) => {
+  const handleDraftChange = (field: keyof AddMemberDraft, value: string) => {
     setDraft((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleCreateMember = () => {
-    const name = draft.name.trim();
-    const email = draft.email.trim();
-    if (!name || !email.includes("@")) return;
+  const inviteMember = useMutation({
+    mutationFn: async () => {
+      await api.post('/team/members', {
+        fullName: draft.fullName.trim(),
+        email: draft.email.trim().toLowerCase(),
+        jobTitle: draft.jobTitle.trim() || undefined,
+        departmentId: draft.departmentId || undefined,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['team', 'overview'] });
+      setDialogOpen(false);
+      setDraft({ fullName: '', email: '', jobTitle: '', departmentId: draft.departmentId });
+    },
+  });
 
-    const newMember: TeamMember = {
-      id: createMemberId(),
-      name,
-      email: email.toLowerCase(),
-      role: draft.role.trim() || t('defaults.role'),
-      departmentId: draft.departmentId,
-    };
-
-    setMembers((prev) => [...prev, newMember]);
-    setBaselines((prev) => ({ ...prev, [newMember.id]: newMember.departmentId }));
-    setDialogOpen(false);
-    setDraft({ name: "", email: "", role: "", departmentId: defaultDepartmentId });
-  };
+  const updateMember = useMutation({
+    mutationFn: async ({ memberId, departmentId }: { memberId: string; departmentId: string | null }) => {
+      setSavingMemberId(memberId);
+      await api.put(`/team/members/${memberId}`, {
+        departmentId,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['team', 'overview'] });
+    },
+    onSettled: () => {
+      setSavingMemberId(null);
+    },
+  });
 
   const updateDepartment = (memberId: string, departmentId: string) => {
+    const nextValue = departmentId === '' ? null : departmentId;
     setMembers((prev) =>
-      prev.map((member) => (member.id === memberId ? { ...member, departmentId } : member))
+      prev.map((member) =>
+        member.id === memberId ? { ...member, departmentId: nextValue } : member
+      )
     );
   };
 
   const revertChanges = (memberId: string) => {
     const baseline = baselines[memberId];
-    if (!baseline) return;
-    setMembers((prev) => prev.map((member) => (member.id === memberId ? { ...member, departmentId: baseline } : member)));
+    setMembers((prev) =>
+      prev.map((member) =>
+        member.id === memberId ? { ...member, departmentId: baseline } : member
+      )
+    );
   };
 
   const persistChanges = (memberId: string) => {
     const current = members.find((member) => member.id === memberId);
     if (!current) return;
-    setBaselines((prev) => ({ ...prev, [memberId]: current.departmentId }));
+    const nextDepartmentId = current.departmentId ? current.departmentId : null;
+    updateMember.mutate({ memberId, departmentId: nextDepartmentId });
+    setBaselines((prev) => ({ ...prev, [memberId]: nextDepartmentId }));
   };
 
   if (!isAdmin) {
@@ -276,8 +325,17 @@ export default function TeamPage() {
     );
   }
 
+  const isTokenMissing = !api.token;
+  const loadError = teamQuery.error as Error | null;
+
   return (
     <section className="space-y-6">
+      {isTokenMissing ? (
+        <Card className="border border-warning/40 bg-warning-soft px-6 py-4 text-sm text-warning">
+          Defina a variável `NEXT_PUBLIC_API_TOKEN` ou autentique-se para visualizar a equipe real.
+        </Card>
+      ) : null}
+
       <PageHeader
         title={t('title')}
         description={t('description')}
@@ -286,7 +344,7 @@ export default function TeamPage() {
             <Button asChild variant="ghost">
               <Link href="/departments">{t('actions.manageDepartments')}</Link>
             </Button>
-            <Button onClick={() => setDialogOpen(true)} className="gap-2">
+            <Button onClick={() => setDialogOpen(true)} className="gap-2" disabled={departments.length === 0}>
               <UserPlus size={18} weight="bold" />
               {t('actions.addMember')}
             </Button>
@@ -294,65 +352,103 @@ export default function TeamPage() {
         }
       />
 
+      {loadError && !isTokenMissing ? (
+        <Card className="border border-danger/40 bg-danger-soft/20 px-6 py-4 text-sm text-danger">
+          Não foi possível carregar a equipe: {loadError.message}
+        </Card>
+      ) : null}
+
       <Card className="border border-outline/40 bg-white px-6 py-4 text-sm text-muted">
         <p>{t('infoCard')}</p>
       </Card>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        {members.map((member) => {
-          const department = departmentMap[member.departmentId];
-          const baseline = baselines[member.id];
-          const hasChanges = baseline ? baseline !== member.departmentId : true;
+      {teamQuery.isLoading ? (
+        <div className="grid gap-4 lg:grid-cols-2">
+          {Array.from({ length: 2 }).map((_, index) => (
+            <Card
+              key={`team-skeleton-${index}`}
+              className="h-48 animate-pulse rounded-3xl border border-outline/40 bg-white/70"
+            />
+          ))}
+        </div>
+      ) : members.length === 0 ? (
+        <Card className="border border-outline/30 bg-white px-6 py-10 text-center text-sm text-muted">
+          {t('states.empty')}
+        </Card>
+      ) : (
+        <div className="grid gap-4 lg:grid-cols-2">
+          {members.map((member) => {
+            const department = member.departmentId ? departmentMap[member.departmentId] : null;
+            const baseline = baselines[member.id];
+            const hasChanges = (baseline ?? null) !== (member.departmentId ?? null);
 
-          return (
-            <Card key={member.id} className="space-y-4 border border-outline/60 bg-white p-6 shadow-sm">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <h3 className="text-base font-semibold text-ink">{member.name}</h3>
-                  <p className="text-sm text-muted">{member.role}</p>
-                  <p className="text-xs text-muted">{member.email}</p>
+            return (
+              <Card key={member.id} className="space-y-4 border border-outline/60 bg-white p-6 shadow-sm">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <h3 className="text-base font-semibold text-ink">{member.displayName}</h3>
+                    <p className="text-sm text-muted">{member.jobTitle ?? t('defaults.role')}</p>
+                    <p className="text-xs text-muted">{member.email}</p>
+                  </div>
+                  <Badge tone="info">{department?.name ?? t('memberCard.badge.noDepartment')}</Badge>
                 </div>
-                <Badge tone="info">{department?.name ?? t('memberCard.badge.noDepartment')}</Badge>
-              </div>
 
-              <div className="space-y-2">
-                <Label>{t('memberCard.fields.department')}</Label>
-                <Select value={member.departmentId} onValueChange={(value) => updateDepartment(member.id, value)}>
-                  {departmentOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </Select>
-              </div>
-
-              {department ? (
-                <div className="space-y-3">
-                  <p className="text-sm font-semibold text-ink">{t('memberCard.sections.permissions')}</p>
-                  <DepartmentPermissionList department={department} />
+                <div className="space-y-2">
+                  <Label>{t('memberCard.fields.department')}</Label>
+                  <Select
+                    value={member.departmentId ?? ''}
+                    onValueChange={(value) => updateDepartment(member.id, value)}
+                  >
+                    <SelectItem value="">{t('memberCard.badge.noDepartment')}</SelectItem>
+                    {departmentOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </Select>
                 </div>
-              ) : null}
 
-              <div className="flex justify-end gap-2">
-                <Button variant="ghost" size="sm" onClick={() => revertChanges(member.id)} disabled={!hasChanges}>
-                  {t('memberCard.buttons.revert')}
-                </Button>
-                <Button size="sm" onClick={() => persistChanges(member.id)} disabled={!hasChanges}>
-                  {t('memberCard.buttons.save')}
-                </Button>
-              </div>
-            </Card>
-          );
-        })}
-      </div>
+                {department ? (
+                  <div className="space-y-3">
+                    <p className="text-sm font-semibold text-ink">{t('memberCard.sections.permissions')}</p>
+                    <DepartmentPermissionList department={department} />
+                  </div>
+                ) : null}
+
+                <div className="flex justify-end gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => revertChanges(member.id)}
+                    disabled={!hasChanges || savingMemberId === member.id}
+                  >
+                    {t('memberCard.buttons.revert')}
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => persistChanges(member.id)}
+                    disabled={!hasChanges || savingMemberId === member.id}
+                  >
+                    {savingMemberId === member.id
+                      ? t('memberCard.buttons.saving')
+                      : t('memberCard.buttons.save')}
+                  </Button>
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      )}
 
       <AddMemberDialog
         open={dialogOpen}
+        onOpenChange={setDialogOpen}
         departments={departments}
         draft={draft}
-        onOpenChange={setDialogOpen}
         onDraftChange={handleDraftChange}
-        onSubmit={handleCreateMember}
+        onSubmit={() => inviteMember.mutate()}
+        isSubmitting={inviteMember.isPending}
+        errorMessage={inviteMember.error instanceof Error ? inviteMember.error.message : undefined}
       />
     </section>
   );

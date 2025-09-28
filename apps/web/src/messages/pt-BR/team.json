@@ -18,7 +18,8 @@
     },
     "buttons": {
       "revert": "Reverter",
-      "save": "Salvar alterações"
+      "save": "Salvar alterações",
+      "saving": "Salvando..."
     }
   },
   "restricted": {
@@ -43,10 +44,14 @@
     },
     "actions": {
       "cancel": "Cancelar",
-      "submit": "Convidar membro"
+      "submit": "Convidar membro",
+      "saving": "Enviando convite..."
     }
   },
   "defaults": {
     "role": "Colaborador"
+  },
+  "states": {
+    "empty": "Nenhum membro cadastrado ainda. Utilize o botão acima para enviar o primeiro convite."
   }
 }

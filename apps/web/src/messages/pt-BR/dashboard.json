@@ -2,25 +2,26 @@
   "title": "Painel de Controle",
   "description": "Visão rápida dos créditos e atalhos principais para movimentar o funil de propostas.",
   "credits": {
-    "label": "Créditos",
-    "value": "100"
+    "label": "Saldo de créditos",
+    "unlimited": "Ilimitado",
+    "unavailable": "—"
   },
   "metrics": {
     "sent": {
       "label": "Propostas enviadas no mês",
-      "value": "28",
-      "delta": "+12% vs. mês anterior"
+      "delta": "{value} vs. mês anterior"
     },
     "conversion": {
       "label": "Taxa de aceite",
-      "value": "67%",
-      "delta": "+5% vs. mês anterior"
+      "delta": "{value} vs. mês anterior"
     },
     "time": {
       "label": "Tempo médio de geração",
-      "value": "6 min",
-      "delta": "-2 min"
-    }
+      "delta": "{value} vs. mês anterior",
+      "unit": "min"
+    },
+    "noData": "Sem dados no período",
+    "deltaUnavailable": "Sem comparação disponível"
   },
   "quickAccess": {
     "title": "Acesso rápido",
@@ -42,5 +43,11 @@
   "ctaButtons": {
     "buyCredits": "Comprar créditos",
     "upgradePlan": "Atualizar plano"
+  },
+  "warnings": {
+    "tokenMissing": "Defina a variável NEXT_PUBLIC_API_TOKEN ou autentique-se para carregar os dados reais."
+  },
+  "states": {
+    "error": "Não foi possível carregar os dados do painel."
   }
 }

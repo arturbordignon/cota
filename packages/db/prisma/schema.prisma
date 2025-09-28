@@ -35,7 +35,9 @@ model User {
   id              String    @id @default(uuid())
   accountId       String
   email           String
+  fullName        String?
   passwordHash    String
+  jobTitle        String?
   role            UserRole  @default(MEMBER)
   preferredLocale String    @default("pt-BR")
   isActive        Boolean   @default(true)
@@ -182,6 +184,7 @@ model Proposal {
   viewedAt        DateTime?
   acceptedAt      DateTime?
   declinedAt      DateTime?
+  pipelineLeadId  String?
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
@@ -190,6 +193,7 @@ model Proposal {
   client          Client?       @relation(fields: [clientId], references: [id])
   createdBy       User          @relation("ProposalCreator", fields: [createdById], references: [id])
   assets          ProposalAsset[]
+  pipelineLead    PipelineLead? @relation("LeadProposals", fields: [pipelineLeadId], references: [id])
 
   @@index([accountId])
   @@index([publicSlug])
@@ -217,6 +221,70 @@ model ProposalAsset {
   account     Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
 
   @@index([proposalId])
+}
+
+model Prospect {
+  id          String   @id @default(uuid())
+  accountId   String
+  name        String
+  segment     String?
+  region      String?
+  city        String?
+  state       String?
+  opportunity String?
+  email       String?
+  phone       String?
+  notesJson   Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  account     Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  leads       PipelineLead[]
+
+  @@index([accountId])
+  @@index([accountId, segment])
+  @@index([accountId, region])
+}
+
+model PipelineStage {
+  id        String   @id @default(uuid())
+  accountId String
+  name      String
+  color     String   @default("info")
+  position  Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  account   Account       @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  leads     PipelineLead[]
+
+  @@index([accountId])
+  @@unique([accountId, name])
+}
+
+model PipelineLead {
+  id             String    @id @default(uuid())
+  accountId      String
+  stageId        String
+  prospectId     String?
+  companyName    String
+  contactName    String?
+  contactEmail   String?
+  contactPhone   String?
+  estimatedValue Decimal? @db.Decimal(14, 2)
+  notes          String?
+  metadataJson   Json?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  account        Account       @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  stage          PipelineStage @relation(fields: [stageId], references: [id], onDelete: Cascade)
+  prospect       Prospect?     @relation(fields: [prospectId], references: [id])
+  proposals      Proposal[]    @relation("LeadProposals")
+
+  @@index([accountId])
+  @@index([stageId])
+  @@index([prospectId])
 }
 
 model SavedFieldSet {

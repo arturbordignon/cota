@@ -9,14 +9,12 @@ import { MobileNav } from '@/components/layout/mobile-nav';
 
 interface DashboardShellProps extends PropsWithChildren {
   headerActions?: ReactNode;
-  userName?: string;
   credits?: number;
 }
 
 export function DashboardShell({
   children,
   headerActions,
-  userName,
   credits,
 }: DashboardShellProps) {
   const router = useRouter();
@@ -27,7 +25,6 @@ export function DashboardShell({
       <Sidebar />
       <div className="flex min-h-screen flex-col">
         <Topbar
-          userName={userName}
           credits={credits}
           actions={headerActions}
           onCreateProposal={() => router.push('/proposals/new')}

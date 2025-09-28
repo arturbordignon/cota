@@ -11,7 +11,6 @@ import { LocaleSwitcher } from '@/components/layout/locale-switcher';
 import { GlobalSearch } from '@/components/layout/global-search';
 
 interface TopbarProps {
-  userName?: string;
   credits?: number;
   onCreateProposal?: () => void;
   actions?: ReactNode;
@@ -19,7 +18,6 @@ interface TopbarProps {
 }
 
 export function Topbar({
-  userName = 'Ana',
   credits = 100,
   onCreateProposal,
   actions,

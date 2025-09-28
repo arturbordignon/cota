@@ -20,6 +20,91 @@ function parseDate(date: string | undefined, fallback: dayjs.Dayjs) {
 }
 
 const reportsRoutes: FastifyPluginAsync = async (app) => {
+  app.get('/overview', async (request, reply) => {
+    await request.jwtVerify();
+
+    const now = dayjs();
+    const monthStart = now.startOf('month').toDate();
+    const proposals = await app.prisma.proposal.findMany({
+      where: { accountId: request.user.accountId },
+      include: {
+        client: true
+      }
+    });
+
+    const proposalsByStatus = proposals.reduce<Record<string, number>>((acc, proposal) => {
+      acc[proposal.status] = (acc[proposal.status] ?? 0) + 1;
+      return acc;
+    }, {});
+
+    const recent = proposals
+      .filter((proposal) => proposal.createdAt >= monthStart)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+      .slice(0, 10)
+      .map((proposal) => ({
+        id: proposal.id,
+        title: proposal.title,
+        status: proposal.status,
+        client: proposal.client?.name ?? null,
+        createdAt: proposal.createdAt
+      }));
+
+    const revenueByClient = proposals
+      .filter((proposal) => proposal.status === 'ACCEPTED')
+      .reduce<Record<string, { client: string; value: number }>>((acc, proposal) => {
+        const key = proposal.client?.name ?? 'Sem cliente';
+        const totals = proposal.totalsJson as Record<string, unknown> | null;
+        const numericTotal = typeof totals?.total === 'number'
+          ? totals.total
+          : typeof totals?.grandTotal === 'number'
+            ? totals.grandTotal
+            : 0;
+        const current = acc[key] ?? { client: key, value: 0 };
+        current.value += Number(numericTotal) || 0;
+        acc[key] = current;
+        return acc;
+      }, {});
+
+    const topClients = Object.values(revenueByClient)
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 5);
+
+    const pipelineStages = await app.prisma.pipelineStage.findMany({
+      where: { accountId: request.user.accountId },
+      include: {
+        leads: {
+          select: {
+            estimatedValue: true
+          }
+        }
+      },
+      orderBy: { position: 'asc' }
+    });
+
+    const pipelineSummary = pipelineStages.map((stage) => {
+      const totalValue = stage.leads.reduce((acc, lead) => {
+        if (!lead.estimatedValue) return acc;
+        return acc + Number(lead.estimatedValue);
+      }, 0);
+
+      return {
+        stageId: stage.id,
+        name: stage.name,
+        leadCount: stage.leads.length,
+        totalValue
+      };
+    });
+
+    return reply.send({
+      data: {
+        proposalsByStatus,
+        topClients,
+        recentProposals: recent,
+        pipelineSummary
+      }
+    });
+  });
+
   app.post('/run', async (request, reply) => {
     await request.jwtVerify();
     const body = reportBodySchema.parse(request.body);

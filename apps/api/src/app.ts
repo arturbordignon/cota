@@ -21,6 +21,11 @@ import clientRoutes from './routes/v1/clients.js';
 import assetRoutes from './routes/v1/assets.js';
 import billingRoutes from './routes/v1/billing.js';
 import reportsRoutes from './routes/v1/reports.js';
+import prospectsRoutes from './routes/v1/prospects.js';
+import equipmentRoutes from './routes/v1/equipment.js';
+import teamRoutes from './routes/v1/team.js';
+import auditEventRoutes from './routes/v1/audit-events.js';
+import pipelineRoutes from './routes/v1/pipeline.js';
 
 export async function buildServer() {
   const app = fastify({
@@ -102,6 +107,11 @@ export async function buildServer() {
   app.register(assetRoutes, { prefix: '/api/v1/assets' });
   app.register(billingRoutes, { prefix: '/api/v1/billing' });
   app.register(reportsRoutes, { prefix: '/api/v1/reports' });
+  app.register(prospectsRoutes, { prefix: '/api/v1/prospects' });
+  app.register(pipelineRoutes, { prefix: '/api/v1/pipeline' });
+  app.register(equipmentRoutes, { prefix: '/api/v1/equipment' });
+  app.register(teamRoutes, { prefix: '/api/v1/team' });
+  app.register(auditEventRoutes, { prefix: '/api/v1/audit-events' });
 
   return app;
 }

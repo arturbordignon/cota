@@ -1,183 +1,212 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { DotsSixVertical, Plus, X } from "@phosphor-icons/react";
 
+import { useCurrentUser } from "@/components/providers/user-provider";
 import { PageHeader } from "@/components/layout/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Select, SelectItem } from "@/components/ui/select";
+import { useApi } from "@/hooks/use-api";
+import {
+  PipelineLeadSummary,
+  PipelineStagesResponse,
+  ProspectsResponse,
+} from "@/types/api";
 
-interface Lead {
-  id: string;
-  company: string;
-  contact: string;
-  value: string;
-  notes: string;
-  email?: string;
-  phone?: string;
-  proposals?: { id: string; title: string; status: string; amount: string }[];
-}
-
-interface Column {
+interface ColumnState {
   id: string;
   title: string;
   color: "info" | "warning" | "success" | "neutral";
-  leads: Lead[];
+  leads: PipelineLeadSummary[];
 }
 
-const initialColumns: Column[] = [
-  {
-    id: "discovery",
-    title: "Descoberta",
-    color: "info",
-    leads: [
-      {
-        id: "lead-1",
-        company: "Construtora Atlas",
-        contact: "Mariana Lima",
-        value: "R$ 85 mil",
-        notes: "Reunião agendada para sexta-feira",
-        email: "mariana@atlas.com",
-        phone: "+55 (11) 99745-1212",
-        proposals: [],
-      },
-      {
-        id: "lead-2",
-        company: "Porto Leste",
-        contact: "Rodrigo Santos",
-        value: "R$ 120 mil",
-        notes: "Aguardando escopo detalhado do pátio",
-        email: "rodrigo@portoleste.com",
-        phone: "+55 (13) 98890-5534",
-        proposals: [],
-      },
-    ],
-  },
-  {
-    id: "qualification",
-    title: "Qualificação",
-    color: "warning",
-    leads: [
-      {
-        id: "lead-3",
-        company: "Terraplanagem Horizonte",
-        contact: "Priscila Mendes",
-        value: "R$ 210 mil",
-        notes: "Revisando cronograma e número de equipes",
-        email: "priscila@horizonte.com",
-        phone: "+55 (41) 98765-2244",
-        proposals: [
-          { id: "P-1022", title: "Terraplanagem fase 1", status: "Rascunho", amount: "R$ 210 mil" },
-        ],
-      },
-    ],
-  },
-  {
-    id: "proposal",
-    title: "Proposta enviada",
-    color: "info",
-    leads: [
-      {
-        id: "lead-4",
-        company: "Industrial Metal Forte",
-        contact: "Henrique Alves",
-        value: "R$ 330 mil",
-        notes: "Proposta enviada via plataforma",
-        email: "henrique@metalforte.com",
-        phone: "+55 (31) 99650-8899",
-        proposals: [
-          { id: "P-1050", title: "Guindaste 80t - Projeto A", status: "Enviada", amount: "R$ 210 mil" },
-          { id: "P-1051", title: "Guindaste 120t - Projeto B", status: "Enviada", amount: "R$ 120 mil" },
-        ],
-      },
-    ],
-  },
-  {
-    id: "won",
-    title: "Fechado",
-    color: "success",
-    leads: [
-      {
-        id: "lead-5",
-        company: "Logística Integrada",
-        contact: "Ana Moreira",
-        value: "R$ 95 mil",
-        notes: "Contrato assinado - mobilização em 20 dias",
-        email: "ana@logintegrada.com",
-        phone: "+55 (21) 98333-5544",
-        proposals: [
-          { id: "P-1001", title: "Guindaste telescópico 60t", status: "Aceita", amount: "R$ 95 mil" },
-        ],
-      },
-    ],
-  },
-];
+interface NewLeadDraft {
+  companyName: string;
+  contactName: string;
+  contactEmail: string;
+  contactPhone: string;
+  stageId: string;
+  estimatedValue: string;
+  notes: string;
+  prospectId?: string;
+}
+
+function mapColor(color: string): "info" | "warning" | "success" | "neutral" {
+  switch (color) {
+    case "warning":
+    case "success":
+    case "info":
+      return color;
+    default:
+      return "neutral";
+  }
+}
+
+function formatCurrency(value?: string | null) {
+  if (!value) return null;
+  const numeric = Number(value);
+  if (Number.isNaN(numeric)) return null;
+  return numeric.toLocaleString('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+    minimumFractionDigits: 0,
+  });
+}
 
 export default function CrmBoardPage() {
-  const [columns, setColumns] = useState<Column[]>(initialColumns);
+  const { isAdmin } = useCurrentUser();
+  const api = useApi();
+  const queryClient = useQueryClient();
+  const [columns, setColumns] = useState<ColumnState[]>([]);
   const [dragging, setDragging] = useState<{ columnId: string; leadId: string } | null>(null);
-  const [activeLead, setActiveLead] = useState<{ lead: Lead; stage: string } | null>(null);
+  const [activeLead, setActiveLead] = useState<{ lead: PipelineLeadSummary; stage: string } | null>(null);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [draft, setDraft] = useState<NewLeadDraft>({
+    companyName: '',
+    contactName: '',
+    contactEmail: '',
+    contactPhone: '',
+    stageId: '',
+    estimatedValue: '',
+    notes: '',
+  });
+
+  const pipelineQuery = useQuery({
+    queryKey: ['pipeline', 'stages'],
+    queryFn: () => api.get<PipelineStagesResponse>('/pipeline/stages'),
+    enabled: Boolean(api.token),
+  });
+
+  const prospectsQuery = useQuery({
+    queryKey: ['prospects', 'lookup'],
+    queryFn: () => api.get<ProspectsResponse>('/prospects?limit=200'),
+    enabled: Boolean(api.token),
+  });
+
+  useEffect(() => {
+    if (pipelineQuery.data) {
+      const mapped: ColumnState[] = pipelineQuery.data.data.map((stage) => ({
+        id: stage.id,
+        title: stage.name,
+        color: mapColor(stage.color),
+        leads: stage.leads ?? [],
+      }));
+      setColumns(mapped);
+      setDraft((prev) => {
+        if (prev.stageId || mapped.length === 0) {
+          return prev;
+        }
+        return { ...prev, stageId: mapped[0].id };
+      });
+    }
+  }, [pipelineQuery.data]);
+
+  const moveLeadMutation = useMutation({
+    mutationFn: async ({ leadId, stageId }: { leadId: string; stageId: string }) => {
+      await api.patch(`/pipeline/leads/${leadId}/move`, { stageId });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pipeline', 'stages'] });
+    },
+  });
+
+  const createLeadMutation = useMutation({
+    mutationFn: async () => {
+      await api.post('/pipeline/leads', {
+        stageId: draft.stageId,
+        companyName: draft.companyName.trim(),
+        contactName: draft.contactName.trim() || undefined,
+        contactEmail: draft.contactEmail.trim() || undefined,
+        contactPhone: draft.contactPhone.trim() || undefined,
+        estimatedValue: draft.estimatedValue ? Number(draft.estimatedValue.replace(/[^0-9.,]/g, '').replace(',', '.')) : undefined,
+        notes: draft.notes.trim() || undefined,
+        prospectId: draft.prospectId || undefined,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pipeline', 'stages'] });
+      setCreateDialogOpen(false);
+      setDraft((prev) => ({ ...prev, companyName: '', contactName: '', contactEmail: '', contactPhone: '', estimatedValue: '', notes: '' }));
+    },
+  });
 
   const totals = useMemo(() => {
-    return columns.reduce(
-      (acc, column) => {
-        acc.leads += column.leads.length;
-        acc.value += column.leads.reduce((sum, lead) => sum + parseInt(lead.value.replace(/[^\d]/g, ""), 10), 0);
-        return acc;
-      },
-      { leads: 0, value: 0 }
-    );
+    const leadCount = columns.reduce((sum, column) => sum + column.leads.length, 0);
+    const value = columns.reduce((sum, column) => {
+      return sum + column.leads.reduce((acc, lead) => {
+        const numeric = lead.estimatedValue ? Number(lead.estimatedValue) : 0;
+        return acc + (Number.isNaN(numeric) ? 0 : numeric);
+      }, 0);
+    }, 0);
+    return { leads: leadCount, value };
   }, [columns]);
 
   const handleDragStart = (columnId: string, leadId: string) => {
+    if (!isAdmin) return;
     setDragging({ columnId, leadId });
   };
 
   const handleDrop = (targetColumnId: string) => {
-    if (!dragging || dragging.columnId === targetColumnId) return;
-
+    if (!isAdmin || !dragging || dragging.columnId === targetColumnId) return;
     setColumns((prev) => {
       const next = prev.map((column) => ({ ...column, leads: [...column.leads] }));
       const sourceColumn = next.find((column) => column.id === dragging.columnId);
       const destinationColumn = next.find((column) => column.id === targetColumnId);
-
       if (!sourceColumn || !destinationColumn) return prev;
-
       const leadIndex = sourceColumn.leads.findIndex((lead) => lead.id === dragging.leadId);
       if (leadIndex === -1) return prev;
-
       const [lead] = sourceColumn.leads.splice(leadIndex, 1);
       destinationColumn.leads.unshift(lead);
-
+      moveLeadMutation.mutate({ leadId: lead.id, stageId: targetColumnId });
       return next;
     });
-
     setDragging(null);
   };
 
   const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
+    if (!isAdmin) return;
     event.preventDefault();
   };
 
+  const isTokenMissing = !api.token;
+  const loadError = pipelineQuery.error as Error | null;
+
   return (
     <section className="space-y-6">
+      {isTokenMissing ? (
+        <Card className="border border-warning/40 bg-warning-soft px-6 py-4 text-sm text-warning">
+          Defina a variável `NEXT_PUBLIC_API_TOKEN` ou autentique-se para visualizar o pipeline real.
+        </Card>
+      ) : null}
+
       <PageHeader
         title="Pipeline de vendas"
-        description="Organize prospects em etapas, arraste oportunidades entre colunas e visualize detalhes completos de cada cliente."
+        description="Organize prospects em etapas, mova oportunidades entre colunas e acompanhe o potencial de receita por fase."
         action={
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
-            <Button className="w-full sm:w-auto">
+            <Button className="w-full sm:w-auto" disabled={!isAdmin} onClick={() => setCreateDialogOpen(true)}>
               <Plus size={16} className="mr-2" /> Novo lead
             </Button>
-            <Button variant="outline" className="w-full sm:w-auto">
+            <Button variant="outline" className="w-full sm:w-auto" disabled>
               Personalizar etapas
             </Button>
           </div>
         }
       />
+
+      {loadError && !isTokenMissing ? (
+        <Card className="border border-danger/40 bg-danger-soft/20 px-6 py-4 text-sm text-danger">
+          Não foi possível carregar o pipeline: {loadError.message}
+        </Card>
+      ) : null}
 
       <Card className="flex flex-wrap items-center gap-4 border border-outline/50 bg-white px-6 py-4 shadow-sm">
         <div>
@@ -186,142 +215,234 @@ export default function CrmBoardPage() {
         </div>
         <div>
           <p className="text-xs uppercase tracking-wide text-muted">Valor potencial</p>
-          <p className="text-lg font-semibold text-primary">R$ {Math.round(totals.value / 1000)}k</p>
+          <p className="text-lg font-semibold text-primary">{formatCurrency(String(totals.value)) ?? 'R$ 0'}</p>
         </div>
-        <p className="text-xs text-muted">
-          Arraste e solte cards para movimentar leads entre etapas. Em breve, etapas personalizadas serão salvas por workspace.
-        </p>
+        {!isAdmin ? (
+          <p className="text-xs text-muted">
+            Você possui acesso de visualização. Solicite permissões de edição para movimentar etapas ou criar novos leads.
+          </p>
+        ) : (
+          <p className="text-xs text-muted">
+            Arraste e solte cards para movimentar leads entre etapas. Etapas personalizadas serão salvas por workspace em uma próxima atualização.
+          </p>
+        )}
       </Card>
 
-      <ScrollArea className="w-full" type="always">
-        <div className="flex gap-6 pb-6">
-          {columns.map((column) => (
+      {pipelineQuery.isLoading ? (
+        <div className="grid gap-4 lg:grid-cols-2">
+          {Array.from({ length: 2 }).map((_, index) => (
             <Card
-              key={column.id}
-              className="flex w-[320px] flex-shrink-0 flex-col gap-5 border border-outline/60 bg-white p-4 shadow-sm"
-              onDragOver={handleDragOver}
-              onDrop={() => handleDrop(column.id)}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Badge tone={column.color}>{column.title}</Badge>
-                  <span className="text-xs text-muted">{column.leads.length} leads</span>
-                </div>
-                <DotsSixVertical size={16} className="text-muted" />
-              </div>
-
-              <div className="flex flex-1 flex-col gap-3">
-                {column.leads.map((lead) => (
-                  <button
-                    key={lead.id}
-                    type="button"
-                    draggable
-                    onDragStart={() => handleDragStart(column.id, lead.id)}
-                    onClick={() => setActiveLead({ lead, stage: column.title })}
-                    className="rounded-xl border border-outline/50 bg-[var(--color-surface-muted)]/80 p-4 text-left transition hover:-translate-y-0.5 hover:shadow-md"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="text-sm font-semibold text-ink">{lead.company}</h3>
-                        <p className="text-xs text-muted">{lead.contact}</p>
-                      </div>
-                      <span className="text-xs font-semibold text-primary">{lead.value}</span>
-                    </div>
-                    <p className="mt-2 text-xs text-muted">{lead.notes}</p>
-                  </button>
-                ))}
-
-                {column.leads.length === 0 && (
-                  <div className="rounded-xl border border-dashed border-outline/60 bg-white/70 p-4 text-center text-xs text-muted">
-                    Arraste leads para esta etapa
-                  </div>
-                )}
-              </div>
-            </Card>
+              key={`pipeline-skeleton-${index}`}
+              className="h-64 animate-pulse rounded-3xl border border-outline/40 bg-white/70"
+            />
           ))}
         </div>
-      </ScrollArea>
-
-      <Dialog.Root open={!!activeLead} onOpenChange={() => setActiveLead(null)}>
-        <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 bg-black/20 backdrop-blur-sm" />
-          <Dialog.Content className="fixed inset-y-0 right-0 w-full max-w-lg border-l border-outline/60 bg-white shadow-2xl">
-            {activeLead ? (
-              <div className="flex h-full flex-col">
-                <div className="flex items-center justify-between border-b border-outline/60 px-6 py-4">
+      ) : (
+        <ScrollArea className="w-full" type="always">
+          <div className="flex gap-6 pb-6">
+            {columns.map((column) => (
+              <Card
+                key={column.id}
+                className="flex w-80 flex-col gap-4 border border-outline/40 bg-white p-4 shadow-sm"
+                onDragOver={handleDragOver}
+                onDrop={() => handleDrop(column.id)}
+              >
+                <div className="flex items-center justify-between">
                   <div>
-                    <Dialog.Title className="text-base font-semibold text-ink">
-                      {activeLead.lead.company}
-                    </Dialog.Title>
-                    <Dialog.Description className="text-xs text-muted">
-                      Etapa atual: {activeLead.stage}
-                    </Dialog.Description>
+                    <h3 className="text-sm font-semibold text-ink">{column.title}</h3>
+                    <p className="text-xs text-muted">{column.leads.length} leads</p>
+                  </div>
+                  <Badge tone={column.color}>{column.color.toUpperCase()}</Badge>
+                </div>
+                <div className="space-y-3">
+                  {column.leads.map((lead) => (
+                    <div
+                      key={lead.id}
+                      draggable={isAdmin}
+                      onDragStart={() => handleDragStart(column.id, lead.id)}
+                      className="group cursor-grab rounded-2xl border border-outline/60 bg-[var(--color-surface-muted)]/70 p-4 transition hover:border-primary"
+                    >
+                      <div className="flex items-start justify-between gap-2"
+                        onClick={() => setActiveLead({ lead, stage: column.title })}
+                        role="button"
+                        tabIndex={0}
+                      >
+                        <div>
+                          <p className="text-sm font-semibold text-ink">{lead.companyName}</p>
+                          {lead.contactName ? <p className="text-xs text-muted">{lead.contactName}</p> : null}
+                          {lead.contactEmail ? <p className="text-xs text-muted">{lead.contactEmail}</p> : null}
+                        </div>
+                        <DotsSixVertical size={16} className="text-muted opacity-0 transition group-hover:opacity-100" />
+                      </div>
+                      <div className="mt-2 flex items-center justify-between text-xs text-muted">
+                        <span>{formatCurrency(lead.estimatedValue)}</span>
+                        <Button
+                          variant="link"
+                          size="sm"
+                          className="p-0 text-xs text-primary"
+                          onClick={() => setActiveLead({ lead, stage: column.title })}
+                        >
+                          Ver detalhes
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                  {column.leads.length === 0 ? (
+                    <p className="rounded-xl border border-dashed border-outline/50 bg-white/80 px-4 py-6 text-center text-xs text-muted">
+                      Nenhum lead nesta etapa.
+                    </p>
+                  ) : null}
+                </div>
+              </Card>
+            ))}
+          </div>
+        </ScrollArea>
+      )}
+
+      <Dialog.Root open={Boolean(activeLead)} onOpenChange={(open) => !open && setActiveLead(null)}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="fixed inset-0 z-40 bg-ink/40 backdrop-blur-sm" />
+          <Dialog.Content className="fixed inset-0 z-50 flex items-center justify-center px-4 py-10">
+            {activeLead ? (
+              <Card className="w-full max-w-xl space-y-4 border border-outline/50 bg-white p-6 shadow-2xl">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-lg font-semibold text-ink">{activeLead.lead.companyName}</h2>
+                    <p className="text-xs text-muted">Etapa: {activeLead.stage}</p>
                   </div>
                   <Dialog.Close asChild>
                     <button
                       type="button"
-                      className="rounded-full border border-outline bg-[var(--color-surface-muted)] p-2 text-muted"
+                      aria-label="Fechar"
+                      className="rounded-full border border-outline bg-white p-2 text-ink shadow-sm transition hover:bg-primary-soft"
                     >
                       <X size={16} weight="bold" />
                     </button>
                   </Dialog.Close>
                 </div>
-
-                <div className="flex-1 space-y-6 overflow-y-auto px-6 py-6">
-                  <section className="space-y-2">
-                    <h3 className="text-sm font-semibold text-ink">Contato principal</h3>
-                    <div className="rounded-lg border border-outline/60 bg-white p-4 text-sm text-muted">
-                      <p>{activeLead.lead.contact}</p>
-                      {activeLead.lead.email ? <p>{activeLead.lead.email}</p> : null}
-                      {activeLead.lead.phone ? <p>{activeLead.lead.phone}</p> : null}
-                    </div>
-                  </section>
-
-                  <section className="space-y-2">
-                    <h3 className="text-sm font-semibold text-ink">Oportunidade</h3>
-                    <div className="rounded-lg border border-outline/60 bg-white p-4 text-sm text-muted">
-                      <p>Valor estimado: <span className="font-semibold text-primary">{activeLead.lead.value}</span></p>
-                      <p className="mt-2 text-xs text-muted">Notas recentes</p>
-                      <p>{activeLead.lead.notes}</p>
-                    </div>
-                  </section>
-
-                  <section className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-sm font-semibold text-ink">Propostas relacionadas</h3>
-                      <Button variant="ghost" size="sm">
-                        Gerar nova proposta
-                      </Button>
-                    </div>
-                    <div className="space-y-3">
-                      {(activeLead.lead.proposals ?? []).map((proposal) => (
-                        <div
-                          key={proposal.id}
-                          className="rounded-lg border border-outline/60 bg-[var(--color-surface-muted)]/80 px-4 py-3 text-sm text-ink"
-                        >
-                          <div className="flex items-center justify-between">
-                            <span className="font-semibold">{proposal.title}</span>
-                            <Badge tone={proposal.status === "Aceita" ? "success" : "info"}>{proposal.status}</Badge>
-                          </div>
-                          <p className="text-xs text-muted">{proposal.amount}</p>
-                        </div>
-                      ))}
-                      {(!activeLead.lead.proposals || activeLead.lead.proposals.length === 0) && (
-                        <div className="rounded-lg border border-dashed border-outline/60 bg-white/70 px-4 py-6 text-center text-xs text-muted">
-                          Ainda não existem propostas ligadas a este lead
-                        </div>
-                      )}
-                    </div>
-                  </section>
+                <div className="grid gap-3 text-sm text-muted">
+                  {activeLead.lead.contactName ? <p>Contato: {activeLead.lead.contactName}</p> : null}
+                  {activeLead.lead.contactEmail ? <p>E-mail: {activeLead.lead.contactEmail}</p> : null}
+                  {activeLead.lead.contactPhone ? <p>Telefone: {activeLead.lead.contactPhone}</p> : null}
+                  {activeLead.lead.estimatedValue ? (
+                    <p>Valor estimado: {formatCurrency(activeLead.lead.estimatedValue)}</p>
+                  ) : null}
+                  {activeLead.lead.notes ? <p>Notas: {activeLead.lead.notes}</p> : null}
+                  {activeLead.lead.prospect ? (
+                    <p>Prospect: {activeLead.lead.prospect.name}</p>
+                  ) : null}
                 </div>
+              </Card>
+            ) : null}
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
 
-                <div className="border-t border-outline/60 px-6 py-4">
-                  <Button className="w-full" variant="primary">
-                    Atualizar estágio
-                  </Button>
+      <Dialog.Root open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="fixed inset-0 z-40 bg-ink/40 backdrop-blur-sm" />
+          <Dialog.Content className="fixed inset-0 z-50 flex items-center justify-center px-4 py-10">
+            <Card className="w-full max-w-xl space-y-4 border border-outline/50 bg-white p-6 shadow-2xl">
+              <div className="flex items-center justify-between">
+                <Dialog.Title className="text-lg font-semibold text-ink">Novo lead</Dialog.Title>
+                <Dialog.Close asChild>
+                  <button
+                    type="button"
+                    aria-label="Fechar"
+                    className="rounded-full border border-outline bg-white p-2 text-ink shadow-sm transition hover:bg-primary-soft"
+                  >
+                    <X size={16} weight="bold" />
+                  </button>
+                </Dialog.Close>
+              </div>
+              <div className="grid gap-3">
+                <div className="space-y-1">
+                  <Label>Empresa</Label>
+                  <Input
+                    value={draft.companyName}
+                    onChange={(event) => setDraft((prev) => ({ ...prev, companyName: event.target.value }))}
+                    placeholder="Nome da empresa"
+                  />
+                </div>
+                <div className="grid gap-3 md:grid-cols-2">
+                  <div className="space-y-1">
+                    <Label>Contato</Label>
+                    <Input
+                      value={draft.contactName}
+                      onChange={(event) => setDraft((prev) => ({ ...prev, contactName: event.target.value }))}
+                      placeholder="Nome do contato"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label>E-mail</Label>
+                    <Input
+                      value={draft.contactEmail}
+                      onChange={(event) => setDraft((prev) => ({ ...prev, contactEmail: event.target.value }))}
+                      placeholder="contato@empresa.com"
+                      type="email"
+                    />
+                  </div>
+                </div>
+                <div className="grid gap-3 md:grid-cols-2">
+                  <div className="space-y-1">
+                    <Label>Telefone</Label>
+                    <Input
+                      value={draft.contactPhone}
+                      onChange={(event) => setDraft((prev) => ({ ...prev, contactPhone: event.target.value }))}
+                      placeholder="+55 (11) 99999-0000"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label>Valor estimado (R$)</Label>
+                    <Input
+                      value={draft.estimatedValue}
+                      onChange={(event) => setDraft((prev) => ({ ...prev, estimatedValue: event.target.value }))}
+                      placeholder="120000"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <Label>Notas</Label>
+                  <Input
+                    value={draft.notes}
+                    onChange={(event) => setDraft((prev) => ({ ...prev, notes: event.target.value }))}
+                    placeholder="Resumo do projeto, próximas ações..."
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label>Prospect vinculado</Label>
+                  <Select
+                    value={draft.prospectId ?? ''}
+                    onValueChange={(value) => setDraft((prev) => ({ ...prev, prospectId: value || undefined }))}
+                  >
+                    <SelectItem value="">Nenhum</SelectItem>
+                    {(prospectsQuery.data?.data ?? []).map((prospect) => (
+                      <SelectItem key={prospect.id} value={prospect.id}>
+                        {prospect.name}
+                      </SelectItem>
+                    ))}
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label>Etapa</Label>
+                  <Select value={draft.stageId} onValueChange={(value) => setDraft((prev) => ({ ...prev, stageId: value }))}>
+                    {columns.map((column) => (
+                      <SelectItem key={column.id} value={column.id}>
+                        {column.title}
+                      </SelectItem>
+                    ))}
+                  </Select>
                 </div>
               </div>
-            ) : null}
+              <div className="flex justify-end gap-2">
+                <Dialog.Close asChild>
+                  <Button variant="ghost">Cancelar</Button>
+                </Dialog.Close>
+                <Button onClick={() => createLeadMutation.mutate()} disabled={!draft.companyName || !draft.stageId}>
+                  {createLeadMutation.isPending ? 'Salvando...' : 'Salvar lead'}
+                </Button>
+              </div>
+            </Card>
           </Dialog.Content>
         </Dialog.Portal>
       </Dialog.Root>
