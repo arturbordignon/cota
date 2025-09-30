@@ -1,12 +1,11 @@
 "use client";
 
-import { useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { useMemo, useState } from "react";
 
 import { PageHeader } from "@/components/layout/page-header";
-import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { CheckoutButton, PortalButton } from "@/components/billing/checkout-button";
 import { PlanUsageSnapshot } from "@/components/billing/plan-usage";
 import { useCurrentUser } from "@/components/providers/user-provider";
@@ -30,17 +29,44 @@ const roleLabels: Record<string, { label: string; tone: "success" | "warning" | 
   admin: { label: "Administrador", tone: "info" },
   manager: { label: "Gestor", tone: "warning" },
   viewer: { label: "Somente leitura", tone: "neutral" },
+  member: { label: "Colaborador", tone: "neutral" },
 };
 
 export default function AccountPage() {
-  const router = useRouter();
-  const { user, updateUser } = useCurrentUser();
+  const { user, accessToken, signOut, status } = useCurrentUser();
+  const [copied, setCopied] = useState(false);
 
-  const roleMeta = useMemo(() => roleLabels[user.role] ?? roleLabels.viewer, [user.role]);
+  const roleMeta = useMemo(() => roleLabels[user?.role ?? "member"], [user?.role]);
 
-  const handleSignOut = () => {
-    updateUser({ token: undefined });
-    router.push("/sign-in");
+  if (status === "loading") {
+    return (
+      <section className="space-y-6">
+        <Card className="rounded-3xl border border-outline/60 bg-white px-6 py-6 text-sm text-muted">
+          Carregando dados da conta...
+        </Card>
+      </section>
+    );
+  }
+
+  if (!user) {
+    return (
+      <section className="space-y-6">
+        <Card className="rounded-3xl border border-warning/40 bg-warning-soft px-6 py-6 text-sm text-warning">
+          Faça login novamente para visualizar as informações da conta.
+        </Card>
+      </section>
+    );
+  }
+
+  const handleCopyToken = async () => {
+    if (!accessToken || typeof navigator === "undefined") return;
+    try {
+      await navigator.clipboard.writeText(accessToken);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      setCopied(false);
+    }
   };
 
   return (
@@ -49,7 +75,7 @@ export default function AccountPage() {
         title="Minha Conta"
         description="Gerencie os dados do seu usuário, preferências do workspace e acompanhe o status da assinatura."
         action={
-          <Button variant="outline" onClick={handleSignOut} className="w-full sm:w-auto">
+          <Button variant="outline" onClick={() => signOut()} className="w-full sm:w-auto">
             Encerrar sessão
           </Button>
         }
@@ -78,7 +104,7 @@ export default function AccountPage() {
             </div>
             <div className="space-y-1">
               <span className="text-xs uppercase tracking-wide text-muted">Departamento</span>
-              <p className="text-sm font-medium text-ink">{user.department}</p>
+              <p className="text-sm font-medium text-ink">{user.department ?? "—"}</p>
             </div>
             <div className="space-y-1">
               <span className="text-xs uppercase tracking-wide text-muted">Identificador</span>
@@ -89,24 +115,34 @@ export default function AccountPage() {
 
         <Card className="space-y-5 rounded-3xl border border-outline/60 bg-white px-6 py-6 shadow-sm">
           <div className="space-y-1">
-            <h2 className="text-lg font-semibold text-ink">Sessão e segurança</h2>
-            <p className="text-sm text-muted">Utilize o token de API apenas em ambientes confiáveis. Revogue o acesso caso compartilhe este dispositivo.</p>
+            <h2 className="text-lg font-semibold text-ink">Workspace</h2>
+            <p className="text-sm text-muted">Detalhes do ambiente e idioma padrão das propostas.</p>
           </div>
 
-          <div className="space-y-3">
+          <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-1">
-              <span className="text-xs uppercase tracking-wide text-muted">Token atual</span>
-              <p className="break-all rounded-lg border border-dashed border-outline/60 bg-[var(--color-surface-muted)] px-3 py-2 text-xs text-muted">
-                {user.token ?? "Não vinculado"}
-              </p>
+              <span className="text-xs uppercase tracking-wide text-muted">Nome do workspace</span>
+              <p className="text-sm font-medium text-ink">{user.account.name}</p>
             </div>
-            <div className="flex flex-wrap gap-3">
-              <Button variant="secondary" size="sm" onClick={() => updateUser({ token: process.env.NEXT_PUBLIC_API_TOKEN })}>
-                Atualizar token
-              </Button>
-              <Button variant="ghost" size="sm" onClick={() => updateUser({ token: undefined })}>
-                Revogar token local
-              </Button>
+            <div className="space-y-1">
+              <span className="text-xs uppercase tracking-wide text-muted">Slug</span>
+              <p className="text-sm font-medium text-ink">{user.account.slug}</p>
+            </div>
+            <div className="space-y-1">
+              <span className="text-xs uppercase tracking-wide text-muted">Idioma padrão</span>
+              <p className="text-sm font-medium text-ink">{user.account.locale}</p>
+            </div>
+            <div className="space-y-1">
+              <span className="text-xs uppercase tracking-wide text-muted">Token de acesso</span>
+              <div className="flex items-center gap-2">
+                <Button variant="secondary" size="sm" onClick={handleCopyToken} disabled={!accessToken}>
+                  Copiar token
+                </Button>
+                {copied ? <span className="text-xs text-success">Copiado!</span> : null}
+              </div>
+              <p className="mt-1 text-xs text-muted">
+                O token é renovado automaticamente após o login. Utilize-o apenas em ambientes confiáveis.
+              </p>
             </div>
           </div>
         </Card>

@@ -41,6 +41,61 @@ const refreshBodySchema = z.object({
 });
 
 const authRoutes: FastifyPluginAsync = async (app) => {
+  app.get('/me', { preHandler: app.authenticate }, async (request, reply) => {
+    const payload = request.user;
+
+    const user = await app.prisma.user.findUnique({
+      where: { id: payload.sub },
+      select: {
+        id: true,
+        email: true,
+        fullName: true,
+        role: true,
+        preferredLocale: true,
+        department: {
+          select: {
+            id: true,
+            name: true
+          }
+        },
+        account: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            defaultLocale: true
+          }
+        }
+      }
+    });
+
+    if (!user) {
+      return reply.status(404).send({ message: 'User not found' });
+    }
+
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.fullName ?? user.email,
+        role: user.role,
+        locale: user.preferredLocale,
+        department: user.department
+          ? {
+              id: user.department.id,
+              name: user.department.name
+            }
+          : null
+      },
+      account: {
+        id: user.account.id,
+        name: user.account.name,
+        slug: user.account.slug,
+        locale: user.account.defaultLocale
+      }
+    };
+  });
+
   app.post('/register', async (request, reply) => {
     const locale = resolveLocale(request);
     const body = registerBodySchema.parse(request.body);

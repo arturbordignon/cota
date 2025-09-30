@@ -1,8 +1,9 @@
 'use client';
 
-import { PropsWithChildren, ReactNode, useState } from 'react';
+import { PropsWithChildren, ReactNode, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
+import { useCurrentUser } from '@/components/providers/user-provider';
 import { Sidebar } from '@/components/layout/sidebar';
 import { Topbar } from '@/components/layout/topbar';
 import { MobileNav } from '@/components/layout/mobile-nav';
@@ -18,7 +19,26 @@ export function DashboardShell({
   credits,
 }: DashboardShellProps) {
   const router = useRouter();
+  const { status } = useCurrentUser();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.replace('/sign-in');
+    }
+  }, [status, router]);
+
+  if (status === 'loading') {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <p className="text-sm text-muted">Carregando ambiente...</p>
+      </div>
+    );
+  }
+
+  if (status === 'unauthenticated') {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-background lg:pl-72">

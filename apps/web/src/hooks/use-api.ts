@@ -10,31 +10,63 @@ interface RequestOptions extends RequestInit {
   skipAuth?: boolean;
 }
 
+async function parseError(response: Response) {
+  try {
+    const data = (await response.clone().json()) as { message?: string };
+    if (data?.message) {
+      return data.message;
+    }
+  } catch (err) {
+    const text = await response.text();
+    if (text) {
+      return text;
+    }
+  }
+  return `Request failed with status ${response.status}`;
+}
+
 export function useApi() {
-  const { user } = useCurrentUser();
-  const fallbackToken = process.env.NEXT_PUBLIC_API_TOKEN;
-  const token = user.token ?? fallbackToken;
+  const { accessToken, refreshSession } = useCurrentUser();
 
   const request = useCallback(
     async <T>(path: string, init?: RequestOptions): Promise<T> => {
-      const headers = new Headers(init?.headers ?? {});
-      headers.set("Content-Type", "application/json");
+      const { skipAuth, ...rest } = init ?? {};
 
-      if (!init?.skipAuth) {
-        if (!token) {
-          throw new Error("API token is missing. Set NEXT_PUBLIC_API_TOKEN or provide a user token.");
+      const buildHeaders = (tokenOverride?: string) => {
+        const headers = new Headers(rest.headers ?? {});
+        const isFormData = rest.body instanceof FormData;
+        if (!isFormData && !headers.has("Content-Type")) {
+          headers.set("Content-Type", "application/json");
         }
-        headers.set("Authorization", `Bearer ${token}`);
+
+        if (!skipAuth) {
+          const tokenForRequest = tokenOverride ?? accessToken;
+          if (!tokenForRequest) {
+            throw new Error("Você precisa se autenticar para continuar.");
+          }
+          headers.set("Authorization", `Bearer ${tokenForRequest}`);
+        }
+
+        return headers;
+      };
+
+      const execute = (tokenOverride?: string) =>
+        fetch(`${API_BASE_URL}${path}`, {
+          ...rest,
+          headers: buildHeaders(tokenOverride),
+        });
+
+      let response = await execute();
+
+      if (response.status === 401 && !skipAuth) {
+        const newToken = await refreshSession().catch(() => null);
+        if (newToken) {
+          response = await execute(newToken);
+        }
       }
 
-      const response = await fetch(`${API_BASE_URL}${path}`, {
-        ...init,
-        headers,
-      });
-
       if (!response.ok) {
-        const text = await response.text();
-        const message = text || `Request failed with status ${response.status}`;
+        const message = await parseError(response);
         throw new Error(message);
       }
 
@@ -44,43 +76,59 @@ export function useApi() {
 
       return response.json() as Promise<T>;
     },
-    [token]
+    [accessToken, refreshSession]
   );
 
   const get = useCallback(<T>(path: string) => request<T>(path, { method: "GET" }), [request]);
 
+  const prepareBody = useCallback((body: unknown) => {
+    if (body instanceof FormData || body instanceof Blob) {
+      return body;
+    }
+    if (typeof body === "string") {
+      return body;
+    }
+    if (body == null) {
+      return undefined;
+    }
+    return JSON.stringify(body);
+  }, []);
+
   const post = useCallback(
-    <T>(path: string, body: unknown) =>
+    <T>(path: string, body: unknown, init?: RequestOptions) =>
       request<T>(path, {
         method: "POST",
-        body: JSON.stringify(body),
+        body: prepareBody(body),
+        ...init,
       }),
-    [request]
+    [request, prepareBody]
   );
 
   const put = useCallback(
     <T>(path: string, body: unknown) =>
       request<T>(path, {
         method: "PUT",
-        body: JSON.stringify(body),
+        body: prepareBody(body),
       }),
-    [request]
+    [request, prepareBody]
   );
 
   const patch = useCallback(
     <T>(path: string, body: unknown) =>
       request<T>(path, {
         method: "PATCH",
-        body: JSON.stringify(body),
+        body: prepareBody(body),
       }),
-    [request]
+    [request, prepareBody]
   );
 
   const del = useCallback(<T>(path: string) => request<T>(path, { method: "DELETE" }), [request]);
 
   return {
     baseUrl: API_BASE_URL,
-    token,
+    accessToken,
+    token: accessToken,
+    isAuthenticated: Boolean(accessToken),
     get,
     post,
     put,
