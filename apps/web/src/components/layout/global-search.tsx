@@ -8,8 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectItem } from "@/components/ui/select";
 
-const searchScopes = ["all", "proposals", "clients", "templates", "prospects"] as const;
-type SearchScope = (typeof searchScopes)[number];
+export const searchScopes = ["all", "proposals", "clients", "templates", "prospects"] as const;
+export type SearchScope = (typeof searchScopes)[number];
 
 interface GlobalSearchProps {
   onSearch?: (query: string, scope: SearchScope) => void;

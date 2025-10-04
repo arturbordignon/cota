@@ -39,5 +39,22 @@
     "cancel": "Cancel",
     "save": "Save client",
     "saving": "Saving..."
+  },
+  "details": {
+    "loading": "Loading client...",
+    "subtitle": "Relationship record",
+    "close": "Close",
+    "notFound": "Client not found.",
+    "fields": {
+      "company": "Company",
+      "email": "Email",
+      "phone": "Phone",
+      "notes": "Notes",
+      "createdAt": "Created at",
+      "updatedAt": "Updated at"
+    },
+    "placeholders": {
+      "empty": "Not provided"
+    }
   }
 }

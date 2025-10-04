@@ -153,6 +153,10 @@ export interface TeamOverviewResponse {
   };
 }
 
+export interface DepartmentResponse {
+  data: DepartmentSummary;
+}
+
 export interface AuditEventEntry {
   id: string;
   actor: string;

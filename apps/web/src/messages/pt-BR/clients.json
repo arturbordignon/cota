@@ -39,5 +39,22 @@
     "cancel": "Cancelar",
     "save": "Salvar cliente",
     "saving": "Salvando..."
+  },
+  "details": {
+    "loading": "Carregando cliente...",
+    "subtitle": "Dados do relacionamento",
+    "close": "Fechar",
+    "notFound": "Cliente não encontrado.",
+    "fields": {
+      "company": "Empresa",
+      "email": "E-mail",
+      "phone": "Telefone",
+      "notes": "Observações",
+      "createdAt": "Criado em",
+      "updatedAt": "Atualizado em"
+    },
+    "placeholders": {
+      "empty": "Não informado"
+    }
   }
 }

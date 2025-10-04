@@ -87,6 +87,10 @@
       "label": "Reports",
       "description": "Dynamic queries and metrics."
     },
+    "plan": {
+      "label": "Plans",
+      "description": "Subscription management and limits."
+    },
     "account": {
       "label": "Account",
       "description": "User profile and subscription settings."

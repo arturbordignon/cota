@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { DotsSixVertical, Plus, X } from "@phosphor-icons/react";
+import { ArrowDown, ArrowUp, DotsSixVertical, PaintBrushBroad, Plus, X } from "@phosphor-icons/react";
 
 import { useCurrentUser } from "@/components/providers/user-provider";
 import { PageHeader } from "@/components/layout/page-header";
@@ -14,12 +14,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectItem } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { useApi } from "@/hooks/use-api";
 import {
   PipelineLeadSummary,
   PipelineStagesResponse,
   ProspectsResponse,
 } from "@/types/api";
+import { cn } from "@/lib/utils";
 
 interface ColumnState {
   id: string;
@@ -27,6 +29,8 @@ interface ColumnState {
   color: "info" | "warning" | "success" | "neutral";
   leads: PipelineLeadSummary[];
 }
+
+type StageColor = ColumnState["color"];
 
 interface NewLeadDraft {
   companyName: string;
@@ -37,6 +41,15 @@ interface NewLeadDraft {
   estimatedValue: string;
   notes: string;
   prospectId?: string;
+}
+
+const NO_PROSPECT_VALUE = "__no_prospect__";
+
+interface StageEditor {
+  id: string;
+  name: string;
+  color: StageColor;
+  leadCount: number;
 }
 
 function mapColor(color: string): "info" | "warning" | "success" | "neutral" {
@@ -50,9 +63,9 @@ function mapColor(color: string): "info" | "warning" | "success" | "neutral" {
   }
 }
 
-function formatCurrency(value?: string | null) {
-  if (!value) return null;
-  const numeric = Number(value);
+function formatCurrency(value?: string | number | null) {
+  if (value == null || value === '') return null;
+  const numeric = typeof value === 'number' ? value : Number(value);
   if (Number.isNaN(numeric)) return null;
   return numeric.toLocaleString('pt-BR', {
     style: 'currency',
@@ -60,6 +73,20 @@ function formatCurrency(value?: string | null) {
     minimumFractionDigits: 0,
   });
 }
+
+const STAGE_COLOR_OPTIONS: Array<{ value: StageColor; label: string }> = [
+  { value: 'info', label: 'Informativo' },
+  { value: 'warning', label: 'Atenção' },
+  { value: 'success', label: 'Ganho' },
+  { value: 'neutral', label: 'Pendente' },
+];
+
+const COLUMN_HEADER_STYLES: Record<StageColor, string> = {
+  info: 'border-[var(--color-info)]/20 bg-[var(--color-info-soft)] text-[var(--color-info)]',
+  warning: 'border-[var(--color-warning)]/20 bg-[var(--color-warning-soft)] text-[var(--color-warning)]',
+  success: 'border-[var(--color-success)]/20 bg-[var(--color-success-soft)] text-[var(--color-success)]',
+  neutral: 'border-outline/40 bg-[var(--color-surface-muted)] text-ink',
+};
 
 export default function CrmBoardPage() {
   const { isAdmin } = useCurrentUser();
@@ -69,6 +96,14 @@ export default function CrmBoardPage() {
   const [dragging, setDragging] = useState<{ columnId: string; leadId: string } | null>(null);
   const [activeLead, setActiveLead] = useState<{ lead: PipelineLeadSummary; stage: string } | null>(null);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [customizeDialogOpen, setCustomizeDialogOpen] = useState(false);
+  const [stageEdits, setStageEdits] = useState<StageEditor[]>([]);
+  const [newStageName, setNewStageName] = useState("");
+  const [newStageColor, setNewStageColor] = useState<StageColor>('info');
+  const [customizeError, setCustomizeError] = useState<string | null>(null);
+  const [updatingStageId, setUpdatingStageId] = useState<string | null>(null);
+  const [deletingStageId, setDeletingStageId] = useState<string | null>(null);
+  const [reorderingStages, setReorderingStages] = useState(false);
   const [draft, setDraft] = useState<NewLeadDraft>({
     companyName: '',
     contactName: '',
@@ -109,6 +144,26 @@ export default function CrmBoardPage() {
     }
   }, [pipelineQuery.data]);
 
+  useEffect(() => {
+    if (!createDialogOpen || draft.stageId || columns.length === 0) {
+      return;
+    }
+    setDraft((prev) => ({ ...prev, stageId: columns[0].id }));
+  }, [createDialogOpen, columns, draft.stageId]);
+
+  useEffect(() => {
+    if (!customizeDialogOpen) return;
+    setCustomizeError(null);
+    setStageEdits(
+      columns.map((column) => ({
+        id: column.id,
+        name: column.title,
+        color: column.color,
+        leadCount: column.leads.length,
+      })),
+    );
+  }, [customizeDialogOpen, columns]);
+
   const moveLeadMutation = useMutation({
     mutationFn: async ({ leadId, stageId }: { leadId: string; stageId: string }) => {
       await api.patch(`/pipeline/leads/${leadId}/move`, { stageId });
@@ -138,6 +193,80 @@ export default function CrmBoardPage() {
     },
   });
 
+  const updateStageMutation = useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: Partial<{ name: string; color: StageColor }> }) =>
+      api.patch(`/pipeline/stages/${id}`, payload),
+    onMutate: ({ id }) => {
+      setUpdatingStageId(id);
+      setCustomizeError(null);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pipeline', 'stages'] });
+    },
+    onError: (error) => {
+      setCustomizeError(error instanceof Error ? error.message : 'Não foi possível atualizar a etapa.');
+      queryClient.invalidateQueries({ queryKey: ['pipeline', 'stages'] });
+    },
+    onSettled: () => {
+      setUpdatingStageId(null);
+    },
+  });
+
+  const reorderStagesMutation = useMutation({
+    mutationFn: (order: StageEditor[]) =>
+      api.patch('/pipeline/stages/reorder', {
+        stages: order.map((stage) => ({ id: stage.id })),
+      }),
+    onMutate: () => {
+      setReorderingStages(true);
+      setCustomizeError(null);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pipeline', 'stages'] });
+    },
+    onError: (error) => {
+      setCustomizeError(error instanceof Error ? error.message : 'Não foi possível reordenar as etapas.');
+      queryClient.invalidateQueries({ queryKey: ['pipeline', 'stages'] });
+    },
+    onSettled: () => {
+      setReorderingStages(false);
+    },
+  });
+
+  const deleteStageMutation = useMutation({
+    mutationFn: (id: string) => api.del(`/pipeline/stages/${id}`),
+    onMutate: (id) => {
+      setDeletingStageId(id);
+      setCustomizeError(null);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pipeline', 'stages'] });
+    },
+    onError: (error) => {
+      setCustomizeError(error instanceof Error ? error.message : 'Não foi possível remover a etapa. Verifique se não há leads associados.');
+      queryClient.invalidateQueries({ queryKey: ['pipeline', 'stages'] });
+    },
+    onSettled: () => {
+      setDeletingStageId(null);
+    },
+  });
+
+  const createStageMutation = useMutation({
+    mutationFn: ({ name, color }: { name: string; color: StageColor }) =>
+      api.post('/pipeline/stages', { name, color }),
+    onMutate: () => {
+      setCustomizeError(null);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pipeline', 'stages'] });
+      setNewStageName('');
+      setNewStageColor('info');
+    },
+    onError: (error) => {
+      setCustomizeError(error instanceof Error ? error.message : 'Não foi possível criar a etapa.');
+    },
+  });
+
   const totals = useMemo(() => {
     const leadCount = columns.reduce((sum, column) => sum + column.leads.length, 0);
     const value = columns.reduce((sum, column) => {
@@ -148,6 +277,78 @@ export default function CrmBoardPage() {
     }, 0);
     return { leads: leadCount, value };
   }, [columns]);
+
+  const handleStageNameInput = (id: string, value: string) => {
+    setStageEdits((prev) => prev.map((stage) => (stage.id === id ? { ...stage, name: value } : stage)));
+  };
+
+  const handleStageNameCommit = (id: string) => {
+    const stage = stageEdits.find((item) => item.id === id);
+    const original = columns.find((item) => item.id === id);
+    if (!stage || !original) return;
+
+    const trimmed = stage.name.trim();
+    if (trimmed.length < 2) {
+      setCustomizeError('O nome da etapa precisa ter pelo menos 2 caracteres.');
+      setStageEdits((prev) =>
+        prev.map((item) => (item.id === id ? { ...item, name: original.title } : item)),
+      );
+      return;
+    }
+
+    if (trimmed === original.title) {
+      return;
+    }
+
+    setStageEdits((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, name: trimmed } : item)),
+    );
+
+    updateStageMutation.mutate({ id, payload: { name: trimmed } });
+  };
+
+  const handleStageColorChange = (id: string, color: StageColor) => {
+    setStageEdits((prev) => prev.map((stage) => (stage.id === id ? { ...stage, color } : stage)));
+    const original = columns.find((item) => item.id === id);
+    if (original && original.color !== color) {
+      updateStageMutation.mutate({ id, payload: { color } });
+    }
+  };
+
+  const handleReorderStage = (id: string, direction: -1 | 1) => {
+    setStageEdits((prev) => {
+      const index = prev.findIndex((stage) => stage.id === id);
+      const targetIndex = index + direction;
+      if (index === -1 || targetIndex < 0 || targetIndex >= prev.length) {
+        return prev;
+      }
+      const previous = [...prev];
+      const next = [...prev];
+      const [moved] = next.splice(index, 1);
+      next.splice(targetIndex, 0, moved);
+      reorderStagesMutation.mutate(next, {
+        onError: () => setStageEdits([...previous]),
+      });
+      return next;
+    });
+  };
+
+  const handleDeleteStage = (stage: StageEditor) => {
+    if (stage.leadCount > 0) {
+      setCustomizeError('Remova ou mova os leads desta etapa antes de excluí-la.');
+      return;
+    }
+    deleteStageMutation.mutate(stage.id);
+  };
+
+  const handleCreateStage = () => {
+    const trimmed = newStageName.trim();
+    if (trimmed.length < 2) {
+      setCustomizeError('Informe um nome válido para a nova etapa.');
+      return;
+    }
+    createStageMutation.mutate({ name: trimmed, color: newStageColor });
+  };
 
   const handleDragStart = (columnId: string, leadId: string) => {
     if (!isAdmin) return;
@@ -192,11 +393,20 @@ export default function CrmBoardPage() {
         description="Organize prospects em etapas, mova oportunidades entre colunas e acompanhe o potencial de receita por fase."
         action={
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
-            <Button className="w-full sm:w-auto" disabled={!isAdmin} onClick={() => setCreateDialogOpen(true)}>
+            <Button
+              className="w-full sm:w-auto"
+              disabled={!isAdmin || columns.length === 0}
+              onClick={() => setCreateDialogOpen(true)}
+            >
               <Plus size={16} className="mr-2" /> Novo lead
             </Button>
-            <Button variant="outline" className="w-full sm:w-auto" disabled>
-              Personalizar etapas
+            <Button
+              variant="outline"
+              className="w-full sm:w-auto"
+              disabled={!isAdmin}
+              onClick={() => setCustomizeDialogOpen(true)}
+            >
+              <PaintBrushBroad size={16} className="mr-2" /> Personalizar etapas
             </Button>
           </div>
         }
@@ -215,7 +425,7 @@ export default function CrmBoardPage() {
         </div>
         <div>
           <p className="text-xs uppercase tracking-wide text-muted">Valor potencial</p>
-          <p className="text-lg font-semibold text-primary">{formatCurrency(String(totals.value)) ?? 'R$ 0'}</p>
+          <p className="text-lg font-semibold text-primary">{formatCurrency(totals.value) ?? 'R$ 0'}</p>
         </div>
         {!isAdmin ? (
           <p className="text-xs text-muted">
@@ -240,61 +450,72 @@ export default function CrmBoardPage() {
       ) : (
         <ScrollArea className="w-full" type="always">
           <div className="flex gap-6 pb-6">
-            {columns.map((column) => (
-              <Card
-                key={column.id}
-                className="flex w-80 flex-col gap-4 border border-outline/40 bg-white p-4 shadow-sm"
-                onDragOver={handleDragOver}
-                onDrop={() => handleDrop(column.id)}
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-sm font-semibold text-ink">{column.title}</h3>
-                    <p className="text-xs text-muted">{column.leads.length} leads</p>
-                  </div>
-                  <Badge tone={column.color}>{column.color.toUpperCase()}</Badge>
-                </div>
-                <div className="space-y-3">
-                  {column.leads.map((lead) => (
-                    <div
-                      key={lead.id}
-                      draggable={isAdmin}
-                      onDragStart={() => handleDragStart(column.id, lead.id)}
-                      className="group cursor-grab rounded-2xl border border-outline/60 bg-[var(--color-surface-muted)]/70 p-4 transition hover:border-primary"
-                    >
-                      <div className="flex items-start justify-between gap-2"
-                        onClick={() => setActiveLead({ lead, stage: column.title })}
-                        role="button"
-                        tabIndex={0}
-                      >
-                        <div>
-                          <p className="text-sm font-semibold text-ink">{lead.companyName}</p>
-                          {lead.contactName ? <p className="text-xs text-muted">{lead.contactName}</p> : null}
-                          {lead.contactEmail ? <p className="text-xs text-muted">{lead.contactEmail}</p> : null}
-                        </div>
-                        <DotsSixVertical size={16} className="text-muted opacity-0 transition group-hover:opacity-100" />
+            {columns.map((column) => {
+              const isDropTarget = Boolean(dragging && dragging.columnId !== column.id);
+              const headerClass = COLUMN_HEADER_STYLES[column.color];
+
+              return (
+                <Card
+                  key={column.id}
+                  className={cn(
+                    'flex w-80 flex-col gap-4 border border-outline/40 bg-white p-4 shadow-sm transition',
+                    isDropTarget && 'border-primary/40 bg-primary-soft/40',
+                  )}
+                  onDragOver={handleDragOver}
+                  onDrop={() => handleDrop(column.id)}
+                >
+                  <div className={cn('rounded-xl border px-4 py-3', headerClass)}>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-sm font-semibold">{column.title}</h3>
+                        <p className="text-xs text-muted">{column.leads.length} {column.leads.length === 1 ? 'lead' : 'leads'}</p>
                       </div>
-                      <div className="mt-2 flex items-center justify-between text-xs text-muted">
-                        <span>{formatCurrency(lead.estimatedValue)}</span>
-                        <Button
-                          variant="link"
-                          size="sm"
-                          className="p-0 text-xs text-primary"
-                          onClick={() => setActiveLead({ lead, stage: column.title })}
-                        >
-                          Ver detalhes
-                        </Button>
-                      </div>
+                      <Badge tone={column.color}>{column.color === 'neutral' ? 'NEUTRAL' : column.color.toUpperCase()}</Badge>
                     </div>
-                  ))}
-                  {column.leads.length === 0 ? (
-                    <p className="rounded-xl border border-dashed border-outline/50 bg-white/80 px-4 py-6 text-center text-xs text-muted">
-                      Nenhum lead nesta etapa.
-                    </p>
-                  ) : null}
-                </div>
-              </Card>
-            ))}
+                  </div>
+                  <div className="space-y-3">
+                    {column.leads.map((lead) => (
+                      <div
+                        key={lead.id}
+                        draggable={isAdmin}
+                        onDragStart={() => handleDragStart(column.id, lead.id)}
+                        className="group cursor-grab rounded-2xl border border-outline/60 bg-[var(--color-surface-muted)]/70 p-4 transition hover:border-primary"
+                      >
+                        <div
+                          className="flex items-start justify-between gap-2"
+                          onClick={() => setActiveLead({ lead, stage: column.title })}
+                          role="button"
+                          tabIndex={0}
+                        >
+                          <div>
+                            <p className="text-sm font-semibold text-ink">{lead.companyName}</p>
+                            {lead.contactName ? <p className="text-xs text-muted">{lead.contactName}</p> : null}
+                            {lead.contactEmail ? <p className="text-xs text-muted">{lead.contactEmail}</p> : null}
+                          </div>
+                          <DotsSixVertical size={16} className="text-muted opacity-0 transition group-hover:opacity-100" />
+                        </div>
+                        <div className="mt-2 flex items-center justify-between text-xs text-muted">
+                          <span>{formatCurrency(lead.estimatedValue)}</span>
+                          <Button
+                            variant="link"
+                            size="sm"
+                            className="p-0 text-xs text-primary"
+                            onClick={() => setActiveLead({ lead, stage: column.title })}
+                          >
+                            Ver detalhes
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                    {column.leads.length === 0 ? (
+                      <p className="rounded-xl border border-dashed border-outline/50 bg-white/80 px-4 py-6 text-center text-xs text-muted">
+                        Nenhum lead nesta etapa.
+                      </p>
+                    ) : null}
+                  </div>
+                </Card>
+              );
+            })}
           </div>
         </ScrollArea>
       )}
@@ -403,7 +624,8 @@ export default function CrmBoardPage() {
                 </div>
                 <div className="space-y-1">
                   <Label>Notas</Label>
-                  <Input
+                  <Textarea
+                    rows={3}
                     value={draft.notes}
                     onChange={(event) => setDraft((prev) => ({ ...prev, notes: event.target.value }))}
                     placeholder="Resumo do projeto, próximas ações..."
@@ -412,10 +634,15 @@ export default function CrmBoardPage() {
                 <div className="space-y-1">
                   <Label>Prospect vinculado</Label>
                   <Select
-                    value={draft.prospectId ?? ''}
-                    onValueChange={(value) => setDraft((prev) => ({ ...prev, prospectId: value || undefined }))}
+                    value={draft.prospectId ?? NO_PROSPECT_VALUE}
+                    onValueChange={(value) =>
+                      setDraft((prev) => ({
+                        ...prev,
+                        prospectId: value === NO_PROSPECT_VALUE ? undefined : value,
+                      }))
+                    }
                   >
-                    <SelectItem value="">Nenhum</SelectItem>
+                    <SelectItem value={NO_PROSPECT_VALUE}>Nenhum</SelectItem>
                     {(prospectsQuery.data?.data ?? []).map((prospect) => (
                       <SelectItem key={prospect.id} value={prospect.id}>
                         {prospect.name}
@@ -425,22 +652,188 @@ export default function CrmBoardPage() {
                 </div>
                 <div className="space-y-1">
                   <Label>Etapa</Label>
-                  <Select value={draft.stageId} onValueChange={(value) => setDraft((prev) => ({ ...prev, stageId: value }))}>
-                    {columns.map((column) => (
-                      <SelectItem key={column.id} value={column.id}>
-                        {column.title}
-                      </SelectItem>
-                    ))}
-                  </Select>
+                  {columns.length > 0 ? (
+                    <Select
+                      value={draft.stageId}
+                      onValueChange={(value) => setDraft((prev) => ({ ...prev, stageId: value }))}
+                    >
+                      {columns.map((column) => (
+                        <SelectItem key={column.id} value={column.id}>
+                          {column.title}
+                        </SelectItem>
+                      ))}
+                    </Select>
+                  ) : (
+                    <p className="text-sm text-muted">Crie uma etapa antes de adicionar leads.</p>
+                  )}
                 </div>
               </div>
               <div className="flex justify-end gap-2">
                 <Dialog.Close asChild>
                   <Button variant="ghost">Cancelar</Button>
                 </Dialog.Close>
-                <Button onClick={() => createLeadMutation.mutate()} disabled={!draft.companyName || !draft.stageId}>
+                <Button
+                  onClick={() => createLeadMutation.mutate()}
+                  disabled={!draft.companyName || !draft.stageId || createLeadMutation.isPending}
+                >
                   {createLeadMutation.isPending ? 'Salvando...' : 'Salvar lead'}
                 </Button>
+              </div>
+            </Card>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
+
+      <Dialog.Root
+        open={customizeDialogOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            setCustomizeError(null);
+            setNewStageName('');
+            setNewStageColor('info');
+          }
+          setCustomizeDialogOpen(open);
+        }}
+      >
+        <Dialog.Portal>
+          <Dialog.Overlay className="fixed inset-0 z-40 bg-ink/40 backdrop-blur-sm" />
+          <Dialog.Content className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto px-4 py-10 md:items-center">
+            <Card className="w-full max-w-2xl max-h-[85vh] overflow-y-auto space-y-6 border border-outline/50 bg-white p-6 shadow-2xl">
+              <div className="flex items-center justify-between">
+                <div>
+                  <Dialog.Title className="text-lg font-semibold text-ink">Personalizar etapas</Dialog.Title>
+                  <Dialog.Description className="text-xs text-muted">
+                    Renomeie, reordene ou ajuste as cores das etapas do pipeline. Remova apenas etapas sem leads.
+                  </Dialog.Description>
+                </div>
+                <Dialog.Close asChild>
+                  <button
+                    type="button"
+                    aria-label="Fechar"
+                    className="rounded-full border border-outline bg-white p-2 text-ink shadow-sm transition hover:bg-primary-soft"
+                  >
+                    <X size={16} weight="bold" />
+                  </button>
+                </Dialog.Close>
+              </div>
+
+              {customizeError ? (
+                <p className="rounded-lg border border-danger/40 bg-danger-soft/20 px-3 py-2 text-sm text-danger">
+                  {customizeError}
+                </p>
+              ) : null}
+
+              <div className="space-y-3">
+                {stageEdits.length === 0 ? (
+                  <p className="rounded-lg border border-dashed border-outline/40 bg-[var(--color-surface-muted)]/30 px-4 py-8 text-center text-sm text-muted">
+                    Nenhuma etapa cadastrada ainda. Adicione uma nova etapa abaixo.
+                  </p>
+                ) : null}
+                {stageEdits.map((stage, index) => (
+                  <div key={stage.id} className="rounded-xl border border-outline/40 bg-[var(--color-surface-muted)]/40 p-4">
+                    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                      <div className="flex-1 space-y-2">
+                        <Label className="text-xs uppercase tracking-wide text-muted">Nome da etapa</Label>
+                        <Input
+                          value={stage.name}
+                          onChange={(event) => handleStageNameInput(stage.id, event.target.value)}
+                          onBlur={() => handleStageNameCommit(stage.id)}
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter') {
+                              event.preventDefault();
+                              handleStageNameCommit(stage.id);
+                            }
+                          }}
+                          disabled={updatingStageId === stage.id}
+                        />
+                      </div>
+                      <div className="flex flex-col gap-2 md:w-48">
+                        <Label className="text-xs uppercase tracking-wide text-muted">Cor</Label>
+                        <Select
+                          value={stage.color}
+                          onValueChange={(value) => handleStageColorChange(stage.id, value as StageColor)}
+                          disabled={updatingStageId === stage.id}
+                        >
+                          {STAGE_COLOR_OPTIONS.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </Select>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+                      <Badge tone={stage.color}>{stage.leadCount} {stage.leadCount === 1 ? 'lead' : 'leads'}</Badge>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleReorderStage(stage.id, -1)}
+                          disabled={index === 0 || reorderingStages}
+                          aria-label="Mover para cima"
+                        >
+                          <ArrowUp size={14} />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleReorderStage(stage.id, 1)}
+                          disabled={index === stageEdits.length - 1 || reorderingStages}
+                          aria-label="Mover para baixo"
+                        >
+                          <ArrowDown size={14} />
+                        </Button>
+                        <Button
+                          variant="danger"
+                          size="sm"
+                          onClick={() => handleDeleteStage(stage)}
+                          disabled={deletingStageId === stage.id || stage.leadCount > 0}
+                          title={
+                            stage.leadCount > 0
+                              ? 'Remova os leads desta etapa antes de excluir.'
+                              : undefined
+                          }
+                        >
+                          Excluir
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="rounded-xl border border-dashed border-outline/40 bg-[var(--color-surface-muted)]/30 p-4">
+                <div className="grid gap-3 md:grid-cols-[1fr_auto]">
+                  <div className="space-y-2">
+                    <Label className="text-xs uppercase tracking-wide text-muted">Nova etapa</Label>
+                    <Input
+                      value={newStageName}
+                      onChange={(event) => setNewStageName(event.target.value)}
+                      placeholder="Ex.: Follow-up"
+                      disabled={createStageMutation.isPending}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs uppercase tracking-wide text-muted">Cor</Label>
+                    <Select
+                      value={newStageColor}
+                      onValueChange={(value) => setNewStageColor(value as StageColor)}
+                      disabled={createStageMutation.isPending}
+                    >
+                      {STAGE_COLOR_OPTIONS.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </Select>
+                  </div>
+                </div>
+                <div className="mt-3 flex justify-end">
+                  <Button onClick={handleCreateStage} disabled={createStageMutation.isPending}>
+                    {createStageMutation.isPending ? 'Adicionando...' : 'Adicionar etapa'}
+                  </Button>
+                </div>
               </div>
             </Card>
           </Dialog.Content>

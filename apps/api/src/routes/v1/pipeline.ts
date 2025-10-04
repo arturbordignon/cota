@@ -6,6 +6,15 @@ const moveLeadSchema = z.object({
   stageId: z.string().uuid()
 });
 
+const updateStageSchema = z.object({
+  name: z.string().min(2).optional(),
+  color: z.enum(['info', 'warning', 'success', 'neutral']).optional(),
+});
+
+const reorderStagesSchema = z.object({
+  stages: z.array(z.object({ id: z.string().uuid() })).min(1),
+});
+
 const pipelineRoutes: FastifyPluginAsync = async (app) => {
   app.addHook('preHandler', app.authenticate);
 
@@ -115,6 +124,88 @@ const pipelineRoutes: FastifyPluginAsync = async (app) => {
     });
 
     return reply.code(201).send({ data: stage });
+  });
+
+  app.patch('/stages/:id', async (request, reply) => {
+    const params = z.object({ id: z.string().uuid() }).parse(request.params);
+    const body = updateStageSchema.parse(request.body);
+
+    if (Object.keys(body).length === 0) {
+      return reply.send({});
+    }
+
+    const stage = await app.prisma.pipelineStage.findFirst({
+      where: { id: params.id, accountId: request.user.accountId },
+    });
+
+    if (!stage) {
+      return reply.status(404).send({ message: 'Stage not found.' });
+    }
+
+    await app.prisma.pipelineStage.update({
+      where: { id: stage.id },
+      data: {
+        name: body.name ?? stage.name,
+        color: body.color ?? stage.color,
+      },
+    });
+
+    return reply.status(204).send();
+  });
+
+  app.patch('/stages/reorder', async (request, reply) => {
+    const body = reorderStagesSchema.parse(request.body);
+
+    const stages = await app.prisma.pipelineStage.findMany({
+      where: { accountId: request.user.accountId },
+      orderBy: { position: 'asc' },
+      select: { id: true },
+    });
+
+    if (stages.length !== body.stages.length) {
+      return reply.status(400).send({ message: 'Invalid stage list.' });
+    }
+
+    const stageIds = new Set(stages.map((stage) => stage.id));
+    for (const item of body.stages) {
+      if (!stageIds.has(item.id)) {
+        return reply.status(400).send({ message: 'Invalid stage id.' });
+      }
+    }
+
+    await app.prisma.$transaction(
+      body.stages.map((item, index) =>
+        app.prisma.pipelineStage.update({
+          where: { id: item.id },
+          data: { position: index },
+        }),
+      ),
+    );
+
+    return reply.status(204).send();
+  });
+
+  app.delete('/stages/:id', async (request, reply) => {
+    const params = z.object({ id: z.string().uuid() }).parse(request.params);
+
+    const stage = await app.prisma.pipelineStage.findFirst({
+      where: { id: params.id, accountId: request.user.accountId },
+      include: {
+        _count: { select: { leads: true } },
+      },
+    });
+
+    if (!stage) {
+      return reply.status(404).send({ message: 'Stage not found.' });
+    }
+
+    if (stage._count.leads > 0) {
+      return reply.status(400).send({ message: 'Stage has leads and cannot be removed.' });
+    }
+
+    await app.prisma.pipelineStage.delete({ where: { id: stage.id } });
+
+    return reply.status(204).send();
   });
 
   app.post('/leads', async (request, reply) => {

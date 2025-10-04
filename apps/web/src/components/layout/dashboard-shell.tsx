@@ -13,11 +13,7 @@ interface DashboardShellProps extends PropsWithChildren {
   credits?: number;
 }
 
-export function DashboardShell({
-  children,
-  headerActions,
-  credits,
-}: DashboardShellProps) {
+export function DashboardShell({ children, headerActions, credits }: DashboardShellProps) {
   const router = useRouter();
   const { status } = useCurrentUser();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -31,7 +27,7 @@ export function DashboardShell({
   if (status === 'loading') {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
-        <p className="text-sm text-muted">Carregando ambiente...</p>
+        <p className="text-sm text-muted">Carregando...</p>
       </div>
     );
   }

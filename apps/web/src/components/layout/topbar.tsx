@@ -8,7 +8,7 @@ import { Bell, MagnifyingGlass, X } from '@phosphor-icons/react';
 
 import { Button } from '@/components/ui/button';
 import { LocaleSwitcher } from '@/components/layout/locale-switcher';
-import { GlobalSearch } from '@/components/layout/global-search';
+import { GlobalSearch, type SearchScope } from '@/components/layout/global-search';
 
 interface TopbarProps {
   credits?: number;
@@ -32,8 +32,19 @@ export function Topbar({
   const iconButtonClass =
     'inline-flex h-10 w-10 items-center justify-center rounded-full border border-outline bg-white text-ink shadow-sm transition hover:border-primary hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40';
 
-  const handleSearch = (_query: string, _scope: string) => {
+  const handleSearch = (query: string, scope: SearchScope) => {
+    const encodedQuery = encodeURIComponent(query);
+
+    const routeMap: Record<SearchScope, string> = {
+      all: `/proposals?search=${encodedQuery}`,
+      proposals: `/proposals?search=${encodedQuery}`,
+      clients: `/clients?search=${encodedQuery}`,
+      templates: `/templates?search=${encodedQuery}`,
+      prospects: `/prospects?search=${encodedQuery}`,
+    };
+
     setSearchOpen(false);
+    router.push(routeMap[scope]);
   };
 
   return (

@@ -18,11 +18,19 @@ export function toAccountSlug(name: string) {
   return slugify(name, {
     lower: true,
     strict: true,
-    trim: true
+    trim: true,
   });
 }
 
 export function toProposalSlug(title: string) {
   const base = slugify(title, { lower: true, strict: true, trim: true }) || 'proposal';
   return `${base}-${nanoid()}`;
+}
+
+export function toDepartmentSlug(name: string) {
+  return slugify(name, {
+    lower: true,
+    strict: true,
+    trim: true,
+  });
 }

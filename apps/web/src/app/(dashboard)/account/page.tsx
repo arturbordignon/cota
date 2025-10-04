@@ -1,42 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
-
 import { PageHeader } from "@/components/layout/page-header";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { CheckoutButton, PortalButton } from "@/components/billing/checkout-button";
+import { PortalButton } from "@/components/billing/checkout-button";
 import { PlanUsageSnapshot } from "@/components/billing/plan-usage";
 import { useCurrentUser } from "@/components/providers/user-provider";
 
-const brPlans = [
-  { id: "br-50", title: "Plano Essencial", proposals: "50 propostas/mês", price: "R$ 49,90", billing: "Cobrado mensalmente" },
-  { id: "br-100", title: "Plano Profissional", proposals: "100 propostas/mês", price: "R$ 89,90", billing: "Cobrado mensalmente" },
-  { id: "br-unlimited", title: "Plano Ilimitado", proposals: "Propostas ilimitadas", price: "R$ 149,00", billing: "Cobrado mensalmente" },
-  { id: "br-unlimited-year", title: "Plano Ilimitado Anual", proposals: "Propostas ilimitadas", price: "R$ 1.200,00", billing: "Cobrado anualmente" },
-];
-
-const usPlans = [
-  { id: "us-50", title: "Essential", proposals: "50 proposals / month", price: "$15", billing: "Billed monthly" },
-  { id: "us-100", title: "Professional", proposals: "100 proposals / month", price: "$30", billing: "Billed monthly" },
-  { id: "us-unlimited", title: "Unlimited", proposals: "Unlimited proposals", price: "$100", billing: "Billed monthly" },
-  { id: "us-unlimited-year", title: "Unlimited Annual", proposals: "Unlimited proposals", price: "$900", billing: "Billed annually" },
-];
-
-const roleLabels: Record<string, { label: string; tone: "success" | "warning" | "info" | "neutral" }> = {
-  owner: { label: "Proprietário", tone: "success" },
-  admin: { label: "Administrador", tone: "info" },
-  manager: { label: "Gestor", tone: "warning" },
-  viewer: { label: "Somente leitura", tone: "neutral" },
-  member: { label: "Colaborador", tone: "neutral" },
-};
-
 export default function AccountPage() {
-  const { user, accessToken, signOut, status } = useCurrentUser();
-  const [copied, setCopied] = useState(false);
-
-  const roleMeta = useMemo(() => roleLabels[user?.role ?? "member"], [user?.role]);
+  const { user, signOut, status } = useCurrentUser();
 
   if (status === "loading") {
     return (
@@ -58,22 +30,11 @@ export default function AccountPage() {
     );
   }
 
-  const handleCopyToken = async () => {
-    if (!accessToken || typeof navigator === "undefined") return;
-    try {
-      await navigator.clipboard.writeText(accessToken);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      setCopied(false);
-    }
-  };
-
   return (
-    <section className="space-y-10">
+    <section className="space-y-8">
       <PageHeader
         title="Minha Conta"
-        description="Gerencie os dados do seu usuário, preferências do workspace e acompanhe o status da assinatura."
+        description="Veja o status atual da assinatura e faça upgrade quando precisar."
         action={
           <Button variant="outline" onClick={() => signOut()} className="w-full sm:w-auto">
             Encerrar sessão
@@ -81,138 +42,16 @@ export default function AccountPage() {
         }
       />
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card className="space-y-5 rounded-3xl border border-outline/60 bg-white px-6 py-6 shadow-sm">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <h2 className="text-lg font-semibold text-ink">Informações pessoais</h2>
-              <p className="text-sm text-muted">Esses dados ficam visíveis para a sua equipe e nos relatórios.</p>
-            </div>
-            <Badge tone={roleMeta.tone} className="capitalize">
-              {roleMeta.label}
-            </Badge>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-1">
-              <span className="text-xs uppercase tracking-wide text-muted">Nome completo</span>
-              <p className="text-sm font-medium text-ink">{user.name}</p>
-            </div>
-            <div className="space-y-1">
-              <span className="text-xs uppercase tracking-wide text-muted">E-mail corporativo</span>
-              <p className="text-sm font-medium text-ink">{user.email}</p>
-            </div>
-            <div className="space-y-1">
-              <span className="text-xs uppercase tracking-wide text-muted">Departamento</span>
-              <p className="text-sm font-medium text-ink">{user.department ?? "—"}</p>
-            </div>
-            <div className="space-y-1">
-              <span className="text-xs uppercase tracking-wide text-muted">Identificador</span>
-              <p className="text-sm font-medium text-ink">{user.id}</p>
-            </div>
-          </div>
-        </Card>
-
-        <Card className="space-y-5 rounded-3xl border border-outline/60 bg-white px-6 py-6 shadow-sm">
-          <div className="space-y-1">
-            <h2 className="text-lg font-semibold text-ink">Workspace</h2>
-            <p className="text-sm text-muted">Detalhes do ambiente e idioma padrão das propostas.</p>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-1">
-              <span className="text-xs uppercase tracking-wide text-muted">Nome do workspace</span>
-              <p className="text-sm font-medium text-ink">{user.account.name}</p>
-            </div>
-            <div className="space-y-1">
-              <span className="text-xs uppercase tracking-wide text-muted">Slug</span>
-              <p className="text-sm font-medium text-ink">{user.account.slug}</p>
-            </div>
-            <div className="space-y-1">
-              <span className="text-xs uppercase tracking-wide text-muted">Idioma padrão</span>
-              <p className="text-sm font-medium text-ink">{user.account.locale}</p>
-            </div>
-            <div className="space-y-1">
-              <span className="text-xs uppercase tracking-wide text-muted">Token de acesso</span>
-              <div className="flex items-center gap-2">
-                <Button variant="secondary" size="sm" onClick={handleCopyToken} disabled={!accessToken}>
-                  Copiar token
-                </Button>
-                {copied ? <span className="text-xs text-success">Copiado!</span> : null}
-              </div>
-              <p className="mt-1 text-xs text-muted">
-                O token é renovado automaticamente após o login. Utilize-o apenas em ambientes confiáveis.
-              </p>
-            </div>
-          </div>
-        </Card>
-      </div>
-
       <PlanUsageSnapshot />
 
-      <Card className="space-y-4 rounded-3xl border border-outline/60 bg-white px-6 py-6 shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h2 className="text-lg font-semibold text-ink">Planos Brasil</h2>
-            <p className="text-sm text-muted">Escolha um plano em reais alinhado ao volume da sua operação.</p>
-          </div>
-          <Badge tone="info">Stripe · BRL</Badge>
-        </div>
-
-        <div className="grid gap-4 lg:grid-cols-4">
-          {brPlans.map((plan) => (
-            <Card
-              key={plan.id}
-              className="flex h-full flex-col gap-4 border border-outline/60 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
-            >
-              <div className="space-y-2">
-                <h3 className="text-base font-semibold text-ink">{plan.title}</h3>
-                <p className="text-sm text-muted">{plan.proposals}</p>
-              </div>
-              <div>
-                <p className="text-2xl font-semibold text-primary">{plan.price}</p>
-                <p className="text-xs text-muted">{plan.billing}</p>
-              </div>
-              <CheckoutButton planSlug={plan.id} label="Selecionar" className="mt-auto w-full" />
-            </Card>
-          ))}
-        </div>
-      </Card>
-
-      <Card className="space-y-4 rounded-3xl border border-outline/60 bg-white px-6 py-6 shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h2 className="text-lg font-semibold text-ink">US Plans</h2>
-            <p className="text-sm text-muted">Assinaturas em dólar para equipes fora do Brasil.</p>
-          </div>
-          <Badge tone="info">Stripe · USD</Badge>
-        </div>
-
-        <div className="grid gap-4 lg:grid-cols-4">
-          {usPlans.map((plan) => (
-            <Card
-              key={plan.id}
-              className="flex h-full flex-col gap-4 border border-outline/60 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
-            >
-              <div className="space-y-2">
-                <h3 className="text-base font-semibold text-ink">{plan.title}</h3>
-                <p className="text-sm text-muted">{plan.proposals}</p>
-              </div>
-              <div>
-                <p className="text-2xl font-semibold text-primary">{plan.price}</p>
-                <p className="text-xs text-muted">{plan.billing}</p>
-              </div>
-              <CheckoutButton planSlug={plan.id} label="Choose plan" className="mt-auto w-full" variant="secondary" />
-            </Card>
-          ))}
-        </div>
-
-        <div className="rounded-3xl border border-outline/60 bg-[var(--color-surface-muted)]/80 px-6 py-5 text-sm text-muted">
-          <p className="mb-3">
-            Em produção, cada plano será configurado como produto/price no Stripe. A API detecta a moeda do workspace para aplicar impostos locais e permitir upgrades pró-rata.
+      <Card className="flex flex-col gap-5 rounded-3xl border border-outline/60 bg-white px-6 py-6 shadow-sm">
+        <div className="space-y-1">
+          <h2 className="text-lg font-semibold text-ink">Precisa de mais propostas?</h2>
+          <p className="text-sm text-muted">
+            Faça upgrade do seu plano a qualquer momento e libere limites maiores para a sua equipe.
           </p>
-          <PortalButton label="Abrir portal de cobrança" variant="outline" className="w-full sm:w-auto" />
         </div>
+        <PortalButton label="Upgrade de plano" className="w-full sm:w-auto" />
       </Card>
     </section>
   );

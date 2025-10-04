@@ -27,6 +27,8 @@ interface DepartmentPermissionListProps {
   department: DepartmentSummary;
 }
 
+const UNASSIGNED_DEPARTMENT_VALUE = "__unassigned__";
+
 function DepartmentPermissionList({ department }: DepartmentPermissionListProps) {
   const tModules = useTranslations("common.permissionModules");
   const tPermissions = useTranslations("common.permissions");
@@ -96,22 +98,23 @@ function AddMemberDialog({
   errorMessage,
 }: AddMemberDialogProps) {
   const t = useTranslations("team.dialog");
-  const isValid =
-    draft.fullName.trim().length > 2 &&
-    draft.email.includes("@") &&
+  const hasValidDepartment =
+    draft.departmentId === UNASSIGNED_DEPARTMENT_VALUE ||
     departments.some((department) => department.id === draft.departmentId);
+
+  const isValid = draft.fullName.trim().length > 2 && draft.email.includes("@") && hasValidDepartment;
 
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-40 bg-ink/40 backdrop-blur-sm" />
-        <Dialog.Content className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <Dialog.Content className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4 md:items-center">
           <form
             onSubmit={(event) => {
               event.preventDefault();
               if (isValid && !isSubmitting) onSubmit();
             }}
-            className="w-full max-w-xl overflow-hidden rounded-2xl bg-white shadow-2xl"
+            className="flex w-full max-w-xl max-h-[90vh] md:max-h-[640px] flex-col overflow-hidden rounded-2xl bg-white shadow-2xl"
           >
             <header className="flex items-center justify-between border-b border-outline/30 bg-[var(--color-surface-muted)]/50 px-6 py-4">
               <div>
@@ -129,7 +132,7 @@ function AddMemberDialog({
               </Dialog.Close>
             </header>
 
-            <div className="grid gap-4 px-6 py-6">
+            <div className="grid flex-1 gap-4 overflow-y-auto px-6 py-6">
               <div className="space-y-2">
                 <Label htmlFor="member-name">{t('fields.name')}</Label>
                 <Input
@@ -161,7 +164,13 @@ function AddMemberDialog({
               </div>
               <div className="space-y-2">
                 <Label>{t('fields.department')}</Label>
-                <Select value={draft.departmentId} onValueChange={(value) => onDraftChange('departmentId', value)}>
+                <Select
+                  value={draft.departmentId || UNASSIGNED_DEPARTMENT_VALUE}
+                  onValueChange={(value) => onDraftChange('departmentId', value)}
+                >
+                  <SelectItem value={UNASSIGNED_DEPARTMENT_VALUE}>
+                    {t('memberCard.badge.noDepartment')}
+                  </SelectItem>
                   {departments.map((department) => (
                     <SelectItem key={department.id} value={department.id}>
                       {department.name}
@@ -207,7 +216,7 @@ export default function TeamPage() {
     fullName: "",
     email: "",
     jobTitle: "",
-    departmentId: "",
+    departmentId: UNASSIGNED_DEPARTMENT_VALUE,
   });
   const [savingMemberId, setSavingMemberId] = useState<string | null>(null);
 
@@ -234,12 +243,21 @@ export default function TeamPage() {
       });
       setBaselines(nextBaselines);
 
-      if (response.departments.length > 0) {
-        setDraft((prev) => ({
+      setDraft((prev) => {
+        const current = prev.departmentId;
+        const hasCurrent =
+          current === UNASSIGNED_DEPARTMENT_VALUE ||
+          response.departments.some((department) => department.id === current);
+        const fallback =
+          response.departments.length > 0
+            ? response.departments[0]!.id
+            : UNASSIGNED_DEPARTMENT_VALUE;
+
+        return {
           ...prev,
-          departmentId: response.departments[0]?.id ?? '',
-        }));
-      }
+          departmentId: hasCurrent ? current : fallback,
+        };
+      });
     }
   }, [teamQuery.data]);
 
@@ -263,7 +281,8 @@ export default function TeamPage() {
         fullName: draft.fullName.trim(),
         email: draft.email.trim().toLowerCase(),
         jobTitle: draft.jobTitle.trim() || undefined,
-        departmentId: draft.departmentId || undefined,
+        departmentId:
+          draft.departmentId === UNASSIGNED_DEPARTMENT_VALUE ? undefined : draft.departmentId,
       });
     },
     onSuccess: () => {
@@ -289,7 +308,7 @@ export default function TeamPage() {
   });
 
   const updateDepartment = (memberId: string, departmentId: string) => {
-    const nextValue = departmentId === '' ? null : departmentId;
+    const nextValue = departmentId === UNASSIGNED_DEPARTMENT_VALUE ? null : departmentId;
     setMembers((prev) =>
       prev.map((member) =>
         member.id === memberId ? { ...member, departmentId: nextValue } : member
@@ -396,10 +415,12 @@ export default function TeamPage() {
                 <div className="space-y-2">
                   <Label>{t('memberCard.fields.department')}</Label>
                   <Select
-                    value={member.departmentId ?? ''}
+                    value={member.departmentId ?? UNASSIGNED_DEPARTMENT_VALUE}
                     onValueChange={(value) => updateDepartment(member.id, value)}
                   >
-                    <SelectItem value="">{t('memberCard.badge.noDepartment')}</SelectItem>
+                    <SelectItem value={UNASSIGNED_DEPARTMENT_VALUE}>
+                      {t('memberCard.badge.noDepartment')}
+                    </SelectItem>
                     {departmentOptions.map((option) => (
                       <SelectItem key={option.value} value={option.value}>
                         {option.label}

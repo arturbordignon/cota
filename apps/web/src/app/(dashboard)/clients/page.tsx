@@ -33,6 +33,21 @@ interface ClientsResponse {
   data: Client[];
 }
 
+interface ClientResponse {
+  data: Client;
+}
+
+interface ClientDetailsView {
+  id: string;
+  name: string;
+  companyName?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  notes?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 const addClientSchema = z.object({
   name: z.string().min(2),
   companyName: z.string().optional(),
@@ -185,6 +200,104 @@ function AddClientDialog({
   );
 }
 
+function ClientDetailsDialog({
+  open,
+  onOpenChange,
+  client,
+  isLoading,
+  errorMessage,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  client?: ClientDetailsView;
+  isLoading: boolean;
+  errorMessage?: string;
+}) {
+  const t = useTranslations("clients.details");
+
+  return (
+    <Dialog.Root open={open} onOpenChange={onOpenChange}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 z-40 bg-ink/40 backdrop-blur-sm" />
+        <Dialog.Content className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto px-4 py-10">
+          <div className="w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-2xl">
+            <div className="flex items-center justify-between border-b border-outline/20 px-6 py-4">
+              <div>
+                <Dialog.Title className="text-lg font-semibold text-ink">
+                  {client?.name ?? t('loading')}
+                </Dialog.Title>
+                <Dialog.Description className="text-xs text-muted">
+                  {t('subtitle')}
+                </Dialog.Description>
+              </div>
+              <Dialog.Close asChild>
+                <button
+                  type="button"
+                  className="rounded-full border border-outline bg-white p-2 text-ink shadow-sm transition hover:bg-primary-soft"
+                  aria-label={t('close')}
+                >
+                  <X size={16} weight="bold" />
+                </button>
+              </Dialog.Close>
+            </div>
+
+            <div className="space-y-4 px-6 py-6 text-sm">
+              {isLoading ? (
+                <div className="space-y-2">
+                  <div className="h-4 w-3/4 animate-pulse rounded bg-outline/40" />
+                  <div className="h-4 w-2/3 animate-pulse rounded bg-outline/30" />
+                  <div className="h-4 w-1/2 animate-pulse rounded bg-outline/20" />
+                </div>
+              ) : errorMessage ? (
+                <p className="text-danger">{errorMessage}</p>
+              ) : client ? (
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-muted">{t('fields.company')}</p>
+                    <p className="text-ink">{client.companyName ?? t('placeholders.empty')}</p>
+                  </div>
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <div>
+                      <p className="text-xs uppercase tracking-wide text-muted">{t('fields.email')}</p>
+                      <p className="text-ink">{client.email ?? t('placeholders.empty')}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase tracking-wide text-muted">{t('fields.phone')}</p>
+                      <p className="text-ink">{client.phone ?? t('placeholders.empty')}</p>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-muted">{t('fields.notes')}</p>
+                    <p className="whitespace-pre-wrap text-ink">{client.notes ?? t('placeholders.empty')}</p>
+                  </div>
+                <div className="grid gap-3 md:grid-cols-2">
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-muted">{t('fields.createdAt')}</p>
+                    <p className="text-ink">{client.createdAt}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-muted">{t('fields.updatedAt')}</p>
+                    <p className="text-ink">{client.updatedAt}</p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <p className="text-muted">{t('notFound')}</p>
+              )}
+            </div>
+
+            <div className="flex justify-end border-t border-outline/20 bg-[var(--color-surface-muted)]/40 px-6 py-4">
+              <Dialog.Close asChild>
+                <Button variant="ghost">{t('close')}</Button>
+              </Dialog.Close>
+            </div>
+          </div>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
+  );
+}
+
 export default function ClientsPage() {
   const t = useTranslations("clients");
   const tActions = useTranslations("actions");
@@ -192,6 +305,8 @@ export default function ClientsPage() {
   const api = useApi();
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
 
   const formatDate = (date: string) =>
     format.dateTime(new Date(date), {
@@ -226,6 +341,32 @@ export default function ClientsPage() {
   const isLoading = api.token ? clientsQuery.isLoading : false;
   const error = api.token ? clientsQuery.error : undefined;
   const canCreate = Boolean(api.token);
+
+  const clientDetailsQuery = useQuery<ClientResponse, Error>({
+    queryKey: ['clients', selectedClientId],
+    queryFn: () => api.get<ClientResponse>(`/clients/${selectedClientId}`),
+    enabled: Boolean(api.token && selectedClientId && detailsOpen),
+  });
+
+  const formattedClient: ClientDetailsView | undefined = clientDetailsQuery.data
+    ? {
+        ...clientDetailsQuery.data.data,
+        createdAt: formatDate(clientDetailsQuery.data.data.createdAt),
+        updatedAt: formatDate(clientDetailsQuery.data.data.updatedAt),
+      }
+    : undefined;
+
+  const openDetails = (clientId: string) => {
+    setSelectedClientId(clientId);
+    setDetailsOpen(true);
+  };
+
+  const closeDetails = (open: boolean) => {
+    if (!open) {
+      setDetailsOpen(false);
+      setSelectedClientId(null);
+    }
+  };
 
   return (
     <section className="space-y-6">
@@ -270,7 +411,12 @@ export default function ClientsPage() {
                 {client.email ? <p>{client.email}</p> : null}
                 {client.phone ? <p>{client.phone}</p> : null}
               </div>
-              <Button variant="outline" size="sm" className="mt-4 w-full">
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-4 w-full"
+                onClick={() => openDetails(client.id)}
+              >
                 {tActions('viewDetails')}
               </Button>
             </Card>
@@ -290,6 +436,16 @@ export default function ClientsPage() {
           onSubmit={(values) => createClient.mutateAsync(values)}
           isLoading={createClient.isPending}
           errorMessage={createClient.error?.message}
+        />
+      ) : null}
+
+      {selectedClientId ? (
+        <ClientDetailsDialog
+          open={detailsOpen}
+          onOpenChange={closeDetails}
+          client={formattedClient}
+          isLoading={clientDetailsQuery.isLoading}
+          errorMessage={clientDetailsQuery.error?.message}
         />
       ) : null}
     </section>

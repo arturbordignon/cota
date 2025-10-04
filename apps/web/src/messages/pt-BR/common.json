@@ -83,6 +83,10 @@
       "label": "Relatórios",
       "description": "Consultas dinâmicas e métricas."
     },
+    "plan": {
+      "label": "Planos",
+      "description": "Gerenciamento de assinatura e limites."
+    },
     "account": {
       "label": "Conta",
       "description": "Perfil do usuário e ajustes de assinatura."

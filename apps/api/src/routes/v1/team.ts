@@ -2,25 +2,74 @@ import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import argon2 from 'argon2';
 import { randomBytes } from 'crypto';
+import type { DepartmentPreset as PrismaDepartmentPreset, PermissionModule } from '@crane/db';
 
-const PERMISSION_MODULES = [
-  'DASHBOARD',
-  'PROPOSALS',
-  'TEMPLATES',
-  'PROSPECTS',
-  'CRM',
-  'REPORTS',
-  'PLAN',
-  'CLIENTS',
-  'SERVICES'
+import { toDepartmentSlug } from '../../utils/slug.js';
+
+const PERMISSION_KEYS = [
+  'dashboard',
+  'proposals',
+  'templates',
+  'prospects',
+  'crm',
+  'reports',
+  'plan',
+  'clients',
+  'services',
 ] as const;
+
+type PermissionKey = (typeof PERMISSION_KEYS)[number];
+
+const PERMISSION_KEY_TO_MODULE: Record<PermissionKey, PermissionModule> = {
+  dashboard: 'DASHBOARD',
+  proposals: 'PROPOSALS',
+  templates: 'TEMPLATES',
+  prospects: 'PROSPECTS',
+  crm: 'CRM',
+  reports: 'REPORTS',
+  plan: 'PLAN',
+  clients: 'CLIENTS',
+  services: 'SERVICES',
+};
+
+const MODULE_TO_KEY = Object.fromEntries(
+  Object.entries(PERMISSION_KEY_TO_MODULE).map(([key, value]) => [value, key as PermissionKey]),
+) as Record<PermissionModule, PermissionKey>;
+
+const departmentPresetSchema = z.enum(['none', 'view', 'all', 'custom']);
+type DepartmentPresetInput = z.infer<typeof departmentPresetSchema>;
+
+const permissionAbilitySchema = z.object({
+  view: z.boolean(),
+  edit: z.boolean(),
+});
+
+const permissionMapSchema = z.object(
+  Object.fromEntries(
+    PERMISSION_KEYS.map((key) => [key, permissionAbilitySchema]),
+  ) as Record<PermissionKey, typeof permissionAbilitySchema>,
+);
+
+const createDepartmentSchema = z.object({
+  name: z.string().min(2),
+  description: z.string().optional(),
+  permissionPreset: departmentPresetSchema.default('view'),
+  permissions: permissionMapSchema.optional(),
+});
+
+const updateDepartmentSchema = z.object({
+  name: z.string().min(2).optional(),
+  description: z.string().optional().nullable(),
+  permissionPreset: departmentPresetSchema.optional(),
+  permissions: permissionMapSchema.optional(),
+});
 
 const createMemberSchema = z.object({
   fullName: z.string().min(2),
   email: z.string().email(),
   jobTitle: z.string().optional(),
   departmentId: z.string().uuid().optional(),
-  role: z.enum(['OWNER', 'MEMBER']).default('MEMBER')
+  role: z.enum(['OWNER', 'MEMBER']).default('MEMBER'),
 });
 
 const updateMemberSchema = z.object({
@@ -28,8 +77,139 @@ const updateMemberSchema = z.object({
   jobTitle: z.string().optional(),
   departmentId: z.string().uuid().nullable().optional(),
   role: z.enum(['OWNER', 'MEMBER']).optional(),
-  isActive: z.boolean().optional()
+  isActive: z.boolean().optional(),
 });
+
+type PermissionMap = Record<PermissionKey, { view: boolean; edit: boolean }>;
+
+function toDbPreset(preset: DepartmentPresetInput): PrismaDepartmentPreset {
+  switch (preset) {
+    case 'none':
+      return 'NONE';
+    case 'view':
+      return 'VIEW';
+    case 'all':
+      return 'ALL';
+    case 'custom':
+    default:
+      return 'CUSTOM';
+  }
+}
+
+function fromDbPreset(preset?: PrismaDepartmentPreset | null): DepartmentPresetInput {
+  switch (preset) {
+    case 'NONE':
+      return 'none';
+    case 'VIEW':
+      return 'view';
+    case 'ALL':
+      return 'all';
+    case 'CUSTOM':
+    default:
+      return 'custom';
+  }
+}
+
+function createPresetPermissionMap(preset: Exclude<DepartmentPresetInput, 'custom'>): PermissionMap {
+  return PERMISSION_KEYS.reduce<PermissionMap>((acc, key) => {
+    if (preset === 'all') {
+      acc[key] = { view: true, edit: true };
+    } else if (preset === 'view') {
+      acc[key] = { view: true, edit: false };
+    } else {
+      acc[key] = { view: key === 'dashboard', edit: false };
+    }
+    return acc;
+  }, {} as PermissionMap);
+}
+
+function clonePermissionMap(map: PermissionMap): PermissionMap {
+  return PERMISSION_KEYS.reduce<PermissionMap>((acc, key) => {
+    acc[key] = { ...map[key] };
+    return acc;
+  }, {} as PermissionMap);
+}
+
+function applyPermissionOverrides(
+  base: PermissionMap,
+  overrides?: Record<PermissionKey, { view: boolean; edit: boolean }>,
+): PermissionMap {
+  if (!overrides) {
+    return base;
+  }
+
+  for (const key of PERMISSION_KEYS) {
+    const entry = overrides[key];
+    if (!entry) continue;
+    const view = Boolean(entry.view);
+    const edit = view && Boolean(entry.edit);
+    base[key] = { view, edit };
+  }
+
+  return base;
+}
+
+function mapFromDb(
+  permissions: { module: PermissionModule; canView: boolean; canEdit: boolean }[],
+  fallback: Exclude<DepartmentPresetInput, 'custom'>,
+): PermissionMap {
+  const base = createPresetPermissionMap(fallback);
+  for (const permission of permissions) {
+    const key = MODULE_TO_KEY[permission.module];
+    if (!key) continue;
+    const view = Boolean(permission.canView);
+    const edit = view && Boolean(permission.canEdit);
+    base[key] = { view, edit };
+  }
+  return base;
+}
+
+function serializeDepartment(department: {
+  id: string;
+  name: string;
+  description: string | null;
+  permissionPreset: PrismaDepartmentPreset | null;
+  permissions: { module: PermissionModule; canView: boolean; canEdit: boolean }[];
+}) {
+  const preset = fromDbPreset(department.permissionPreset);
+  const fallback = preset === 'custom' ? 'none' : (preset as Exclude<DepartmentPresetInput, 'custom'>);
+  const permissionMap = mapFromDb(department.permissions, fallback);
+
+  return {
+    id: department.id,
+    name: department.name,
+    description: department.description,
+    permissionPreset: preset,
+    permissions: Object.fromEntries(
+      PERMISSION_KEYS.map((key) => [key, { ...permissionMap[key] }]),
+    ),
+  };
+}
+
+async function generateDepartmentSlug(
+  accountId: string,
+  name: string,
+  prisma: typeof import('@crane/db').prisma,
+) {
+  const base = toDepartmentSlug(name) || 'department';
+  let slug = base;
+  let attempt = 1;
+
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    const existing = await prisma.department.findFirst({
+      where: { accountId, slug },
+      select: { id: true },
+    });
+
+    if (!existing) {
+      return slug;
+    }
+
+    slug = `${base}-${attempt}`;
+    attempt += 1;
+  }
+}
 
 const teamRoutes: FastifyPluginAsync = async (app) => {
   app.addHook('preHandler', app.authenticate);
@@ -43,7 +223,7 @@ const teamRoutes: FastifyPluginAsync = async (app) => {
       app.prisma.department.findMany({
         where: { accountId: request.user.accountId },
         include: { permissions: true },
-        orderBy: { name: 'asc' }
+        orderBy: { name: 'asc' },
       }),
       app.prisma.user.findMany({
         where: { accountId: request.user.accountId },
@@ -59,35 +239,15 @@ const teamRoutes: FastifyPluginAsync = async (app) => {
           department: {
             select: {
               id: true,
-              name: true
-            }
-          }
+              name: true,
+            },
+          },
         },
-        orderBy: { createdAt: 'asc' }
-      })
+        orderBy: { createdAt: 'asc' },
+      }),
     ]);
 
-    const departmentPayload = departments.map((department) => {
-      const permissions = PERMISSION_MODULES.reduce<Record<string, { view: boolean; edit: boolean }>>(
-        (acc, module) => {
-          const entry = department.permissions.find((permission) => permission.module === module);
-          acc[module.toLowerCase()] = {
-            view: entry?.canView ?? false,
-            edit: entry?.canEdit ?? false
-          };
-          return acc;
-        },
-        {}
-      );
-
-      return {
-        id: department.id,
-        name: department.name,
-        description: department.description,
-        permissionPreset: department.permissionPreset,
-        permissions
-      };
-    });
+    const departmentPayload = departments.map((department) => serializeDepartment(department));
 
     const memberPayload = members.map((member) => ({
       id: member.id,
@@ -98,15 +258,230 @@ const teamRoutes: FastifyPluginAsync = async (app) => {
       departmentId: member.departmentId,
       department: member.department,
       isActive: member.isActive,
-      createdAt: member.createdAt
+      createdAt: member.createdAt,
     }));
 
     return reply.send({
       data: {
         departments: departmentPayload,
-        members: memberPayload
-      }
+        members: memberPayload,
+      },
     });
+  });
+
+  app.post('/departments', async (request, reply) => {
+    if (request.user.role !== 'OWNER') {
+      return reply.status(403).send({ message: 'Forbidden' });
+    }
+
+    const body = createDepartmentSchema.parse(request.body);
+
+    const preset = body.permissionPreset;
+    const name = body.name.trim();
+    const baseMap = preset === 'custom'
+      ? createPresetPermissionMap('none')
+      : createPresetPermissionMap(preset as Exclude<DepartmentPresetInput, 'custom'>);
+    const permissionMap = applyPermissionOverrides(clonePermissionMap(baseMap), body.permissions ?? undefined);
+
+    const slug = await generateDepartmentSlug(request.user.accountId, name, app.prisma);
+    const description = body.description?.trim();
+
+    const department = await app.prisma.department.create({
+      data: {
+        accountId: request.user.accountId,
+        name,
+        slug,
+        description: description ? description : null,
+        permissionPreset: toDbPreset(preset),
+        permissions: {
+          create: PERMISSION_KEYS.map((key) => ({
+            module: PERMISSION_KEY_TO_MODULE[key],
+            canView: permissionMap[key].view,
+            canEdit: permissionMap[key].edit,
+          })),
+        },
+      },
+      include: { permissions: true },
+    });
+
+    await app.prisma.auditEvent.create({
+      data: {
+        accountId: request.user.accountId,
+        userId: request.user.sub,
+        action: 'department.created',
+        entityType: 'Department',
+        entityId: department.id,
+        summary: `Departamento ${department.name} criado`,
+        metadataJson: {
+          preset,
+        },
+      },
+    });
+
+    return reply.code(201).send({ data: serializeDepartment(department) });
+  });
+
+  app.put('/departments/:id', async (request, reply) => {
+    if (request.user.role !== 'OWNER') {
+      return reply.status(403).send({ message: 'Forbidden' });
+    }
+
+    const paramsSchema = z.object({ id: z.string().uuid() });
+    const params = paramsSchema.parse(request.params);
+    const body = updateDepartmentSchema.parse(request.body);
+
+    const existing = await app.prisma.department.findFirst({
+      where: {
+        id: params.id,
+        accountId: request.user.accountId,
+      },
+      include: { permissions: true },
+    });
+
+    if (!existing) {
+      return reply.status(404).send({ message: 'Departamento não encontrado.' });
+    }
+
+    const currentPreset = fromDbPreset(existing.permissionPreset);
+    const targetPreset = body.permissionPreset ?? currentPreset;
+
+    const currentMap = mapFromDb(existing.permissions, 'none');
+    let permissionMap: PermissionMap;
+
+    if (targetPreset === 'custom') {
+      const base = clonePermissionMap(currentMap);
+      permissionMap = applyPermissionOverrides(base, body.permissions ?? undefined);
+    } else {
+      const base = createPresetPermissionMap(targetPreset as Exclude<DepartmentPresetInput, 'custom'>);
+      permissionMap = applyPermissionOverrides(clonePermissionMap(base), body.permissions ?? undefined);
+    }
+
+    const updates: Parameters<typeof app.prisma.department.update>[0]['data'] = {};
+
+    if (body.name) {
+      updates.name = body.name.trim();
+    }
+
+    if (body.description !== undefined) {
+      const trimmed = body.description?.trim();
+      updates.description = trimmed ? trimmed : null;
+    }
+
+    updates.permissionPreset = toDbPreset(targetPreset);
+
+    await app.prisma.department.update({
+      where: { id: existing.id },
+      data: updates,
+    });
+
+    await Promise.all(
+      PERMISSION_KEYS.map((key) =>
+        app.prisma.departmentPermission.upsert({
+          where: {
+            departmentId_module: {
+              departmentId: existing.id,
+              module: PERMISSION_KEY_TO_MODULE[key],
+            },
+          },
+          create: {
+            departmentId: existing.id,
+            module: PERMISSION_KEY_TO_MODULE[key],
+            canView: permissionMap[key].view,
+            canEdit: permissionMap[key].edit,
+          },
+          update: {
+            canView: permissionMap[key].view,
+            canEdit: permissionMap[key].edit,
+          },
+        }),
+      ),
+    );
+
+    const updated = await app.prisma.department.findUnique({
+      where: { id: existing.id },
+      include: { permissions: true },
+    });
+
+    if (!updated) {
+      request.log.error({ departmentId: existing.id }, 'Departamento não localizado após atualização');
+      return reply.status(500).send({ message: 'Falha ao recarregar o departamento atualizado.' });
+    }
+
+    await app.prisma.auditEvent.create({
+      data: {
+        accountId: request.user.accountId,
+        userId: request.user.sub,
+        action: 'department.updated',
+        entityType: 'Department',
+        entityId: existing.id,
+        summary: `Departamento ${updated.name} atualizado`,
+        metadataJson: {
+          preset: targetPreset,
+          updatedFields: [
+            ...(body.name ? ['name'] : []),
+            ...(body.description !== undefined ? ['description'] : []),
+            ...(body.permissionPreset ? ['permissionPreset'] : []),
+            ...(body.permissions ? ['permissions'] : []),
+          ],
+        },
+      },
+    });
+
+    return reply.send({ data: serializeDepartment(updated) });
+  });
+
+  app.delete('/departments/:id', async (request, reply) => {
+    if (request.user.role !== 'OWNER') {
+      return reply.status(403).send({ message: 'Forbidden' });
+    }
+
+    const paramsSchema = z.object({ id: z.string().uuid() });
+    const params = paramsSchema.parse(request.params);
+
+    const department = await app.prisma.department.findFirst({
+      where: {
+        id: params.id,
+        accountId: request.user.accountId,
+      },
+      include: {
+        permissions: true,
+      },
+    });
+
+    if (!department) {
+      return reply.status(404).send({ message: 'Departamento não encontrado.' });
+    }
+
+    const membersUsingDepartment = await app.prisma.user.count({
+      where: { departmentId: department.id },
+    });
+
+    await app.prisma.$transaction([
+      app.prisma.user.updateMany({
+        where: { departmentId: department.id },
+        data: { departmentId: null },
+      }),
+      app.prisma.departmentPermission.deleteMany({
+        where: { departmentId: department.id },
+      }),
+      app.prisma.department.delete({ where: { id: department.id } }),
+    ]);
+
+    await app.prisma.auditEvent.create({
+      data: {
+        accountId: request.user.accountId,
+        userId: request.user.sub,
+        action: 'department.deleted',
+        entityType: 'Department',
+        entityId: department.id,
+        summary: `Departamento ${department.name} removido`,
+        metadataJson: {
+          memberCount: membersUsingDepartment,
+        },
+      },
+    });
+
+    return reply.status(204).send();
   });
 
   app.post('/members', async (request, reply) => {
@@ -120,8 +495,8 @@ const teamRoutes: FastifyPluginAsync = async (app) => {
       const departmentExists = await app.prisma.department.findFirst({
         where: {
           id: body.departmentId,
-          accountId: request.user.accountId
-        }
+          accountId: request.user.accountId,
+        },
       });
 
       if (!departmentExists) {
@@ -129,14 +504,14 @@ const teamRoutes: FastifyPluginAsync = async (app) => {
       }
     }
 
-    const existing = await app.prisma.user.findFirst({
+    const existingUser = await app.prisma.user.findFirst({
       where: {
         accountId: request.user.accountId,
-        email: body.email.toLowerCase()
-      }
+        email: body.email.toLowerCase(),
+      },
     });
 
-    if (existing) {
+    if (existingUser) {
       return reply.status(409).send({ message: 'Usuário já cadastrado com este e-mail.' });
     }
 
@@ -152,8 +527,8 @@ const teamRoutes: FastifyPluginAsync = async (app) => {
         fullName: body.fullName,
         jobTitle: body.jobTitle,
         departmentId: body.departmentId ?? null,
-        isActive: false
-      }
+        isActive: false,
+      },
     });
 
     await app.prisma.auditEvent.create({
@@ -167,9 +542,9 @@ const teamRoutes: FastifyPluginAsync = async (app) => {
         metadataJson: {
           inviteeEmail: member.email,
           fullName: member.fullName,
-          departmentId: member.departmentId
-        }
-      }
+          departmentId: member.departmentId,
+        },
+      },
     });
 
     return reply.code(201).send({
@@ -180,8 +555,8 @@ const teamRoutes: FastifyPluginAsync = async (app) => {
         fullName: member.fullName,
         jobTitle: member.jobTitle,
         departmentId: member.departmentId,
-        isActive: member.isActive
-      }
+        isActive: member.isActive,
+      },
     });
   });
 
@@ -198,8 +573,8 @@ const teamRoutes: FastifyPluginAsync = async (app) => {
       const departmentExists = await app.prisma.department.findFirst({
         where: {
           id: body.departmentId,
-          accountId: request.user.accountId
-        }
+          accountId: request.user.accountId,
+        },
       });
 
       if (!departmentExists) {
@@ -210,17 +585,17 @@ const teamRoutes: FastifyPluginAsync = async (app) => {
     const member = await app.prisma.user.findFirst({
       where: {
         id: params.id,
-        accountId: request.user.accountId
-      }
+        accountId: request.user.accountId,
+      },
     });
 
     if (!member) {
       return reply.status(404).send({ message: 'Usuário não encontrado.' });
     }
 
-    const updateData: Record<string, unknown> = {};
+    const updateData: Parameters<typeof app.prisma.user.update>[0]['data'] = {};
 
-    if (body.fullName !== undefined) {
+    if (body.fullName) {
       updateData.fullName = body.fullName;
     }
 
@@ -232,7 +607,7 @@ const teamRoutes: FastifyPluginAsync = async (app) => {
       updateData.departmentId = body.departmentId;
     }
 
-    if (body.role !== undefined) {
+    if (body.role) {
       updateData.role = body.role;
     }
 
@@ -240,12 +615,26 @@ const teamRoutes: FastifyPluginAsync = async (app) => {
       updateData.isActive = body.isActive;
     }
 
-    if (Object.keys(updateData).length > 0) {
-      await app.prisma.user.update({
-        where: { id: member.id },
-        data: updateData
-      });
-    }
+    const updated = await app.prisma.user.update({
+      where: { id: member.id },
+      data: updateData,
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        fullName: true,
+        jobTitle: true,
+        departmentId: true,
+        isActive: true,
+        createdAt: true,
+        department: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
 
     await app.prisma.auditEvent.create({
       data: {
@@ -253,16 +642,15 @@ const teamRoutes: FastifyPluginAsync = async (app) => {
         userId: request.user.sub,
         action: 'user.updated',
         entityType: 'User',
-        entityId: member.id,
-        summary: `Usuário ${member.email} atualizado`,
+        entityId: updated.id,
+        summary: `Dados do membro ${updated.email} atualizados`,
         metadataJson: {
-          updatedFields: Object.keys(body),
-          performedBy: request.user.sub
-        }
-      }
+          updatedFields: Object.keys(updateData),
+        },
+      },
     });
 
-    return reply.status(204).send();
+    return reply.send({ data: updated });
   });
 };
 

@@ -1,24 +1,17 @@
 import { permissionModules, type PermissionModuleKey } from '@/config/permission-modules';
 
-export type DepartmentPermissionMap = Record<
-  PermissionModuleKey,
-  {
-    view: boolean;
-    edit: boolean;
-  }
->;
+export type DepartmentPermission = {
+  view: boolean;
+  edit: boolean;
+};
+
+export type DepartmentPermissionMap = Record<PermissionModuleKey, DepartmentPermission>;
 
 export type DepartmentPreset = 'none' | 'view' | 'all' | 'custom';
 
-export interface Department {
-  id: string;
-  name: string;
-  description?: string;
-  permissionPreset?: DepartmentPreset;
-  permissions: DepartmentPermissionMap;
-}
-
-export function createPermissionMap(preset: Exclude<DepartmentPreset, 'custom'> = 'none'): DepartmentPermissionMap {
+export function createPermissionMap(
+  preset: Exclude<DepartmentPreset, 'custom'> = 'none',
+): DepartmentPermissionMap {
   return permissionModules.reduce<DepartmentPermissionMap>((acc, module) => {
     if (preset === 'all') {
       acc[module] = { view: true, edit: true };
@@ -37,50 +30,29 @@ export function createPermissionMap(preset: Exclude<DepartmentPreset, 'custom'> 
 
 export function clonePermissionMap(map: DepartmentPermissionMap): DepartmentPermissionMap {
   return Object.fromEntries(
-    Object.entries(map).map(([module, permissions]) => [module, { ...permissions }])
+    Object.entries(map).map(([module, permissions]) => [module, { ...permissions }]),
   ) as DepartmentPermissionMap;
 }
 
-export function cloneDepartment(department: Department): Department {
-  return {
-    ...department,
-    permissions: clonePermissionMap(department.permissions),
-  };
-}
+export function normalizePermissionMap(
+  map: Partial<Record<PermissionModuleKey, Partial<DepartmentPermission>>> | null | undefined,
+  fallbackPreset: Exclude<DepartmentPreset, 'custom'> = 'none',
+): DepartmentPermissionMap {
+  const base = createPermissionMap(fallbackPreset);
 
-export const sampleDepartments: Department[] = [
-  {
-    id: 'dept-commercial',
-    name: 'Comercial',
-    description: 'Equipe responsável por prospecção e negociações.',
-    permissionPreset: 'all',
-    permissions: createPermissionMap('all'),
-  },
-  {
-    id: 'dept-operations',
-    name: 'Operações',
-    description: 'Planejamento de execução e logística dos guindastes.',
-    permissionPreset: 'view',
-    permissions: {
-      ...createPermissionMap('none'),
-      proposals: { view: true, edit: true },
-      templates: { view: true, edit: true },
-      prospects: { view: true, edit: false },
-      crm: { view: true, edit: true },
-      reports: { view: true, edit: false },
-    },
-  },
-  {
-    id: 'dept-finance',
-    name: 'Financeiro',
-    description: 'Controle de faturamento e assinaturas.',
-    permissionPreset: 'view',
-    permissions: {
-      ...createPermissionMap('none'),
-      dashboard: { view: true, edit: false },
-      proposals: { view: true, edit: false },
-      reports: { view: true, edit: false },
-      plan: { view: true, edit: true },
-    },
-  },
-];
+  if (!map) {
+    return base;
+  }
+
+  for (const module of permissionModules) {
+    const entry = map[module];
+    if (!entry) continue;
+
+    const view = Boolean(entry.view);
+    const edit = view && Boolean(entry.edit);
+
+    base[module] = { view, edit };
+  }
+
+  return base;
+}

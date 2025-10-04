@@ -5,6 +5,16 @@
   "actions": {
     "new": "New department"
   },
+  "list": {
+    "showDetails": "Show details",
+    "hideDetails": "Hide details",
+    "delete": "Remove"
+  },
+  "states": {
+    "loading": "Loading departments...",
+    "empty": "No departments have been created yet.",
+    "loadError": "We couldn't load the departments"
+  },
   "restricted": {
     "title": "Departments",
     "description": "Only administrators can manage departments and permissions.",
@@ -38,9 +48,20 @@
     "title": "Create department",
     "description": "Provide a name and choose a preset to configure permissions quickly.",
     "close": "Close",
+    "errors": {
+      "nameRequired": "Please enter a department name."
+    },
     "actions": {
       "cancel": "Cancel",
-      "submit": "Save department"
+      "submit": "Save department",
+      "saving": "Saving..."
     }
+  },
+  "deleteDialog": {
+    "title": "Remove department",
+    "description": "Are you sure you want to remove the {name} department? Members linked to it will become unassigned.",
+    "cancel": "Cancel",
+    "confirm": "Remove",
+    "deleting": "Removing..."
   }
 }

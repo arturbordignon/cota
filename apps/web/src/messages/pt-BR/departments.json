@@ -5,6 +5,16 @@
   "actions": {
     "new": "Novo departamento"
   },
+  "list": {
+    "showDetails": "Ver detalhes",
+    "hideDetails": "Ocultar detalhes",
+    "delete": "Remover"
+  },
+  "states": {
+    "loading": "Carregando departamentos...",
+    "empty": "Nenhum departamento cadastrado ainda.",
+    "loadError": "Não foi possível carregar os departamentos"
+  },
   "restricted": {
     "title": "Departamentos",
     "description": "Somente administradores podem gerenciar departamentos e permissões.",
@@ -38,9 +48,20 @@
     "title": "Novo departamento",
     "description": "Defina um nome e escolha um preset para agilizar a configuração das permissões.",
     "close": "Fechar",
+    "errors": {
+      "nameRequired": "Informe um nome para o departamento."
+    },
     "actions": {
       "cancel": "Cancelar",
-      "submit": "Salvar departamento"
+      "submit": "Salvar departamento",
+      "saving": "Salvando..."
     }
+  },
+  "deleteDialog": {
+    "title": "Remover departamento",
+    "description": "Tem certeza que deseja remover o departamento {name}? Os membros vinculados ficarão sem departamento.",
+    "cancel": "Cancelar",
+    "confirm": "Remover",
+    "deleting": "Removendo..."
   }
 }
