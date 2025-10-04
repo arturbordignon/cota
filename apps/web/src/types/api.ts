@@ -99,7 +99,12 @@ export interface PipelineLeadSummary {
   notes?: string | null;
   metadataJson?: Record<string, unknown> | null;
   prospect?: ProspectSummary | null;
-  proposals?: Array<{ id: string; title: string | null; status: string; totalsJson: Record<string, unknown> | null }>;
+  proposals?: Array<{
+    id: string;
+    title: string | null;
+    status: string;
+    totalsJson: Record<string, unknown> | null;
+  }>;
   createdAt: string;
   updatedAt: string;
 }
@@ -167,24 +172,32 @@ export interface AuditEventsResponse {
   data: AuditEventEntry[];
 }
 
-type PrismaJsonValue = string | number | boolean | null | PrismaJsonValue[] | { [key: string]: PrismaJsonValue };
+type PrismaJsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | PrismaJsonValue[]
+  | { [key: string]: PrismaJsonValue };
 
-export interface ReportsOverviewResponse {
-  data: {
-    proposalsByStatus: Record<string, number>;
-    topClients: Array<{ client: string; value: number }>;
-    recentProposals: Array<{
-      id: string;
-      title: string | null;
-      status: string;
-      client: string | null;
-      createdAt: string;
-    }>;
-    pipelineSummary: Array<{
-      stageId: string;
-      name: string;
-      leadCount: number;
-      totalValue: number;
-    }>;
+export type ReportsOverviewResponse = {
+  range: { start: string; end: string };
+  kpis: {
+    receitaAceita: number;
+    taxaConversao: number; // %
+    ticketMedioAceitas: number;
+    propostasAbertas14dMais: number;
   };
-}
+  proposalsByStatus: Record<string, number>;
+  topClients: Array<{ client: string; value: number }>;
+  propostasPorMembro: Array<{ createdById: string | null; total: number; aceitas: number }>;
+  receitaPorCidade: Array<{ city: string; value: number }>;
+  recentProposals: Array<{
+    id: string;
+    title: string | null;
+    status: string;
+    client: string | null;
+    createdAt: string;
+  }>;
+  pipelineSummary: Array<{ stageId: string; name: string; leadCount: number; totalValue: number }>;
+};

@@ -48,6 +48,19 @@ export interface LoginResponse {
     role: string;
     locale?: string;
   };
+  account: {
+    id: string;
+    name: string;
+    slug: string;
+    locale: string;
+  };
+  plan: {
+    slug: string;
+    name: string;
+    proposalsPerMonth: number;
+    isUnlimited: boolean;
+  } | null;
+  message?: string;
 }
 
 export interface RegisterResponse {

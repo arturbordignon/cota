@@ -9,16 +9,15 @@ const logger = pino({ level: env.LOG_LEVEL });
 const connection = {
   host: env.REDIS_HOST,
   port: env.REDIS_PORT,
-  password: env.REDIS_PASSWORD || undefined
+  password: env.REDIS_PASSWORD || undefined,
 };
 
 const pdfQueueName = `${env.QUEUE_PREFIX}-pdf-generation`;
 
-const pdfWorker = new Worker(
-  pdfQueueName,
-  createPdfJobProcessor({ logger }),
-  { connection, concurrency: 2 }
-);
+const pdfWorker = new Worker(pdfQueueName, createPdfJobProcessor({ logger }), {
+  connection,
+  concurrency: 2,
+});
 
 pdfWorker.on('completed', async (job, result) => {
   logger.info({ jobId: job.id }, 'PDF job completed');
@@ -28,8 +27,8 @@ pdfWorker.on('completed', async (job, result) => {
       data: {
         status: 'SENT',
         pdfObjectKey: result.pdfObjectKey,
-        sentAt: new Date()
-      }
+        sentAt: new Date(),
+      },
     });
   }
 });
@@ -39,7 +38,7 @@ pdfWorker.on('failed', async (job, err) => {
   if (job?.data?.proposalId) {
     await prisma.proposal.update({
       where: { id: job.data.proposalId },
-      data: { status: 'DRAFT' }
+      data: { status: 'DRAFT' },
     });
   }
 });

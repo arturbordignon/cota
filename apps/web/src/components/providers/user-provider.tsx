@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import {
   PropsWithChildren,
@@ -9,13 +9,13 @@ import {
   useMemo,
   useRef,
   useState,
-} from "react";
-import { useRouter } from "next/navigation";
-import { useQueryClient } from "@tanstack/react-query";
+} from 'react';
+import { useRouter } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
 
-import * as authClient from "@/lib/auth-client";
+import * as authClient from '@/lib/auth-client';
 
-export type UserRole = "owner" | "admin" | "manager" | "viewer" | "member";
+export type UserRole = 'owner' | 'admin' | 'manager' | 'viewer' | 'member';
 
 export interface CurrentUser {
   id: string;
@@ -32,7 +32,7 @@ export interface CurrentUser {
   };
 }
 
-type AuthStatus = "loading" | "authenticated" | "unauthenticated";
+type AuthStatus = 'loading' | 'authenticated' | 'unauthenticated';
 
 interface UserContextValue {
   user: CurrentUser | null;
@@ -48,25 +48,25 @@ interface UserContextValue {
   updateUser: (updates: Partial<CurrentUser>) => void;
 }
 
-const ACCESS_TOKEN_KEY = "crane.accessToken";
-const REFRESH_TOKEN_KEY = "crane.refreshToken";
-const ACCOUNT_SLUG_KEY = "crane.accountSlug";
+const ACCESS_TOKEN_KEY = 'crane.accessToken';
+const REFRESH_TOKEN_KEY = 'crane.refreshToken';
+const ACCOUNT_SLUG_KEY = 'crane.accountSlug';
 
 const UserContext = createContext<UserContextValue | undefined>(undefined);
 
 function normalizeRole(role: string | null | undefined): UserRole {
-  const value = role?.toLowerCase() ?? "member";
+  const value = role?.toLowerCase() ?? 'member';
   switch (value) {
-    case "owner":
-      return "owner";
-    case "admin":
-      return "admin";
-    case "manager":
-      return "manager";
-    case "viewer":
-      return "viewer";
+    case 'owner':
+      return 'owner';
+    case 'admin':
+      return 'admin';
+    case 'manager':
+      return 'manager';
+    case 'viewer':
+      return 'viewer';
     default:
-      return "member";
+      return 'member';
   }
 }
 
@@ -88,7 +88,7 @@ function mapProfileToUser(profile: authClient.ProfileResponse): CurrentUser {
 }
 
 function persistItem(key: string, value: string | null) {
-  if (typeof window === "undefined") return;
+  if (typeof window === 'undefined') return;
   if (value == null) {
     window.localStorage.removeItem(key);
     return;
@@ -97,7 +97,7 @@ function persistItem(key: string, value: string | null) {
 }
 
 function readItem(key: string): string | null {
-  if (typeof window === "undefined") return null;
+  if (typeof window === 'undefined') return null;
   return window.localStorage.getItem(key);
 }
 
@@ -106,7 +106,7 @@ export function UserProvider({ children }: PropsWithChildren) {
   const router = useRouter();
 
   const [user, setUser] = useState<CurrentUser | null>(null);
-  const [status, setStatus] = useState<AuthStatus>("loading");
+  const [status, setStatus] = useState<AuthStatus>('loading');
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [refreshToken, setRefreshToken] = useState<string | null>(null);
 
@@ -119,32 +119,29 @@ export function UserProvider({ children }: PropsWithChildren) {
     persistItem(REFRESH_TOKEN_KEY, tokens.refreshToken);
   }, []);
 
-  const loadProfile = useCallback(
-    async (token: string) => {
-      const profile = await authClient.me(token);
-      const mapped = mapProfileToUser(profile);
-      setUser(mapped);
-      setStatus("authenticated");
-      setAccessToken(token);
-      return mapped;
-    },
-    []
-  );
+  const loadProfile = useCallback(async (token: string) => {
+    const profile = await authClient.me(token);
+    const mapped = mapProfileToUser(profile);
+    setUser(mapped);
+    setStatus('authenticated');
+    setAccessToken(token);
+    return mapped;
+  }, []);
 
   const signOut = useCallback(
     (options?: { redirect?: boolean }) => {
       setUser(null);
-      setStatus("unauthenticated");
+      setStatus('unauthenticated');
       setAccessToken(null);
       setRefreshToken(null);
       persistItem(ACCESS_TOKEN_KEY, null);
       persistItem(REFRESH_TOKEN_KEY, null);
       if (options?.redirect !== false) {
-        router.replace("/sign-in");
+        router.replace('/sign-in');
       }
       queryClient.clear();
     },
-    [queryClient, router]
+    [queryClient, router],
   );
 
   const refreshSession = useCallback(async () => {
@@ -154,7 +151,7 @@ export function UserProvider({ children }: PropsWithChildren) {
 
     if (!refreshToken) {
       signOut({ redirect: false });
-      return Promise.reject(new Error("Refresh token not available"));
+      return Promise.reject(new Error('Refresh token not available'));
     }
 
     refreshPromiseRef.current = authClient
@@ -177,34 +174,34 @@ export function UserProvider({ children }: PropsWithChildren) {
 
   const signIn = useCallback(
     async (payload: authClient.LoginPayload) => {
-      setStatus("loading");
+      setStatus('loading');
       try {
         const result = await authClient.login(payload);
         saveTokens(result.tokens);
-        persistItem(ACCOUNT_SLUG_KEY, payload.accountSlug);
+        persistItem(ACCOUNT_SLUG_KEY, result.account?.slug ?? payload.accountSlug);
         await loadProfile(result.tokens.accessToken);
       } catch (error) {
-        setStatus(accessToken ? "authenticated" : "unauthenticated");
+        setStatus(accessToken ? 'authenticated' : 'unauthenticated');
         throw error;
       }
     },
-    [loadProfile, saveTokens, accessToken]
+    [loadProfile, saveTokens, accessToken],
   );
 
   const signUp = useCallback(
-    async ({ locale = "pt-BR", ...payload }: authClient.RegisterPayload) => {
-      setStatus("loading");
+    async ({ locale = 'pt-BR', ...payload }: authClient.RegisterPayload) => {
+      setStatus('loading');
       try {
         const result = await authClient.register({ ...payload, locale });
         saveTokens(result.tokens);
         persistItem(ACCOUNT_SLUG_KEY, result.account.slug);
         await loadProfile(result.tokens.accessToken);
       } catch (error) {
-        setStatus(accessToken ? "authenticated" : "unauthenticated");
+        setStatus(accessToken ? 'authenticated' : 'unauthenticated');
         throw error;
       }
     },
-    [loadProfile, saveTokens, accessToken]
+    [loadProfile, saveTokens, accessToken],
   );
 
   const updateUser = useCallback((updates: Partial<CurrentUser>) => {
@@ -213,7 +210,7 @@ export function UserProvider({ children }: PropsWithChildren) {
 
   // Bootstrap session from storage or development token
   useEffect(() => {
-    if (typeof window === "undefined") {
+    if (typeof window === 'undefined') {
       return;
     }
 
@@ -229,14 +226,14 @@ export function UserProvider({ children }: PropsWithChildren) {
     const tokenToUse = storedAccess ?? fallbackToken;
 
     if (!tokenToUse) {
-      setStatus("unauthenticated");
+      setStatus('unauthenticated');
       return;
     }
 
     setAccessToken(tokenToUse);
     loadProfile(tokenToUse).catch(async () => {
       if (!storedRefresh) {
-        setStatus("unauthenticated");
+        setStatus('unauthenticated');
         signOut({ redirect: false });
         return;
       }
@@ -244,7 +241,7 @@ export function UserProvider({ children }: PropsWithChildren) {
       try {
         await refreshSession();
       } catch {
-        setStatus("unauthenticated");
+        setStatus('unauthenticated');
       }
     });
   }, [loadProfile, refreshSession, signOut]);
@@ -255,15 +252,15 @@ export function UserProvider({ children }: PropsWithChildren) {
       status,
       accessToken,
       token: accessToken,
-      isOwner: user?.role === "owner",
-      isAdmin: user?.role === "owner" || user?.role === "admin",
+      isOwner: user?.role === 'owner',
+      isAdmin: user?.role === 'owner' || user?.role === 'admin',
       signIn,
       signUp,
       signOut,
       refreshSession,
       updateUser,
     }),
-    [user, status, accessToken, signIn, signUp, signOut, refreshSession, updateUser]
+    [user, status, accessToken, signIn, signUp, signOut, refreshSession, updateUser],
   );
 
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
@@ -272,7 +269,7 @@ export function UserProvider({ children }: PropsWithChildren) {
 export function useCurrentUser() {
   const context = useContext(UserContext);
   if (!context) {
-    throw new Error("useCurrentUser must be used within a UserProvider");
+    throw new Error('useCurrentUser must be used within a UserProvider');
   }
   return context;
 }

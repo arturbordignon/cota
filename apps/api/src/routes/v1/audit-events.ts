@@ -4,11 +4,15 @@ import { Prisma } from '@crane/db';
 
 const listQuerySchema = z.object({
   search: z.string().optional(),
-  category: z.enum(['proposal', 'department', 'notifications', 'billing', 'user', 'system']).optional(),
-  limit: z.coerce.number().min(1).max(100).default(50)
+  category: z
+    .enum(['proposal', 'department', 'notifications', 'billing', 'user', 'system'])
+    .optional(),
+  limit: z.coerce.number().min(1).max(100).default(50),
 });
 
-function resolveCategory(action: string): 'proposal' | 'department' | 'notifications' | 'billing' | 'user' | 'system' {
+function resolveCategory(
+  action: string,
+): 'proposal' | 'department' | 'notifications' | 'billing' | 'user' | 'system' {
   if (action.startsWith('proposal.')) return 'proposal';
   if (action.startsWith('department.')) return 'department';
   if (action.startsWith('notifications.')) return 'notifications';
@@ -28,12 +32,12 @@ const auditEventRoutes: FastifyPluginAsync = async (app) => {
     const query = listQuerySchema.parse(request.query);
 
     const where: Prisma.AuditEventWhereInput = {
-      accountId: request.user.accountId
+      accountId: request.user.accountId,
     };
 
     if (query.category) {
       where.action = {
-        startsWith: `${query.category}.`
+        startsWith: `${query.category}.`,
       };
     }
 
@@ -42,7 +46,7 @@ const auditEventRoutes: FastifyPluginAsync = async (app) => {
       where.OR = [
         { summary: { contains: search, mode: 'insensitive' } },
         { action: { contains: search, mode: 'insensitive' } },
-        { user: { email: { contains: search, mode: 'insensitive' } } }
+        { user: { email: { contains: search, mode: 'insensitive' } } },
       ];
     }
 
@@ -55,10 +59,10 @@ const auditEventRoutes: FastifyPluginAsync = async (app) => {
           select: {
             id: true,
             email: true,
-            fullName: true
-          }
-        }
-      }
+            fullName: true,
+          },
+        },
+      },
     });
 
     const payload = events.map((event) => ({
@@ -69,11 +73,12 @@ const auditEventRoutes: FastifyPluginAsync = async (app) => {
       category: resolveCategory(event.action),
       summary: event.summary,
       summaryKey: (event.metadataJson as Record<string, unknown> | null)?.summaryKey ?? null,
-      summaryParams: (event.metadataJson as Record<string, unknown> | null)?.summaryParams ?? undefined,
+      summaryParams:
+        (event.metadataJson as Record<string, unknown> | null)?.summaryParams ?? undefined,
       metadata: event.metadataJson,
       ipAddress: event.ipAddress,
       userAgent: event.userAgent,
-      createdAt: event.createdAt
+      createdAt: event.createdAt,
     }));
 
     return reply.send({ data: payload });

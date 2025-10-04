@@ -3,27 +3,33 @@
 @tailwind utilities;
 
 :root {
-  --color-background: #f8f7f4;
+  /* Surfaces & text */
+  --color-background: #f7f9fb; /* slate-50-ish */
   --color-surface: #ffffff;
-  --color-surface-muted: #f3f1eb;
-  --color-border: #e2ded1;
-  --color-outline: rgba(197, 187, 166, 0.45);
-  --color-primary: #f2a60d;
-  --color-primary-strong: #d18600;
-  --color-on-primary: #1e1203;
-  --color-ink: #241c13;
-  --color-ink-muted: #61523f;
-  --color-muted: #8d7c67;
-  --color-success: #2d8f63;
-  --color-success-soft: #e7f6ee;
-  --color-warning: #f57f17;
-  --color-warning-soft: #fde9d3;
-  --color-info: #1d72f2;
-  --color-info-soft: #e1ecff;
-  --color-danger: #d64545;
-  --color-danger-soft: #fde8e8;
+  --color-surface-muted: #f1f5f9; /* slate-100 */
+  --color-border: #e2e8f0; /* slate-200 */
+  --color-outline: rgba(100, 116, 139, 0.28); /* slate-500 @ 28% */
 
-  color-scheme: only light;
+  --color-ink: #0f172a; /* slate-900 */
+  --color-ink-muted: #475569; /* slate-600 */
+  --color-muted: #64748b; /* slate-500 */
+
+  /* Brand (amber as accent; dark text on amber for contrast) */
+  --color-primary: #eaaa08; /* amber-600-ish */
+  --color-primary-strong: #b45309; /* amber-700 */
+  --color-on-primary: #111827; /* slate-900 (better than white on amber) */
+
+  /* Semantic */
+  --color-success: #16a34a; /* green-600 */
+  --color-success-soft: #ecfdf5; /* emerald-50 */
+  --color-warning: #f59e0b; /* amber-500 (secondary alert) */
+  --color-warning-soft: #fef3c7; /* amber-100 */
+  --color-info: #2563eb; /* blue-600 */
+  --color-info-soft: #eff6ff; /* blue-50 */
+  --color-danger: #dc2626; /* red-600 */
+  --color-danger-soft: #fee2e2; /* red-100 */
+
+  color-scheme: light;
 }
 
 @layer base {

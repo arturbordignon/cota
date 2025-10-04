@@ -8,9 +8,9 @@ const reportBodySchema = z.object({
   dateRange: z
     .object({
       start: z.string().datetime({ offset: true }).or(z.string()),
-      end: z.string().datetime({ offset: true }).or(z.string())
+      end: z.string().datetime({ offset: true }).or(z.string()),
     })
-    .optional()
+    .optional(),
 });
 
 function parseDate(date: string | undefined, fallback: dayjs.Dayjs) {
@@ -23,85 +23,120 @@ const reportsRoutes: FastifyPluginAsync = async (app) => {
   app.get('/overview', async (request, reply) => {
     await request.jwtVerify();
 
-    const now = dayjs();
-    const monthStart = now.startOf('month').toDate();
+    const q = request.query as { start?: string; end?: string };
+    const defaultEnd = dayjs();
+    const defaultStart = defaultEnd.startOf('month');
+    const start = parseDate(q?.start, defaultStart).startOf('day');
+    const end = parseDate(q?.end, defaultEnd).endOf('day');
+
     const proposals = await app.prisma.proposal.findMany({
-      where: { accountId: request.user.accountId },
-      include: {
-        client: true
-      }
+      where: {
+        accountId: request.user.accountId,
+        createdAt: { gte: start.toDate(), lte: end.toDate() },
+      },
+      include: { client: true },
     });
 
-    const proposalsByStatus = proposals.reduce<Record<string, number>>((acc, proposal) => {
-      acc[proposal.status] = (acc[proposal.status] ?? 0) + 1;
+    const proposalsByStatus = proposals.reduce<Record<string, number>>((acc, p) => {
+      acc[p.status] = (acc[p.status] ?? 0) + 1;
       return acc;
     }, {});
 
-    const recent = proposals
-      .filter((proposal) => proposal.createdAt >= monthStart)
+    const recentProposals = [...proposals]
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
       .slice(0, 10)
-      .map((proposal) => ({
-        id: proposal.id,
-        title: proposal.title,
-        status: proposal.status,
-        client: proposal.client?.name ?? null,
-        createdAt: proposal.createdAt
+      .map((p) => ({
+        id: p.id,
+        title: p.title,
+        status: p.status,
+        client: p.client?.name ?? null,
+        createdAt: p.createdAt,
       }));
 
+    function getNumericTotal(totalsJson: unknown) {
+      const t = totalsJson as Record<string, unknown> | null;
+      if (t && typeof t.total === 'number') return Number(t.total);
+      if (t && typeof t.grandTotal === 'number') return Number(t.grandTotal);
+      return 0;
+    }
+
+    const totalCount = proposals.length;
+    const accepted = proposals.filter((p) => p.status === 'ACCEPTED');
+    const acceptedCount = accepted.length;
+    const receitaAceita = accepted.reduce((acc, p) => acc + getNumericTotal(p.totalsJson), 0);
+    const taxaConversao = totalCount === 0 ? 0 : (acceptedCount / totalCount) * 100;
+    const ticketMedioAceitas = acceptedCount === 0 ? 0 : receitaAceita / acceptedCount;
+
+    const abertas14dMais = proposals.filter((p) => {
+      const isOpen = p.status !== 'ACCEPTED' && p.status !== 'DECLINED' && p.status !== 'EXPIRED';
+      if (!isOpen) return false;
+      const ageDays = dayjs().diff(dayjs(p.createdAt), 'day');
+      return ageDays >= 14;
+    }).length;
+
     const revenueByClient = proposals
-      .filter((proposal) => proposal.status === 'ACCEPTED')
-      .reduce<Record<string, { client: string; value: number }>>((acc, proposal) => {
-        const key = proposal.client?.name ?? 'Sem cliente';
-        const totals = proposal.totalsJson as Record<string, unknown> | null;
-        const numericTotal = typeof totals?.total === 'number'
-          ? totals.total
-          : typeof totals?.grandTotal === 'number'
-            ? totals.grandTotal
-            : 0;
+      .filter((p) => p.status === 'ACCEPTED')
+      .reduce<Record<string, { client: string; value: number }>>((acc, p) => {
+        const key = p.client?.name ?? 'Sem cliente';
         const current = acc[key] ?? { client: key, value: 0 };
-        current.value += Number(numericTotal) || 0;
+        current.value += getNumericTotal(p.totalsJson);
         acc[key] = current;
         return acc;
       }, {});
-
     const topClients = Object.values(revenueByClient)
       .sort((a, b) => b.value - a.value)
       .slice(0, 5);
 
+    const propostasPorMembroMap = proposals.reduce<
+      Record<string, { createdById: string | null; total: number; aceitas: number }>
+    >((acc, p) => {
+      const key = p.createdById ?? 'desconhecido';
+      if (!acc[key]) acc[key] = { createdById: p.createdById ?? null, total: 0, aceitas: 0 };
+      acc[key].total += 1;
+      if (p.status === 'ACCEPTED') acc[key].aceitas += 1;
+      return acc;
+    }, {});
+    const propostasPorMembro = Object.values(propostasPorMembroMap);
+
+    const receitaPorCidadeMap = accepted.reduce<Record<string, number>>((acc, p) => {
+      const cidade = (p.client?.city as string | undefined)?.trim() || 'Sem cidade';
+      acc[cidade] = (acc[cidade] ?? 0) + getNumericTotal(p.totalsJson);
+      return acc;
+    }, {});
+    const receitaPorCidade = Object.entries(receitaPorCidadeMap)
+      .map(([city, value]) => ({ city, value }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 8);
+
     const pipelineStages = await app.prisma.pipelineStage.findMany({
       where: { accountId: request.user.accountId },
-      include: {
-        leads: {
-          select: {
-            estimatedValue: true
-          }
-        }
-      },
-      orderBy: { position: 'asc' }
+      include: { leads: { select: { estimatedValue: true } } },
+      orderBy: { position: 'asc' },
     });
-
     const pipelineSummary = pipelineStages.map((stage) => {
-      const totalValue = stage.leads.reduce((acc, lead) => {
-        if (!lead.estimatedValue) return acc;
-        return acc + Number(lead.estimatedValue);
-      }, 0);
-
-      return {
-        stageId: stage.id,
-        name: stage.name,
-        leadCount: stage.leads.length,
-        totalValue
-      };
+      const totalValue = stage.leads.reduce(
+        (acc, lead) => acc + Number(lead.estimatedValue ?? 0),
+        0,
+      );
+      return { stageId: stage.id, name: stage.name, leadCount: stage.leads.length, totalValue };
     });
 
     return reply.send({
       data: {
+        range: { start: start.toISOString(), end: end.toISOString() },
+        kpis: {
+          receitaAceita,
+          taxaConversao: Number(taxaConversao.toFixed(2)),
+          ticketMedioAceitas,
+          propostasAbertas14dMais: abertas14dMais,
+        },
         proposalsByStatus,
         topClients,
-        recentProposals: recent,
-        pipelineSummary
-      }
+        propostasPorMembro,
+        receitaPorCidade,
+        recentProposals,
+        pipelineSummary,
+      },
     });
   });
 
@@ -123,9 +158,9 @@ const reportsRoutes: FastifyPluginAsync = async (app) => {
           accountId: request.user.accountId,
           createdAt: {
             gte: start.toDate(),
-            lte: end.toDate()
-          }
-        }
+            lte: end.toDate(),
+          },
+        },
       });
 
       const accepted = await app.prisma.proposal.count({
@@ -134,9 +169,9 @@ const reportsRoutes: FastifyPluginAsync = async (app) => {
           status: 'ACCEPTED',
           createdAt: {
             gte: start.toDate(),
-            lte: end.toDate()
-          }
-        }
+            lte: end.toDate(),
+          },
+        },
       });
 
       const conversion = total === 0 ? 0 : (accepted / total) * 100;
@@ -149,14 +184,14 @@ const reportsRoutes: FastifyPluginAsync = async (app) => {
           visualization: body.visualization,
           range: {
             start: start.toISOString(),
-            end: end.toISOString()
+            end: end.toISOString(),
           },
           result: {
             total,
             accepted,
-            conversionRate: Number(conversion.toFixed(2))
-          }
-        }
+            conversionRate: Number(conversion.toFixed(2)),
+          },
+        },
       });
     }
 
@@ -167,12 +202,12 @@ const reportsRoutes: FastifyPluginAsync = async (app) => {
           accountId: request.user.accountId,
           createdAt: {
             gte: start.toDate(),
-            lte: end.toDate()
-          }
+            lte: end.toDate(),
+          },
         },
         _count: {
-          _all: true
-        }
+          _all: true,
+        },
       });
 
       const sql = `SELECT created_by_id, COUNT(*) AS total_proposals\nFROM proposals\nWHERE account_id = '${request.user.accountId}'\n  AND created_at BETWEEN '${start.toISOString()}' AND '${end.toISOString()}'\nGROUP BY created_by_id;`;
@@ -183,19 +218,19 @@ const reportsRoutes: FastifyPluginAsync = async (app) => {
           visualization: body.visualization,
           range: {
             start: start.toISOString(),
-            end: end.toISOString()
+            end: end.toISOString(),
           },
           result: rows.map((row) => ({
             createdById: row.createdById,
-            proposals: row._count._all
-          }))
-        }
+            proposals: row._count._all,
+          })),
+        },
       });
     }
 
     return reply.status(400).send({
       message:
-        'Ainda não temos um template para esta pergunta. Tente perguntar sobre a taxa de conversão ou propostas por membro da equipe.'
+        'Ainda não temos um template para esta pergunta. Tente perguntar sobre a taxa de conversão ou propostas por membro da equipe.',
     });
   });
 };

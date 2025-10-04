@@ -1,22 +1,29 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import { useFormatter, useTranslations } from "next-intl";
-import { FunnelSimple, MagnifyingGlass } from "@phosphor-icons/react";
-import { useQuery } from "@tanstack/react-query";
+import { useEffect, useState } from 'react';
+import { useFormatter, useTranslations } from 'next-intl';
+import { FunnelSimple, MagnifyingGlass } from '@phosphor-icons/react';
+import { useQuery } from '@tanstack/react-query';
 
-import { useCurrentUser } from "@/components/providers/user-provider";
-import { PageHeader } from "@/components/layout/page-header";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectItem } from "@/components/ui/select";
-import { useApi } from "@/hooks/use-api";
-import { AuditEventsResponse } from "@/types/api";
+import { useCurrentUser } from '@/components/providers/user-provider';
+import { PageHeader } from '@/components/layout/page-header';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectItem } from '@/components/ui/select';
+import { useApi } from '@/hooks/use-api';
+import { AuditEventsResponse } from '@/types/api';
 
-const categoryKeys = ["proposal", "department", "notifications", "billing", "user", "system"] as const;
+const categoryKeys = [
+  'proposal',
+  'department',
+  'notifications',
+  'billing',
+  'user',
+  'system',
+] as const;
 type ActivityCategory = (typeof categoryKeys)[number];
 
 export default function ActivityPage() {
@@ -33,10 +40,10 @@ export default function ActivityPage() {
       hour: '2-digit',
       minute: '2-digit',
     });
-  const [query, setQuery] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [query, setQuery] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
 
-  const [debouncedQuery, setDebouncedQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState('');
 
   useEffect(() => {
     const handle = window.setTimeout(() => {
@@ -55,7 +62,9 @@ export default function ActivityPage() {
       if (debouncedQuery.trim().length > 0) {
         params.set('search', debouncedQuery.trim());
       }
-      return api.get<AuditEventsResponse>(`/audit-events${params.size ? `?${params.toString()}` : ''}`);
+      return api.get<AuditEventsResponse>(
+        `/audit-events${params.size ? `?${params.toString()}` : ''}`,
+      );
     },
     enabled: isOwner && Boolean(api.token),
   });
@@ -75,10 +84,7 @@ export default function ActivityPage() {
 
   return (
     <section className="space-y-6">
-      <PageHeader
-        title={t('title')}
-        description={t('description')}
-      />
+      <PageHeader title={t('title')} description={t('description')} />
 
       <Card className="flex flex-col gap-4 border border-outline/40 bg-white p-4 shadow-sm md:flex-row md:items-center md:justify-between">
         <div className="flex flex-1 items-center gap-2 rounded-xl border border-outline bg-white px-3 py-2">
@@ -99,7 +105,7 @@ export default function ActivityPage() {
               </SelectItem>
             ))}
           </Select>
-          <Button variant="ghost" size="sm" onClick={() => setCategoryFilter("all")}>
+          <Button variant="ghost" size="sm" onClick={() => setCategoryFilter('all')}>
             <FunnelSimple size={16} />
             {t('filters.clear')}
           </Button>
@@ -124,44 +130,61 @@ export default function ActivityPage() {
         {events.map((log) => {
           const metadataText = JSON.stringify(log.metadata ?? {}, null, 2);
           return (
-          <Card key={log.id} className="space-y-3 border border-outline/60 bg-white p-5 shadow-sm">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="space-y-1">
-                <p className="text-sm font-semibold text-ink">
-                  {log.summaryKey ? t(`entries.${log.summaryKey}`, log.summaryParams ?? {}) : log.summary}
-                </p>
-                <p className="text-xs text-muted">{log.event}</p>
+            <Card
+              key={log.id}
+              className="space-y-3 border border-outline/60 bg-white p-5 shadow-sm"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="space-y-1">
+                  <p className="text-sm font-semibold text-ink">
+                    {log.summaryKey
+                      ? t(`entries.${log.summaryKey}`, log.summaryParams ?? {})
+                      : log.summary}
+                  </p>
+                  <p className="text-xs text-muted">{log.event}</p>
+                </div>
+                <Badge tone="info">
+                  {tCategories(log.category as ActivityCategory | 'system')}
+                </Badge>
               </div>
-              <Badge tone="info">{tCategories(log.category as ActivityCategory | 'system')}</Badge>
-            </div>
 
-            <div className="grid gap-2 text-sm text-muted md:grid-cols-2">
-              <div>
-                <p className="text-xs uppercase tracking-wide">{t('card.labels.responsible')}</p>
-                <p className="text-sm text-ink">{log.actor}</p>
-                <p>{log.actorEmail}</p>
+              <div className="grid gap-2 text-sm text-muted md:grid-cols-2">
+                <div>
+                  <p className="text-xs uppercase tracking-wide">{t('card.labels.responsible')}</p>
+                  <p className="text-sm text-ink">{log.actor}</p>
+                  <p>{log.actorEmail}</p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wide">{t('card.labels.when')}</p>
+                  <p>{formatTimestamp(log.createdAt)}</p>
+                  {log.ipAddress ? (
+                    <p>
+                      {t('card.labels.ip')}: {log.ipAddress}
+                    </p>
+                  ) : null}
+                  {log.userAgent ? (
+                    <p>
+                      {t('card.labels.agent')}: {log.userAgent}
+                    </p>
+                  ) : null}
+                </div>
               </div>
-              <div>
-                <p className="text-xs uppercase tracking-wide">{t('card.labels.when')}</p>
-                <p>{formatTimestamp(log.createdAt)}</p>
-                {log.ipAddress ? <p>{t('card.labels.ip')}: {log.ipAddress}</p> : null}
-                {log.userAgent ? <p>{t('card.labels.agent')}: {log.userAgent}</p> : null}
-              </div>
-            </div>
 
-            {log.metadata ? (
-              <div className="space-y-1">
-                <p className="text-xs uppercase tracking-wide text-muted">{t('card.labels.technicalDetails')}</p>
-                <Textarea
-                  value={metadataText}
-                  readOnly
-                  className="text-xs"
-                  rows={Math.min(6, metadataText.split('\n').length + 1)}
-                />
-              </div>
-            ) : null}
-          </Card>
-        );
+              {log.metadata ? (
+                <div className="space-y-1">
+                  <p className="text-xs uppercase tracking-wide text-muted">
+                    {t('card.labels.technicalDetails')}
+                  </p>
+                  <Textarea
+                    value={metadataText}
+                    readOnly
+                    className="text-xs"
+                    rows={Math.min(6, metadataText.split('\n').length + 1)}
+                  />
+                </div>
+              ) : null}
+            </Card>
+          );
         })}
       </div>
     </section>

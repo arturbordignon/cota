@@ -45,6 +45,10 @@ const envSchema = z.object({
   CDN_BASE_URL: z.string().default('http://localhost:3000'),
   QUEUE_PREFIX: z.string().default('crane'),
   PDF_RENDER_TIMEOUT_MS: z.coerce.number().default(120000),
+  AUDIT_LOG_STORE_IP: z
+    .union([z.literal('true'), z.literal('false')])
+    .default('true')
+    .transform((value) => value === 'true'),
   STRIPE_API_KEY: z.string().default(''),
   STRIPE_WEBHOOK_SECRET: z.string().default(''),
   STRIPE_PRICE_BR_50: z.string().default(''),

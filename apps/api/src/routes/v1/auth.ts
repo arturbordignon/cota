@@ -18,7 +18,7 @@ function generateTokens(app: FastifyInstance, payload: TokenPayload) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const refreshToken = (app.jwt.sign as any)(payload, {
     expiresIn: '7d',
-    secret: env.JWT_REFRESH_SECRET
+    secret: env.JWT_REFRESH_SECRET,
   });
   return { accessToken, refreshToken };
 }
@@ -27,17 +27,17 @@ const registerBodySchema = z.object({
   accountName: z.string().min(2),
   email: z.string().email(),
   password: z.string().min(8),
-  locale: z.enum(['pt-BR', 'en']).default('pt-BR')
+  locale: z.enum(['pt-BR', 'en']).default('pt-BR'),
 });
 
 const loginBodySchema = z.object({
   accountSlug: z.string().min(1),
   email: z.string().email(),
-  password: z.string().min(8)
+  password: z.string().min(8),
 });
 
 const refreshBodySchema = z.object({
-  refreshToken: z.string().min(1)
+  refreshToken: z.string().min(1),
 });
 
 const authRoutes: FastifyPluginAsync = async (app) => {
@@ -55,18 +55,18 @@ const authRoutes: FastifyPluginAsync = async (app) => {
         department: {
           select: {
             id: true,
-            name: true
-          }
+            name: true,
+          },
         },
         account: {
           select: {
             id: true,
             name: true,
             slug: true,
-            defaultLocale: true
-          }
-        }
-      }
+            defaultLocale: true,
+          },
+        },
+      },
     });
 
     if (!user) {
@@ -83,16 +83,16 @@ const authRoutes: FastifyPluginAsync = async (app) => {
         department: user.department
           ? {
               id: user.department.id,
-              name: user.department.name
+              name: user.department.name,
             }
-          : null
+          : null,
       },
       account: {
         id: user.account.id,
         name: user.account.name,
         slug: user.account.slug,
-        locale: user.account.defaultLocale
-      }
+        locale: user.account.defaultLocale,
+      },
     };
   });
 
@@ -116,8 +116,8 @@ const authRoutes: FastifyPluginAsync = async (app) => {
           name: body.accountName,
           slug,
           defaultLocale: body.locale,
-          settingsJson: { timezone: 'America/Sao_Paulo' }
-        }
+          settingsJson: { timezone: 'America/Sao_Paulo' },
+        },
       });
 
       const user = await tx.user.create({
@@ -126,8 +126,8 @@ const authRoutes: FastifyPluginAsync = async (app) => {
           email: body.email.toLowerCase(),
           passwordHash: hashedPassword,
           role: 'OWNER',
-          preferredLocale: body.locale
-        }
+          preferredLocale: body.locale,
+        },
       });
 
       const planSlug = getDefaultPlanSlug(body.locale);
@@ -136,15 +136,15 @@ const authRoutes: FastifyPluginAsync = async (app) => {
       if (plan) {
         await tx.account.update({
           where: { id: account.id },
-          data: { currentPlanId: plan.id }
+          data: { currentPlanId: plan.id },
         });
 
         await tx.subscription.create({
           data: {
             accountId: account.id,
             planId: plan.id,
-            status: 'trialing'
-          }
+            status: 'trialing',
+          },
         });
       }
 
@@ -154,7 +154,7 @@ const authRoutes: FastifyPluginAsync = async (app) => {
     const tokens = generateTokens(app, {
       sub: result.user.id,
       accountId: result.account.id,
-      role: result.user.role
+      role: result.user.role,
     });
 
     await app.prisma.auditEvent.create({
@@ -167,9 +167,9 @@ const authRoutes: FastifyPluginAsync = async (app) => {
         summary: `Account ${result.account.name} created`,
         metadataJson: {
           locale,
-          at: dayjs().toISOString()
-        }
-      }
+          at: dayjs().toISOString(),
+        },
+      },
     });
 
     return reply.code(201).send({
@@ -177,13 +177,13 @@ const authRoutes: FastifyPluginAsync = async (app) => {
         id: result.account.id,
         name: result.account.name,
         slug: result.account.slug,
-        locale: result.account.defaultLocale
+        locale: result.account.defaultLocale,
       },
       user: {
         id: result.user.id,
         email: result.user.email,
         role: result.user.role,
-        locale: result.user.preferredLocale
+        locale: result.user.preferredLocale,
       },
       tokens,
       plan: result.plan
@@ -191,56 +191,145 @@ const authRoutes: FastifyPluginAsync = async (app) => {
             slug: result.plan.slug,
             name: result.plan.name,
             proposalsPerMonth: result.plan.proposalsPerMonth,
-            isUnlimited: result.plan.isUnlimited
+            isUnlimited: result.plan.isUnlimited,
           }
         : null,
-      message: app.i18n.t('auth.welcome', { lng: locale })
+      message: app.i18n.t('auth.welcome', { lng: locale }),
     });
   });
 
-  app.post('/login', async (request, reply) => {
-    const body = loginBodySchema.parse(request.body);
-
-    const user = await app.prisma.user.findFirst({
-      where: {
-        email: body.email.toLowerCase(),
-        account: {
-          slug: body.accountSlug
-        }
-      }
-    });
-
-    if (!user || !user.isActive) {
-      return reply.status(401).send({ message: 'Invalid credentials' });
-    }
-
-    const validPassword = await argon2.verify(user.passwordHash, body.password);
-    if (!validPassword) {
-      return reply.status(401).send({ message: 'Invalid credentials' });
-    }
-
-    await app.prisma.user.update({
-      where: { id: user.id },
-      data: { lastLoginAt: new Date() }
-    });
-
-    const tokens = generateTokens(app, {
-      sub: user.id,
-      accountId: user.accountId,
-      role: user.role
-    });
-
-    return reply.send({
-      tokens,
-      user: {
-        id: user.id,
-        email: user.email,
-        role: user.role,
-        locale: user.preferredLocale
+  app.post(
+    '/login',
+    {
+      config: {
+        rateLimit: {
+          max: 10,
+          timeWindow: '1 minute',
+          skipOnError: true,
+          keyGenerator(request) {
+            const ip = request.ip;
+            const body = request.body as { accountSlug?: string } | undefined;
+            const rawSlug = typeof body?.accountSlug === 'string' ? body.accountSlug : '';
+            const normalizedSlug = toAccountSlug(rawSlug);
+            return `${ip}:${normalizedSlug}`;
+          },
+        },
       },
-      message: app.i18n.t('auth.welcome', { lng: user.preferredLocale })
-    });
-  });
+    },
+    async (request, reply) => {
+      const body = loginBodySchema.parse(request.body);
+
+      const accountSlug = toAccountSlug(body.accountSlug);
+
+      if (!accountSlug) {
+        return reply.status(401).send({ message: 'Invalid credentials' });
+      }
+
+      const user = await app.prisma.user.findFirst({
+        where: {
+          email: body.email.toLowerCase(),
+          account: {
+            slug: accountSlug,
+          },
+        },
+        include: {
+          account: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              defaultLocale: true,
+              currentPlan: {
+                select: {
+                  slug: true,
+                  name: true,
+                  proposalsPerMonth: true,
+                  isUnlimited: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      if (!user || !user.isActive) {
+        return reply.status(401).send({ message: 'Invalid credentials' });
+      }
+
+      const validPassword = await argon2.verify(user.passwordHash, body.password);
+      if (!validPassword) {
+        return reply.status(401).send({ message: 'Invalid credentials' });
+      }
+
+      await app.prisma.user.update({
+        where: { id: user.id },
+        data: { lastLoginAt: new Date() },
+      });
+
+      const auditMetadata: Record<string, unknown> = {
+        at: dayjs().toISOString(),
+      };
+
+      const auditData: Parameters<typeof app.prisma.auditEvent.create>[0]['data'] = {
+        accountId: user.accountId,
+        userId: user.id,
+        action: 'auth.login',
+        entityType: 'User',
+        entityId: user.id,
+        summary: `User ${user.email} logged in`,
+        metadataJson: auditMetadata,
+      };
+
+      if (env.AUDIT_LOG_STORE_IP) {
+        const userAgentHeader = request.headers['user-agent'];
+        const userAgent = Array.isArray(userAgentHeader)
+          ? userAgentHeader.join('; ').slice(0, 512)
+          : userAgentHeader ?? null;
+
+        auditMetadata.ip = request.ip;
+        auditMetadata.userAgent = userAgent;
+        auditData.ipAddress = request.ip;
+        auditData.userAgent = userAgent;
+      }
+
+      await app.prisma.auditEvent.create({
+        data: auditData,
+      });
+
+      const tokens = generateTokens(app, {
+        sub: user.id,
+        accountId: user.accountId,
+        role: user.role,
+      });
+
+      const locale = user.preferredLocale ?? user.account.defaultLocale;
+
+      return reply.send({
+        tokens,
+        user: {
+          id: user.id,
+          email: user.email,
+          role: user.role,
+          locale: user.preferredLocale,
+        },
+        account: {
+          id: user.account.id,
+          name: user.account.name,
+          slug: user.account.slug,
+          locale: user.account.defaultLocale,
+        },
+        plan: user.account.currentPlan
+          ? {
+              slug: user.account.currentPlan.slug,
+              name: user.account.currentPlan.name,
+              proposalsPerMonth: user.account.currentPlan.proposalsPerMonth,
+              isUnlimited: user.account.currentPlan.isUnlimited,
+            }
+          : null,
+        message: app.i18n.t('auth.welcome', { lng: locale }),
+      });
+    },
+  );
 
   app.post('/refresh', async (request, reply) => {
     const body = refreshBodySchema.parse(request.body);
@@ -248,7 +337,7 @@ const authRoutes: FastifyPluginAsync = async (app) => {
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const payload = await (app.jwt.verify as any)(body.refreshToken, {
-        secret: env.JWT_REFRESH_SECRET
+        secret: env.JWT_REFRESH_SECRET,
       });
 
       const user = await app.prisma.user.findUnique({ where: { id: payload.sub } });
@@ -259,7 +348,7 @@ const authRoutes: FastifyPluginAsync = async (app) => {
       const tokens = generateTokens(app, {
         sub: user.id,
         accountId: user.accountId,
-        role: user.role
+        role: user.role,
       });
 
       return reply.send({ tokens });
