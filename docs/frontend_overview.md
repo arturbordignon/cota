@@ -1,6 +1,7 @@
 # Frontend Overview
 
 ## Core Decisions
+
 - **Framework**: Next.js 14 (App Router) with React Server Components for data fetching + streaming.
 - **Language**: TypeScript (strict mode) to mirror backend conventions.
 - **State/Data**: TanStack Query for client-side caching and optimistic UX, paired with Zod for runtime validation of backend responses.
@@ -12,6 +13,7 @@
 - **Uploads**: Direct-to-S3 via API-signed URLs (`/api/v1/assets/upload-url`). Use Dropzone component with preview grid and limit enforcement.
 
 ## Information Architecture
+
 ```
 apps/web
  ├─ app/
@@ -48,6 +50,7 @@ apps/web
 ```
 
 ## Visual Language
+
 - **Brand Colors**
   - `--color-bg`: `#FBF7EF`
   - `--color-surface`: `#F4F0E5`
@@ -60,6 +63,7 @@ apps/web
 - **Spacing Scale**: 4px baseline (4, 8, 12, 16, 24, 32, 48, 64).
 
 ## Component Patterns
+
 - **Sidebar**: Vertical nav with active highlight pill. Occupies 240px on desktop, collapsible on mobile.
 - **Header**: Contains greeting, search, locale toggle, user menu, credit balance indicator.
 - **Table**: Borderless rows with zebra hover, `Actions` cell using inline link buttons.
@@ -68,6 +72,7 @@ apps/web
 - **Badges**: Soft pills for statuses (e.g., `status-sent`: text `#2E2518`, background `#F4F0E5`; `status-viewed`: #845DFF background #EFEBFF; `status-accepted`: #2D936C background #E8F7EF).
 
 ## UX Flows
+
 1. **Sign-up** → create workspace (account) → auto login, redirect to onboarding wizard (choose language, add first client).
 2. **Create Template**: Start from system template or blank builder. Stepper: Details → Sections → Preview → Save. Connects to backend `/api/v1/templates`.
 3. **Create Proposal**: Choose template, attach client, configure job data, upload images, review totals, queue generation. On submit, call `/api/v1/proposals` then `/api/v1/proposals/{id}/generate`.
@@ -75,21 +80,26 @@ apps/web
 5. **Plans**: Display credit balance, purchase modal (future integration with payment gateway) + plan comparison cards.
 
 ## API Integration Layer
-- `lib/api/client.ts`: Rest wrapper with `fetch` using base URL env `NEXT_PUBLIC_API_BASE_URL`. Includes reauth handling via refresh endpoint.
+
+- `lib/api/client.ts`: Rest wrapper with `fetch` using base URL env `NEXT_PUBLIC_API_URL`. Includes reauth handling via refresh endpoint.
 - Data hooks per resource (`useClients`, `useTemplates`, etc.) returning TanStack Query results.
 - Mutations confirm with toast & route transitions.
 
 ## Localization Strategy
+
 - Mirror backend `common.json` keys. Example folder structure: `app/(dashboard)/...` with message bundles in `messages/{locale}/`. Locale comes from the user's cookie (or Accept-Language fallback) and is provided through `next-intl`.
 
 ## Access Control
+
 - Protect dashboard routes via middleware that checks session cookie. Unauthenticated users redirected to sign-in. Session stored in server action `getSession()` reading API tokens.
 
 ## Testing
+
 - Playwright for e2e (smoke flows: login, create client, create proposal).
 - Storybook for component regression (later).
 
 ## Deliverables Roadmap
+
 1. Scaffold Next.js app with design tokens + layout shell.
 2. Implement Auth screens + session guard.
 3. Build Dashboard, Clients list & form with live API integration.

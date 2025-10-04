@@ -50,17 +50,15 @@ export const SelectItem = forwardRef<
     <SelectPrimitive.Item
       ref={ref}
       className={cn(
-        "relative flex cursor-pointer select-none items-center gap-2 rounded-md px-3 py-2 text-sm text-ink outline-none transition hover:bg-primary-soft focus:bg-primary-soft",
+        "relative flex cursor-pointer select-none items-center gap-2 rounded-md px-3 py-2 pr-8 text-sm text-ink outline-none transition hover:bg-primary-soft focus:bg-primary-soft data-[state=checked]:bg-primary-soft data-[state=checked]:text-primary",
         inset && "pl-8",
         className
       )}
       {...props}
     >
-      <span className="absolute left-2 inline-flex h-4 w-4 items-center justify-center text-primary">
-        <SelectPrimitive.ItemIndicator>
-          <Check size={14} weight="bold" />
-        </SelectPrimitive.ItemIndicator>
-      </span>
+      <SelectPrimitive.ItemIndicator className="absolute right-3 inline-flex h-4 w-4 items-center justify-center text-primary">
+        <Check size={14} weight="bold" />
+      </SelectPrimitive.ItemIndicator>
       <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
     </SelectPrimitive.Item>
   );

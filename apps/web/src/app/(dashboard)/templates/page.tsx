@@ -279,13 +279,14 @@ export default function TemplatesPage() {
         title="Modelos de Propostas"
         description="Crie propostas com rapidez usando modelos sugeridos ou personalizando layouts para o seu negócio."
         action={
-          <Button
-            className="w-full sm:w-auto"
-            onClick={() => setDialogOpen(true)}
-            disabled={isTokenMissing}
-          >
-            Criar novo modelo
-          </Button>
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+            <Button asChild variant="secondary" className="w-full sm:w-auto">
+              <Link href="/templates/builder">Editor visual</Link>
+            </Button>
+            <Button className="w-full sm:w-auto" onClick={() => setDialogOpen(true)} disabled={isTokenMissing}>
+              Criar novo modelo
+            </Button>
+          </div>
         }
       />
 

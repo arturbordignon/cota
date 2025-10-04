@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
+import { useEffect, useState } from 'react';
 
-import { Card } from "@/components/ui/card";
+import { Card } from '@/components/ui/card';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
+const API_BASE = process.env.NEXT_PUBLIC_API_URL;
 
 type OverviewResponse = {
   data: {
@@ -36,7 +36,7 @@ export function PlanUsageSnapshot() {
     let isMounted = true;
 
     fetch(`${API_BASE}/api/v1/billing/overview`, {
-      credentials: "include"
+      credentials: 'include',
     })
       .then(async (response) => {
         if (!response.ok) {
@@ -64,7 +64,9 @@ export function PlanUsageSnapshot() {
   if (!API_BASE) {
     return (
       <Card className="rounded-3xl border border-outline/60 bg-white px-6 py-6 shadow-sm">
-        <p className="text-sm text-muted">Configure `NEXT_PUBLIC_API_BASE_URL` para visualizar o consumo do plano em tempo real.</p>
+        <p className="text-sm text-muted">
+          Configure `NEXT_PUBLIC_API_URL` para visualizar o consumo do plano em tempo real.
+        </p>
       </Card>
     );
   }
@@ -103,7 +105,9 @@ export function PlanUsageSnapshot() {
             {usage.total ? ` / ${usage.total}` : ''}
           </p>
           {remaining !== null ? (
-            <p className="text-xs text-muted">Restam {remaining} propostas até {new Date(usage.periodEnd).toLocaleDateString()}</p>
+            <p className="text-xs text-muted">
+              Restam {remaining} propostas até {new Date(usage.periodEnd).toLocaleDateString()}
+            </p>
           ) : (
             <p className="text-xs text-muted">Propostas ilimitadas</p>
           )}

@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import { useCallback } from "react";
+import { useCallback } from 'react';
 
-import { useCurrentUser } from "@/components/providers/user-provider";
+import { useCurrentUser } from '@/components/providers/user-provider';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333/api/v1";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3333/api/v1';
 
 interface RequestOptions extends RequestInit {
   skipAuth?: boolean;
@@ -35,16 +35,16 @@ export function useApi() {
       const buildHeaders = (tokenOverride?: string) => {
         const headers = new Headers(rest.headers ?? {});
         const isFormData = rest.body instanceof FormData;
-        if (!isFormData && !headers.has("Content-Type")) {
-          headers.set("Content-Type", "application/json");
+        if (!isFormData && !headers.has('Content-Type')) {
+          headers.set('Content-Type', 'application/json');
         }
 
         if (!skipAuth) {
           const tokenForRequest = tokenOverride ?? accessToken;
           if (!tokenForRequest) {
-            throw new Error("Você precisa se autenticar para continuar.");
+            throw new Error('Você precisa se autenticar para continuar.');
           }
-          headers.set("Authorization", `Bearer ${tokenForRequest}`);
+          headers.set('Authorization', `Bearer ${tokenForRequest}`);
         }
 
         return headers;
@@ -76,16 +76,16 @@ export function useApi() {
 
       return response.json() as Promise<T>;
     },
-    [accessToken, refreshSession]
+    [accessToken, refreshSession],
   );
 
-  const get = useCallback(<T>(path: string) => request<T>(path, { method: "GET" }), [request]);
+  const get = useCallback(<T>(path: string) => request<T>(path, { method: 'GET' }), [request]);
 
   const prepareBody = useCallback((body: unknown) => {
     if (body instanceof FormData || body instanceof Blob) {
       return body;
     }
-    if (typeof body === "string") {
+    if (typeof body === 'string') {
       return body;
     }
     if (body == null) {
@@ -97,32 +97,32 @@ export function useApi() {
   const post = useCallback(
     <T>(path: string, body: unknown, init?: RequestOptions) =>
       request<T>(path, {
-        method: "POST",
+        method: 'POST',
         body: prepareBody(body),
         ...init,
       }),
-    [request, prepareBody]
+    [request, prepareBody],
   );
 
   const put = useCallback(
     <T>(path: string, body: unknown) =>
       request<T>(path, {
-        method: "PUT",
+        method: 'PUT',
         body: prepareBody(body),
       }),
-    [request, prepareBody]
+    [request, prepareBody],
   );
 
   const patch = useCallback(
     <T>(path: string, body: unknown) =>
       request<T>(path, {
-        method: "PATCH",
+        method: 'PATCH',
         body: prepareBody(body),
       }),
-    [request, prepareBody]
+    [request, prepareBody],
   );
 
-  const del = useCallback(<T>(path: string) => request<T>(path, { method: "DELETE" }), [request]);
+  const del = useCallback(<T>(path: string) => request<T>(path, { method: 'DELETE' }), [request]);
 
   return {
     baseUrl: API_BASE_URL,
