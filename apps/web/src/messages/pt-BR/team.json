@@ -40,7 +40,8 @@
     "placeholders": {
       "name": "Ex.: Fernanda Matos",
       "email": "nome@suaempresa.com",
-      "role": "Ex.: Analista Comercial"
+      "role": "Ex.: Analista Comercial",
+      "optional": "opcional"
     },
     "actions": {
       "cancel": "Cancelar",
@@ -48,10 +49,30 @@
       "saving": "Enviando convite..."
     }
   },
+  "invite": {
+    "successTitle": "Convite gerado com sucesso",
+    "successDescription": "Compartilhe o link abaixo com o novo membro para que ele finalize o cadastro.",
+    "copy": "Copiar link",
+    "copied": "Link copiado!"
+  },
   "defaults": {
     "role": "Colaborador"
   },
   "states": {
     "empty": "Nenhum membro cadastrado ainda. Utilize o botão acima para enviar o primeiro convite."
+  },
+  "ranking": {
+    "title": "Ranking comercial",
+    "description": "Veja quem fechou mais propostas no período selecionado.",
+    "period": {
+      "month": "Último mês",
+      "quarter": "Últimos 3 meses",
+      "year": "Último ano"
+    },
+    "metrics": {
+      "accepted": "{count, plural, one {# proposta aceita} other {# propostas aceitas}}"
+    },
+    "empty": "Ainda não há dados suficientes para montar o ranking nesse período.",
+    "error": "Não foi possível carregar o ranking: {message}"
   }
 }

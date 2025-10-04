@@ -40,7 +40,8 @@
     "placeholders": {
       "name": "e.g. Fernanda Matos",
       "email": "name@yourcompany.com",
-      "role": "e.g. Commercial Analyst"
+      "role": "e.g. Commercial Analyst",
+      "optional": "optional"
     },
     "actions": {
       "cancel": "Cancel",
@@ -48,10 +49,30 @@
       "saving": "Inviting..."
     }
   },
+  "invite": {
+    "successTitle": "Invitation link ready",
+    "successDescription": "Share the link below so the teammate can finish setting up the account.",
+    "copy": "Copy link",
+    "copied": "Link copied!"
+  },
   "defaults": {
     "role": "Collaborator"
   },
   "states": {
     "empty": "No team members yet. Use the button above to send the first invite."
+  },
+  "ranking": {
+    "title": "Sales leaderboard",
+    "description": "Track who closed the most proposals in the selected period.",
+    "period": {
+      "month": "Last month",
+      "quarter": "Last 3 months",
+      "year": "Last year"
+    },
+    "metrics": {
+      "accepted": "{count, plural, one {# accepted proposal} other {# accepted proposals}}"
+    },
+    "empty": "There isn't enough data to build the ranking for this period yet.",
+    "error": "Couldn't load the ranking: {message}"
   }
 }

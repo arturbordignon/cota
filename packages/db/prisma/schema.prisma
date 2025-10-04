@@ -47,6 +47,11 @@ model User {
   isActive        Boolean   @default(true)
   lastLoginAt     DateTime?
   departmentId    String?
+  invitedById     String?
+  inviteTokenHash String?  @unique
+  inviteTokenExpiresAt DateTime?
+  invitedAt       DateTime?
+  acceptedAt      DateTime?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
@@ -55,6 +60,8 @@ model User {
   auditEvents     AuditEvent[]
   receivedNotifications Notification[] @relation("NotificationRecipient")
   department      Department? @relation(fields: [departmentId], references: [id])
+  invitedBy       User?      @relation("UserInvites", fields: [invitedById], references: [id])
+  invitedMembers  User[]     @relation("UserInvites")
 
   @@unique([accountId, email])
   @@index([departmentId])

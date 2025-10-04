@@ -35,7 +35,7 @@ export function useApi() {
       const buildHeaders = (tokenOverride?: string) => {
         const headers = new Headers(rest.headers ?? {});
         const isFormData = rest.body instanceof FormData;
-        if (!isFormData && !headers.has('Content-Type')) {
+        if (!isFormData && rest.body && !headers.has('Content-Type')) {
           headers.set('Content-Type', 'application/json');
         }
 
@@ -82,15 +82,9 @@ export function useApi() {
   const get = useCallback(<T>(path: string) => request<T>(path, { method: 'GET' }), [request]);
 
   const prepareBody = useCallback((body: unknown) => {
-    if (body instanceof FormData || body instanceof Blob) {
-      return body;
-    }
-    if (typeof body === 'string') {
-      return body;
-    }
-    if (body == null) {
-      return undefined;
-    }
+    if (body instanceof FormData || body instanceof Blob) return body;
+    if (typeof body === 'string') return body;
+    if (body == null) return JSON.stringify({});
     return JSON.stringify(body);
   }, []);
 

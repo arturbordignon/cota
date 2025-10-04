@@ -11,6 +11,7 @@ declare module 'fastify' {
     prisma: import('@crane/db').PrismaClient;
     pdfQueue: Queue<PdfJobData, PdfJobResult>;
     redis: FastifyRedis;
+    cache: import('../plugins/cache.js').CacheManager;
     authenticate: import('fastify').preHandlerHookHandler;
   }
 

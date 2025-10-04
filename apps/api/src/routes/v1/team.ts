@@ -1,10 +1,13 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import argon2 from 'argon2';
-import { randomBytes } from 'crypto';
+import { randomBytes, createHash } from 'crypto';
+import dayjs from 'dayjs';
 import type { DepartmentPreset as PrismaDepartmentPreset, PermissionModule } from '@crane/db';
 
+import { CACHE_RESOURCES } from '../../constants/cache.js';
 import { toDepartmentSlug } from '../../utils/slug.js';
+import env from '@crane/config';
 
 const PERMISSION_KEYS = [
   'dashboard',
@@ -65,11 +68,10 @@ const updateDepartmentSchema = z.object({
 });
 
 const createMemberSchema = z.object({
-  fullName: z.string().min(2),
+  fullName: z.string().min(2).optional(),
   email: z.string().email(),
   jobTitle: z.string().optional(),
   departmentId: z.string().uuid().optional(),
-  role: z.enum(['OWNER', 'MEMBER']).default('MEMBER'),
 });
 
 const updateMemberSchema = z.object({
@@ -79,6 +81,27 @@ const updateMemberSchema = z.object({
   role: z.enum(['OWNER', 'MEMBER']).optional(),
   isActive: z.boolean().optional(),
 });
+
+const rankingQuerySchema = z.object({
+  period: z.enum(['month', 'quarter', 'year']).default('month'),
+});
+
+const invitePreviewSchema = z.object({
+  token: z.string().min(16),
+});
+
+const acceptInviteSchema = z.object({
+  token: z.string().min(16),
+  fullName: z.string().min(2).optional(),
+  password: z.string().min(8),
+});
+
+const INVITE_TOKEN_BYTES = 32;
+const INVITE_EXPIRATION_DAYS = 7;
+
+function hashInviteToken(token: string): string {
+  return createHash('sha256').update(token).digest('hex');
+}
 
 type PermissionMap = Record<PermissionKey, { view: boolean; edit: boolean }>;
 
@@ -212,7 +235,20 @@ async function generateDepartmentSlug(
 }
 
 const teamRoutes: FastifyPluginAsync = async (app) => {
-  app.addHook('preHandler', app.authenticate);
+  const publicRoutes = new Set(['/invite/preview', '/invite/accept']);
+
+  app.addHook('preHandler', async (request, reply) => {
+    const routePath = request.routerPath ?? request.routeOptions?.url ?? '';
+    const rawUrl = request.raw.url ?? '';
+    if (
+      publicRoutes.has(routePath) ||
+      publicRoutes.has(rawUrl) ||
+      [...publicRoutes].some((path) => rawUrl.startsWith(path) || routePath.includes(path))
+    ) {
+      return;
+    }
+    return app.authenticate(request, reply);
+  });
 
   app.get('/', async (request, reply) => {
     if (request.user.role !== 'OWNER') {
@@ -267,6 +303,125 @@ const teamRoutes: FastifyPluginAsync = async (app) => {
         members: memberPayload,
       },
     });
+  });
+
+  app.get('/ranking', async (request, reply) => {
+    if (request.user.role !== 'OWNER') {
+      return reply.status(403).send({ message: 'Forbidden' });
+    }
+
+    const query = rankingQuerySchema.parse(request.query);
+
+    const cacheKey = app.cache.buildKey({
+      resource: CACHE_RESOURCES.TEAM_RANKING,
+      accountId: request.user.accountId,
+      params: query,
+    });
+
+    function resolveRange(period: 'month' | 'quarter' | 'year') {
+      const end = dayjs();
+      let start: dayjs.Dayjs;
+
+      if (period === 'month') {
+        start = end.subtract(30, 'day');
+      } else if (period === 'quarter') {
+        start = end.subtract(90, 'day');
+      } else {
+        start = end.subtract(365, 'day');
+      }
+
+      return { start: start.startOf('day'), end: end.endOf('day') };
+    }
+
+    function getNumericTotal(totalsJson: unknown) {
+      const totals = totalsJson as Record<string, unknown> | null;
+      if (!totals) return 0;
+      if (typeof totals.total === 'number') return Number(totals.total);
+      if (typeof totals.grandTotal === 'number') return Number(totals.grandTotal);
+      return 0;
+    }
+
+    const { data } = await app.cache.fetch({
+      key: cacheKey,
+      ttl: 300,
+      loader: async () => {
+        const { start, end } = resolveRange(query.period);
+
+        const proposals = await app.prisma.proposal.findMany({
+          where: {
+            accountId: request.user.accountId,
+            status: 'ACCEPTED',
+            createdAt: {
+              gte: start.toDate(),
+              lte: end.toDate(),
+            },
+          },
+          select: {
+            createdById: true,
+            totalsJson: true,
+            createdBy: {
+              select: {
+                id: true,
+                fullName: true,
+                email: true,
+                department: {
+                  select: {
+                    name: true,
+                  },
+                },
+              },
+            },
+          },
+        });
+
+        const ranking = proposals.reduce<Record<string, {
+          memberId: string;
+          name: string;
+          email: string | null;
+          department: string | null;
+          acceptedProposals: number;
+          totalValue: number;
+        }>>((acc, proposal) => {
+          if (!proposal.createdById || !proposal.createdBy) {
+            return acc;
+          }
+
+          const key = proposal.createdById;
+          if (!acc[key]) {
+            acc[key] = {
+              memberId: key,
+              name: proposal.createdBy.fullName ?? proposal.createdBy.email,
+              email: proposal.createdBy.email,
+              department: proposal.createdBy.department?.name ?? null,
+              acceptedProposals: 0,
+              totalValue: 0,
+            };
+          }
+
+          acc[key].acceptedProposals += 1;
+          acc[key].totalValue += getNumericTotal(proposal.totalsJson);
+          return acc;
+        }, {});
+
+        const entries = Object.values(ranking).sort((a, b) => {
+          if (b.totalValue !== a.totalValue) {
+            return b.totalValue - a.totalValue;
+          }
+          return b.acceptedProposals - a.acceptedProposals;
+        });
+
+        return {
+          period: query.period,
+          range: {
+            start: start.toISOString(),
+            end: end.toISOString(),
+          },
+          entries,
+        };
+      },
+    });
+
+    return reply.send({ data });
   });
 
   app.post('/departments', async (request, reply) => {
@@ -484,6 +639,111 @@ const teamRoutes: FastifyPluginAsync = async (app) => {
     return reply.status(204).send();
   });
 
+  app.get('/invite/preview', async (request, reply) => {
+    const query = invitePreviewSchema.parse(request.query);
+
+    const tokenHash = hashInviteToken(query.token);
+    const invitee = await app.prisma.user.findFirst({
+      where: {
+        inviteTokenHash: tokenHash,
+      },
+      include: {
+        account: true,
+      },
+    });
+
+    if (!invitee) {
+      return reply.status(404).send({ message: 'Convite não encontrado.' });
+    }
+
+    if (invitee.isActive) {
+      return reply.status(400).send({ message: 'Convite já foi aceito.' });
+    }
+
+    if (!invitee.inviteTokenExpiresAt || dayjs(invitee.inviteTokenExpiresAt).isBefore(dayjs())) {
+      return reply.status(410).send({ message: 'Convite expirado. Solicite um novo convite ao administrador.' });
+    }
+
+    return reply.send({
+      data: {
+        email: invitee.email,
+        fullName: invitee.fullName,
+        account: {
+          id: invitee.account.id,
+          name: invitee.account.name,
+          slug: invitee.account.slug,
+        },
+      },
+    });
+  });
+
+  app.post('/invite/accept', async (request, reply) => {
+    const body = acceptInviteSchema.parse(request.body);
+
+    const tokenHash = hashInviteToken(body.token);
+    const invitee = await app.prisma.user.findFirst({
+      where: {
+        inviteTokenHash: tokenHash,
+      },
+      include: {
+        account: true,
+      },
+    });
+
+    if (!invitee) {
+      return reply.status(404).send({ message: 'Convite não encontrado.' });
+    }
+
+    if (invitee.isActive) {
+      return reply.status(400).send({ message: 'Convite já foi utilizado.' });
+    }
+
+    if (!invitee.inviteTokenExpiresAt || dayjs(invitee.inviteTokenExpiresAt).isBefore(dayjs())) {
+      return reply.status(410).send({ message: 'Convite expirado. Solicite um novo convite ao administrador.' });
+    }
+
+    const passwordHash = await argon2.hash(body.password);
+
+    await app.prisma.user.update({
+      where: { id: invitee.id },
+      data: {
+        passwordHash,
+        fullName: body.fullName ?? invitee.fullName,
+        isActive: true,
+        inviteTokenHash: null,
+        inviteTokenExpiresAt: null,
+        acceptedAt: new Date(),
+      },
+    });
+
+    await app.prisma.auditEvent.create({
+      data: {
+        accountId: invitee.accountId,
+        userId: invitee.id,
+        action: 'user.invite.accepted',
+        entityType: 'User',
+        entityId: invitee.id,
+        summary: `Convite aceito por ${invitee.email}`,
+        metadataJson: {
+          inviteeEmail: invitee.email,
+          inviteAcceptedAt: new Date().toISOString(),
+          invitedById: invitee.invitedById,
+        },
+      },
+    });
+
+    return reply.send({
+      data: {
+        email: invitee.email,
+        account: {
+          id: invitee.account.id,
+          name: invitee.account.name,
+          slug: invitee.account.slug,
+        },
+      },
+    });
+  });
+
   app.post('/members', async (request, reply) => {
     if (request.user.role !== 'OWNER') {
       return reply.status(403).send({ message: 'Forbidden' });
@@ -517,17 +777,25 @@ const teamRoutes: FastifyPluginAsync = async (app) => {
 
     const temporaryPassword = randomBytes(16).toString('hex');
     const passwordHash = await argon2.hash(temporaryPassword);
+    const inviteToken = randomBytes(INVITE_TOKEN_BYTES).toString('hex');
+    const inviteTokenHash = hashInviteToken(inviteToken);
+    const inviteTokenExpiresAt = dayjs().add(INVITE_EXPIRATION_DAYS, 'day').toDate();
+    const invitedAt = new Date();
 
     const member = await app.prisma.user.create({
       data: {
         accountId: request.user.accountId,
         email: body.email.toLowerCase(),
         passwordHash,
-        role: body.role,
-        fullName: body.fullName,
-        jobTitle: body.jobTitle,
+        role: 'MEMBER',
+        fullName: body.fullName ? body.fullName.trim() : null,
+        jobTitle: body.jobTitle ? body.jobTitle.trim() : null,
         departmentId: body.departmentId ?? null,
         isActive: false,
+        invitedById: request.user.sub,
+        inviteTokenHash,
+        inviteTokenExpiresAt,
+        invitedAt,
       },
     });
 
@@ -547,6 +815,10 @@ const teamRoutes: FastifyPluginAsync = async (app) => {
       },
     });
 
+    const inviteUrl = `${env.FRONTEND_BASE_URL.replace(/\/$/, '')}/accept-invite?token=${inviteToken}`;
+
+    request.log.info({ inviteUrl, invitee: member.email }, 'Invitation link generated');
+
     return reply.code(201).send({
       data: {
         id: member.id,
@@ -556,6 +828,7 @@ const teamRoutes: FastifyPluginAsync = async (app) => {
         jobTitle: member.jobTitle,
         departmentId: member.departmentId,
         isActive: member.isActive,
+        inviteUrl,
       },
     });
   });

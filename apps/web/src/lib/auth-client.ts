@@ -147,3 +147,51 @@ export async function me(accessToken: string): Promise<ProfileResponse> {
 
   return handleResponse<ProfileResponse>(response);
 }
+
+export interface InvitePreviewResponse {
+  data: {
+    email: string;
+    fullName?: string | null;
+    account: {
+      id: string;
+      name: string;
+      slug: string;
+    };
+  };
+}
+
+export function getInvitePreview(token: string): Promise<InvitePreviewResponse> {
+  const url = new URL(`${API_BASE_URL}/team/invite/preview`);
+  url.searchParams.set("token", token);
+
+  return fetch(url.toString()).then((response) => handleResponse<InvitePreviewResponse>(response));
+}
+
+export interface AcceptInvitePayload {
+  token: string;
+  fullName?: string;
+  password: string;
+}
+
+export interface AcceptInviteResponse {
+  data: {
+    email: string;
+    account: {
+      id: string;
+      name: string;
+      slug: string;
+    };
+  };
+}
+
+export async function acceptInvite(payload: AcceptInvitePayload): Promise<AcceptInviteResponse> {
+  const response = await fetch(`${API_BASE_URL}/team/invite/accept`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  return handleResponse<AcceptInviteResponse>(response);
+}

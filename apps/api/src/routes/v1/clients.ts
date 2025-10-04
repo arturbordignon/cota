@@ -1,6 +1,8 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 
+import { invalidateReportsOverviewCache } from '../../utils/cache.js';
+
 const createClientSchema = z.object({
   name: z.string().min(1),
   companyName: z.string().optional(),
@@ -32,6 +34,8 @@ const clientRoutes: FastifyPluginAsync = async (app) => {
         accountId: request.user.accountId
       }
     });
+
+    await invalidateReportsOverviewCache(app, request.user.accountId);
 
     return reply.code(201).send({ data: client });
   });
@@ -66,6 +70,8 @@ const clientRoutes: FastifyPluginAsync = async (app) => {
     }
 
     const updated = await app.prisma.client.findUnique({ where: { id: params.id } });
+
+    await invalidateReportsOverviewCache(app, request.user.accountId);
     return reply.send({ data: updated });
   });
 
@@ -80,6 +86,8 @@ const clientRoutes: FastifyPluginAsync = async (app) => {
     if (deleted.count === 0) {
       return reply.status(404).send({ message: 'Client not found' });
     }
+
+    await invalidateReportsOverviewCache(app, request.user.accountId);
 
     return reply.status(204).send();
   });

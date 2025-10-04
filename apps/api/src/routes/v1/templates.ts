@@ -1,6 +1,8 @@
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 
+import { CACHE_RESOURCES } from '../../constants/cache.js';
+
 const templatePayloadSchema = z.object({
   name: z.string().min(2),
   description: z.string().optional(),
@@ -20,18 +22,27 @@ const listQuerySchema = z
   })
   .default({ scope: 'all' as const });
 
-function buildCacheKey(accountId: string, scope: string, locale?: string) {
-  return `templates:${accountId}:${scope}:${locale ?? 'any'}`;
+function buildTemplatesCacheKey(
+  app: FastifyInstance,
+  accountId: string,
+  scope: string,
+  locale?: string,
+) {
+  return app.cache.buildKey({
+    resource: CACHE_RESOURCES.TEMPLATES_LIST,
+    accountId,
+    params: { scope, locale: locale ?? 'any' },
+  });
 }
 
 async function invalidateTemplateCache(app: FastifyInstance, accountId: string) {
   const scopes = ['all', 'system', 'custom'];
   const locales = ['pt-BR', 'en'];
   const keys = scopes.flatMap((scope) => [
-    buildCacheKey(accountId, scope),
-    ...locales.map((locale) => buildCacheKey(accountId, scope, locale))
+    buildTemplatesCacheKey(app, accountId, scope),
+    ...locales.map((locale) => buildTemplatesCacheKey(app, accountId, scope, locale))
   ]);
-  await Promise.all(keys.map((key) => app.redis.del(key)));
+  await app.cache.invalidate(keys);
 }
 
 const templateRoutes: FastifyPluginAsync = async (app) => {
@@ -39,34 +50,38 @@ const templateRoutes: FastifyPluginAsync = async (app) => {
 
   app.get('/', async (request, reply) => {
     const query = listQuerySchema.parse(request.query);
-    const cacheKey = buildCacheKey(request.user.accountId, query.scope, query.locale);
+    const cacheKey = buildTemplatesCacheKey(
+      app,
+      request.user.accountId,
+      query.scope,
+      query.locale,
+    );
 
-    const cached = await app.redis.get(cacheKey);
-    if (cached) {
-      return reply.send({ data: JSON.parse(cached), cached: true });
-    }
+    const { data, hit } = await app.cache.fetch({
+      key: cacheKey,
+      ttl: 180,
+      loader: async () => {
+        const filters = [] as Array<Record<string, unknown>>;
+        if (query.scope === 'system') {
+          filters.push({ accountId: null, isActive: true });
+        } else if (query.scope === 'custom') {
+          filters.push({ accountId: request.user.accountId });
+        } else {
+          filters.push({ accountId: null, isActive: true });
+          filters.push({ accountId: request.user.accountId });
+        }
 
-    const filters = [] as Array<Record<string, unknown>>;
-    if (query.scope === 'system') {
-      filters.push({ accountId: null, isActive: true });
-    } else if (query.scope === 'custom') {
-      filters.push({ accountId: request.user.accountId });
-    } else {
-      filters.push({ accountId: null, isActive: true });
-      filters.push({ accountId: request.user.accountId });
-    }
-
-    const templates = await app.prisma.proposalTemplate.findMany({
-      where: {
-        OR: filters,
-        ...(query.locale ? { locale: query.locale } : {})
+        return app.prisma.proposalTemplate.findMany({
+          where: {
+            OR: filters,
+            ...(query.locale ? { locale: query.locale } : {}),
+          },
+          orderBy: { createdAt: 'desc' },
+        });
       },
-      orderBy: { createdAt: 'desc' }
     });
 
-    await app.redis.set(cacheKey, JSON.stringify(templates), 'EX', 120);
-
-    return reply.send({ data: templates, cached: false });
+    return reply.send({ data, cached: hit });
   });
 
   app.post('/', async (request, reply) => {

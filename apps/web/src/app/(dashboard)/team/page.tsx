@@ -21,7 +21,10 @@ import {
   DepartmentSummary,
   TeamMemberSummary,
   TeamOverviewResponse,
+  TeamRankingPeriod,
+  TeamRankingResponse,
 } from "@/types/api";
+import { cn } from "@/lib/utils";
 
 interface DepartmentPermissionListProps {
   department: DepartmentSummary;
@@ -85,6 +88,9 @@ interface AddMemberDialogProps {
   onSubmit: () => void;
   isSubmitting: boolean;
   errorMessage?: string;
+  inviteLink: string | null;
+  onCopyInvite: (link: string) => Promise<void>;
+  copySuccess: boolean;
 }
 
 function AddMemberDialog({
@@ -96,13 +102,17 @@ function AddMemberDialog({
   onSubmit,
   isSubmitting,
   errorMessage,
+  inviteLink,
+  onCopyInvite,
+  copySuccess,
 }: AddMemberDialogProps) {
   const t = useTranslations("team.dialog");
+  const tInvite = useTranslations("team.invite");
   const hasValidDepartment =
     draft.departmentId === UNASSIGNED_DEPARTMENT_VALUE ||
     departments.some((department) => department.id === draft.departmentId);
 
-  const isValid = draft.fullName.trim().length > 2 && draft.email.includes("@") && hasValidDepartment;
+  const isValid = draft.email.includes("@") && hasValidDepartment;
 
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
@@ -134,13 +144,16 @@ function AddMemberDialog({
 
             <div className="grid flex-1 gap-4 overflow-y-auto px-6 py-6">
               <div className="space-y-2">
-                <Label htmlFor="member-name">{t('fields.name')}</Label>
+                <Label htmlFor="member-name">
+                  {t('fields.name')} <span className="text-muted">({t('placeholders.optional')})</span>
+                </Label>
                 <Input
                   id="member-name"
                   value={draft.fullName}
                   onChange={(event) => onDraftChange('fullName', event.target.value)}
                   placeholder={t('placeholders.name')}
                   autoFocus
+                  disabled={isSubmitting}
                 />
               </div>
               <div className="space-y-2">
@@ -151,6 +164,8 @@ function AddMemberDialog({
                   value={draft.email}
                   onChange={(event) => onDraftChange('email', event.target.value)}
                   placeholder={t('placeholders.email')}
+                  disabled={isSubmitting}
+                  required
                 />
               </div>
               <div className="space-y-2">
@@ -160,6 +175,7 @@ function AddMemberDialog({
                   value={draft.jobTitle}
                   onChange={(event) => onDraftChange('jobTitle', event.target.value)}
                   placeholder={t('placeholders.role')}
+                  disabled={isSubmitting}
                 />
               </div>
               <div className="space-y-2">
@@ -167,6 +183,7 @@ function AddMemberDialog({
                 <Select
                   value={draft.departmentId || UNASSIGNED_DEPARTMENT_VALUE}
                   onValueChange={(value) => onDraftChange('departmentId', value)}
+                  disabled={isSubmitting}
                 >
                   <SelectItem value={UNASSIGNED_DEPARTMENT_VALUE}>
                     {t('memberCard.badge.noDepartment')}
@@ -179,6 +196,28 @@ function AddMemberDialog({
                 </Select>
               </div>
               {errorMessage ? <p className="text-sm text-danger">{errorMessage}</p> : null}
+              {inviteLink ? (
+                <div className="space-y-2 rounded-xl border border-success/40 bg-success-soft/20 px-4 py-3 text-sm">
+                  <p className="font-semibold text-ink">{tInvite('successTitle')}</p>
+                  <p className="text-xs text-muted">{tInvite('successDescription')}</p>
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    <Input value={inviteLink} readOnly className="bg-white sm:flex-1" />
+                    <Button
+                      type="button"
+                      variant="primary"
+                      className="sm:w-40"
+                      onClick={async () => {
+                        await onCopyInvite(inviteLink);
+                      }}
+                    >
+                      {tInvite('copy')}
+                    </Button>
+                  </div>
+                  {copySuccess ? (
+                    <p className="text-xs font-medium text-success">{tInvite('copied')}</p>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
 
             <footer className="flex justify-end gap-2 border-t border-outline/20 bg-[var(--color-surface-muted)]/40 px-6 py-4">
@@ -218,11 +257,20 @@ export default function TeamPage() {
     jobTitle: "",
     departmentId: UNASSIGNED_DEPARTMENT_VALUE,
   });
+  const [rankingPeriod, setRankingPeriod] = useState<TeamRankingPeriod>("month");
   const [savingMemberId, setSavingMemberId] = useState<string | null>(null);
+  const [inviteLink, setInviteLink] = useState<string | null>(null);
+  const [copySuccess, setCopySuccess] = useState(false);
 
   const teamQuery = useQuery({
     queryKey: ['team', 'overview'],
     queryFn: () => api.get<TeamOverviewResponse>('/team'),
+    enabled: isAdmin && Boolean(api.token),
+  });
+
+  const rankingQuery = useQuery({
+    queryKey: ['team', 'ranking', rankingPeriod],
+    queryFn: () => api.get<TeamRankingResponse>(`/team/ranking?period=${rankingPeriod}`),
     enabled: isAdmin && Boolean(api.token),
   });
 
@@ -275,9 +323,38 @@ export default function TeamPage() {
     setDraft((prev) => ({ ...prev, [field]: value }));
   };
 
+  const handleDialogOpenChange = (open: boolean) => {
+    setDialogOpen(open);
+    if (!open) {
+      setInviteLink(null);
+      setCopySuccess(false);
+      setDraft({ fullName: '', email: '', jobTitle: '', departmentId: UNASSIGNED_DEPARTMENT_VALUE });
+    }
+  };
+
+  const handleCopyInvite = async (link: string) => {
+    try {
+      if (typeof navigator !== 'undefined' && navigator?.clipboard) {
+        await navigator.clipboard.writeText(link);
+      } else {
+        const tempInput = document.createElement('input');
+        tempInput.value = link;
+        document.body.appendChild(tempInput);
+        tempInput.select();
+        document.execCommand('copy');
+        document.body.removeChild(tempInput);
+      }
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 4000);
+    } catch (error) {
+      console.error('Failed to copy invite link', error);
+      setCopySuccess(false);
+    }
+  };
+
   const inviteMember = useMutation({
     mutationFn: async () => {
-      await api.post('/team/members', {
+      return api.post<{ data: TeamMemberSummary & { inviteUrl?: string | null } }>('/team/members', {
         fullName: draft.fullName.trim(),
         email: draft.email.trim().toLowerCase(),
         jobTitle: draft.jobTitle.trim() || undefined,
@@ -285,9 +362,10 @@ export default function TeamPage() {
           draft.departmentId === UNASSIGNED_DEPARTMENT_VALUE ? undefined : draft.departmentId,
       });
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['team', 'overview'] });
-      setDialogOpen(false);
+      setInviteLink(result.data.inviteUrl ?? null);
+      setCopySuccess(false);
       setDraft({ fullName: '', email: '', jobTitle: '', departmentId: draft.departmentId });
     },
   });
@@ -346,6 +424,28 @@ export default function TeamPage() {
 
   const isTokenMissing = !api.token;
   const loadError = teamQuery.error as Error | null;
+  const rankingLoadError = rankingQuery.isError ? (rankingQuery.error as Error) : null;
+  const rankingEntries = rankingQuery.data?.data.entries ?? [];
+  const rankingPeriodOptions = useMemo(
+    () => [
+      { value: 'month' as TeamRankingPeriod, label: t('ranking.period.month') },
+      { value: 'quarter' as TeamRankingPeriod, label: t('ranking.period.quarter') },
+      { value: 'year' as TeamRankingPeriod, label: t('ranking.period.year') },
+    ],
+    [t]
+  );
+
+  const currencyFormatter = useMemo(
+    () =>
+      new Intl.NumberFormat(undefined, {
+        style: 'currency',
+        currency: 'BRL',
+        maximumFractionDigits: 0,
+      }),
+    []
+  );
+
+  const formatCurrency = (value: number) => currencyFormatter.format(value);
 
   return (
     <section className="space-y-6">
@@ -363,7 +463,11 @@ export default function TeamPage() {
             <Button asChild variant="ghost">
               <Link href="/departments">{t('actions.manageDepartments')}</Link>
             </Button>
-            <Button onClick={() => setDialogOpen(true)} className="gap-2" disabled={departments.length === 0}>
+            <Button
+              onClick={() => handleDialogOpenChange(true)}
+              className="gap-2"
+              disabled={departments.length === 0}
+            >
               <UserPlus size={18} weight="bold" />
               {t('actions.addMember')}
             </Button>
@@ -379,6 +483,107 @@ export default function TeamPage() {
 
       <Card className="border border-outline/40 bg-white px-6 py-4 text-sm text-muted">
         <p>{t('infoCard')}</p>
+      </Card>
+
+      <Card className="space-y-4 border border-outline/50 bg-white p-6 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 className="text-base font-semibold text-ink">{t('ranking.title')}</h3>
+            <p className="text-xs text-muted">{t('ranking.description')}</p>
+          </div>
+          <div className="flex items-center gap-2">
+            {rankingPeriodOptions.map((option) => (
+              <Button
+                key={option.value}
+                type="button"
+                size="sm"
+                variant={rankingPeriod === option.value ? 'primary' : 'ghost'}
+                onClick={() => setRankingPeriod(option.value)}
+                disabled={!isAdmin || isTokenMissing}
+              >
+                {option.label}
+              </Button>
+            ))}
+          </div>
+        </div>
+
+        {rankingLoadError && !isTokenMissing ? (
+          <div className="rounded-xl border border-danger/40 bg-danger-soft/20 px-4 py-3 text-sm text-danger">
+            {t('ranking.error', { message: rankingLoadError.message })}
+          </div>
+        ) : rankingQuery.isLoading ? (
+          <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-5">
+            {Array.from({ length: 3 }).map((_, index) => (
+              <Card
+                key={`ranking-skeleton-${index}`}
+                className="h-24 animate-pulse rounded-2xl border border-outline/40 bg-white/70"
+              />
+            ))}
+          </div>
+        ) : rankingEntries.length === 0 ? (
+          <Card className="border border-outline/30 bg-white px-4 py-6 text-center text-sm text-muted">
+            {t('ranking.empty')}
+          </Card>
+        ) : (
+          <>
+            <div className="space-y-3 md:hidden">
+              {rankingEntries.slice(0, 5).map((entry, index) => (
+                <Card
+                  key={entry.memberId}
+                  className="flex items-center justify-between gap-4 border border-outline/40 bg-white px-4 py-3"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-soft text-sm font-semibold text-primary">
+                      {index + 1}
+                    </span>
+                    <div>
+                      <p className="text-sm font-semibold text-ink">{entry.name}</p>
+                      <p className="text-xs text-muted">
+                        {entry.department ?? t('memberCard.badge.noDepartment')}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-semibold text-ink">{formatCurrency(entry.totalValue)}</p>
+                    <p className="text-xs text-muted">
+                      {t('ranking.metrics.accepted', { count: entry.acceptedProposals })}
+                    </p>
+                  </div>
+                </Card>
+              ))}
+            </div>
+
+            <div className="hidden gap-3 md:grid md:grid-cols-3 xl:grid-cols-5">
+              {rankingEntries.slice(0, 5).map((entry, index) => (
+                <Card
+                  key={`${entry.memberId}-desktop`}
+                  className={cn(
+                    'flex flex-col gap-3 border border-outline/40 bg-white p-4',
+                    index >= 3 ? 'hidden xl:flex' : 'flex'
+                  )}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-soft text-base font-semibold text-primary">
+                      {index + 1}
+                    </span>
+                    <div>
+                      <p className="text-sm font-semibold text-ink">{entry.name}</p>
+                      <p className="text-xs text-muted">
+                        {entry.department ?? t('memberCard.badge.noDepartment')}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-1 text-sm">
+                    <p className="font-semibold text-ink">{formatCurrency(entry.totalValue)}</p>
+                    <p className="text-xs text-muted">
+                      {t('ranking.metrics.accepted', { count: entry.acceptedProposals })}
+                    </p>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </>
+        )}
       </Card>
 
       {teamQuery.isLoading ? (
@@ -463,13 +668,16 @@ export default function TeamPage() {
 
       <AddMemberDialog
         open={dialogOpen}
-        onOpenChange={setDialogOpen}
+        onOpenChange={handleDialogOpenChange}
         departments={departments}
         draft={draft}
         onDraftChange={handleDraftChange}
         onSubmit={() => inviteMember.mutate()}
         isSubmitting={inviteMember.isPending}
         errorMessage={inviteMember.error instanceof Error ? inviteMember.error.message : undefined}
+        inviteLink={inviteLink}
+        onCopyInvite={handleCopyInvite}
+        copySuccess={copySuccess}
       />
     </section>
   );

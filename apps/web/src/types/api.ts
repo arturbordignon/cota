@@ -153,6 +153,48 @@ export interface TeamOverviewResponse {
   };
 }
 
+export type TeamRankingPeriod = 'month' | 'quarter' | 'year';
+
+export interface TeamRankingEntry {
+  memberId: string;
+  name: string;
+  email: string | null;
+  department: string | null;
+  acceptedProposals: number;
+  totalValue: number;
+}
+
+export interface TeamRankingResponse {
+  data: {
+    period: TeamRankingPeriod;
+    range: { start: string; end: string };
+    entries: TeamRankingEntry[];
+  };
+}
+
+export interface InvitePreviewApiResponse {
+  data: {
+    email: string;
+    fullName?: string | null;
+    account: {
+      id: string;
+      name: string;
+      slug: string;
+    };
+  };
+}
+
+export interface AcceptInviteApiResponse {
+  data: {
+    email: string;
+    account: {
+      id: string;
+      name: string;
+      slug: string;
+    };
+  };
+}
+
 export interface DepartmentResponse {
   data: DepartmentSummary;
 }

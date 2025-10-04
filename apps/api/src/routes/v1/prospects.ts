@@ -1,6 +1,9 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 
+import { CACHE_RESOURCES } from '../../constants/cache.js';
+import { fetchClearbitSuggestions } from '../../lib/clearbit.js';
+
 const listQuerySchema = z.object({
   search: z.string().optional(),
   segment: z.string().optional(),
@@ -21,6 +24,13 @@ const createProspectSchema = z.object({
 });
 
 const updateProspectSchema = createProspectSchema.partial();
+
+const suggestQuerySchema = z.object({
+  search: z.string().min(2, 'Informe pelo menos 2 caracteres para buscar empresas.'),
+  segment: z.string().optional(),
+  region: z.string().optional(),
+  limit: z.coerce.number().min(1).max(20).default(10)
+});
 
 const prospectsRoutes: FastifyPluginAsync = async (app) => {
   app.addHook('preHandler', app.authenticate);
@@ -102,6 +112,48 @@ const prospectsRoutes: FastifyPluginAsync = async (app) => {
     });
 
     return reply.status(204).send();
+  });
+
+  app.get('/suggest', async (request, reply) => {
+    const query = suggestQuerySchema.parse(request.query);
+
+    const cacheKey = app.cache.buildKey({
+      resource: CACHE_RESOURCES.PROSPECTS_LOOKUP,
+      accountId: request.user.accountId,
+      params: query
+    });
+
+    const { data } = await app.cache.fetch({
+      key: cacheKey,
+      ttl: 600,
+      loader: async () => {
+        const suggestions = await fetchClearbitSuggestions(query.search);
+        const now = new Date().toISOString();
+
+        return suggestions.slice(0, query.limit).map((suggestion, index) => ({
+          id: `clearbit:${suggestion.domain ?? suggestion.name}:${index}`,
+          name: suggestion.name,
+          segment: query.segment ?? null,
+          region: query.region ?? null,
+          city: null,
+          state: null,
+          opportunity: suggestion.domain
+            ? `Conheça a empresa acessando ${suggestion.domain}.`
+            : 'Sugestão obtida via Clearbit Autocomplete.',
+          email: null,
+          phone: null,
+          notesJson: {
+            source: 'clearbit',
+            domain: suggestion.domain ?? null,
+            logo: suggestion.logo ?? null
+          },
+          createdAt: now,
+          updatedAt: now
+        }));
+      }
+    });
+
+    return reply.send({ data });
   });
 };
 

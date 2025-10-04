@@ -13,13 +13,14 @@ type TokenPayload = {
   role: string;
 };
 
-function generateTokens(app: FastifyInstance, payload: TokenPayload) {
-  const accessToken = app.jwt.sign(payload, { expiresIn: '15m' });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const refreshToken = (app.jwt.sign as any)(payload, {
-    expiresIn: '7d',
-    secret: env.JWT_REFRESH_SECRET,
-  });
+async function generateTokens(app: FastifyInstance, payload: TokenPayload) {
+  const [accessToken, refreshToken] = await Promise.all([
+    app.jwt.sign(payload, { expiresIn: '15m' }),
+    (app.jwt.sign as any)(payload, {
+      expiresIn: '7d',
+      secret: env.JWT_REFRESH_SECRET,
+    }),
+  ]);
   return { accessToken, refreshToken };
 }
 
@@ -52,12 +53,7 @@ const authRoutes: FastifyPluginAsync = async (app) => {
         fullName: true,
         role: true,
         preferredLocale: true,
-        department: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
+        department: { select: { id: true, name: true } },
         account: {
           select: {
             id: true,
@@ -108,7 +104,12 @@ const authRoutes: FastifyPluginAsync = async (app) => {
       attempt += 1;
     }
 
-    const hashedPassword = await argon2.hash(body.password);
+    const hashedPassword = await argon2.hash(body.password, {
+      type: argon2.argon2id,
+      memoryCost: 2 ** 15,
+      timeCost: 2,
+      parallelism: 1,
+    });
 
     const result = await app.prisma.$transaction(async (tx) => {
       const account = await tx.account.create({
@@ -151,26 +152,25 @@ const authRoutes: FastifyPluginAsync = async (app) => {
       return { account, user, plan };
     });
 
-    const tokens = generateTokens(app, {
+    const tokens = await generateTokens(app, {
       sub: result.user.id,
       accountId: result.account.id,
       role: result.user.role,
     });
 
-    await app.prisma.auditEvent.create({
-      data: {
-        accountId: result.account.id,
-        userId: result.user.id,
-        action: 'account.created',
-        entityType: 'Account',
-        entityId: result.account.id,
-        summary: `Account ${result.account.name} created`,
-        metadataJson: {
-          locale,
-          at: dayjs().toISOString(),
+    app.prisma.auditEvent
+      .create({
+        data: {
+          accountId: result.account.id,
+          userId: result.user.id,
+          action: 'account.created',
+          entityType: 'Account',
+          entityId: result.account.id,
+          summary: `Account ${result.account.name} created`,
+          metadataJson: { locale, at: dayjs().toISOString() },
         },
-      },
-    });
+      })
+      .catch((err) => app.log.error({ err }, 'Failed to create audit log'));
 
     return reply.code(201).send({
       account: {
@@ -217,10 +217,10 @@ const authRoutes: FastifyPluginAsync = async (app) => {
       },
     },
     async (request, reply) => {
+      const start = Date.now();
       const body = loginBodySchema.parse(request.body);
 
       const accountSlug = toAccountSlug(body.accountSlug);
-
       if (!accountSlug) {
         return reply.status(401).send({ message: 'Invalid credentials' });
       }
@@ -228,9 +228,7 @@ const authRoutes: FastifyPluginAsync = async (app) => {
       const user = await app.prisma.user.findFirst({
         where: {
           email: body.email.toLowerCase(),
-          account: {
-            slug: accountSlug,
-          },
+          account: { slug: accountSlug },
         },
         include: {
           account: {
@@ -256,20 +254,20 @@ const authRoutes: FastifyPluginAsync = async (app) => {
         return reply.status(401).send({ message: 'Invalid credentials' });
       }
 
-      const validPassword = await argon2.verify(user.passwordHash, body.password);
+      const verifyStart = Date.now();
+      const validPassword = await argon2.verify(user.passwordHash, body.password, {
+        type: argon2.argon2id,
+        memoryCost: 2 ** 15,
+        timeCost: 2,
+        parallelism: 1,
+      });
+      app.log.info(`Argon2 verify took ${Date.now() - verifyStart}ms`);
+
       if (!validPassword) {
         return reply.status(401).send({ message: 'Invalid credentials' });
       }
 
-      await app.prisma.user.update({
-        where: { id: user.id },
-        data: { lastLoginAt: new Date() },
-      });
-
-      const auditMetadata: Record<string, unknown> = {
-        at: dayjs().toISOString(),
-      };
-
+      const auditMetadata: Record<string, unknown> = { at: dayjs().toISOString() };
       const auditData: Parameters<typeof app.prisma.auditEvent.create>[0]['data'] = {
         accountId: user.accountId,
         userId: user.id,
@@ -284,7 +282,7 @@ const authRoutes: FastifyPluginAsync = async (app) => {
         const userAgentHeader = request.headers['user-agent'];
         const userAgent = Array.isArray(userAgentHeader)
           ? userAgentHeader.join('; ').slice(0, 512)
-          : userAgentHeader ?? null;
+          : (userAgentHeader ?? null);
 
         auditMetadata.ip = request.ip;
         auditMetadata.userAgent = userAgent;
@@ -292,17 +290,23 @@ const authRoutes: FastifyPluginAsync = async (app) => {
         auditData.userAgent = userAgent;
       }
 
-      await app.prisma.auditEvent.create({
-        data: auditData,
-      });
+      await app.prisma.$transaction([
+        app.prisma.user.update({
+          where: { id: user.id },
+          data: { lastLoginAt: new Date() },
+        }),
+        app.prisma.auditEvent.create({ data: auditData }),
+      ]);
 
-      const tokens = generateTokens(app, {
+      const tokens = await generateTokens(app, {
         sub: user.id,
         accountId: user.accountId,
         role: user.role,
       });
 
       const locale = user.preferredLocale ?? user.account.defaultLocale;
+
+      app.log.info(`Login total took ${Date.now() - start}ms`);
 
       return reply.send({
         tokens,
@@ -335,7 +339,6 @@ const authRoutes: FastifyPluginAsync = async (app) => {
     const body = refreshBodySchema.parse(request.body);
 
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const payload = await (app.jwt.verify as any)(body.refreshToken, {
         secret: env.JWT_REFRESH_SECRET,
       });
@@ -345,7 +348,7 @@ const authRoutes: FastifyPluginAsync = async (app) => {
         return reply.status(401).send({ message: 'Invalid refresh token' });
       }
 
-      const tokens = generateTokens(app, {
+      const tokens = await generateTokens(app, {
         sub: user.id,
         accountId: user.accountId,
         role: user.role,

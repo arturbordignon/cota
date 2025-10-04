@@ -14,6 +14,7 @@ import i18nPlugin from './plugins/i18n.js';
 import prismaPlugin from './plugins/prisma.js';
 import queuesPlugin from './plugins/queues.js';
 import seedPlans from './plugins/seed-plans.js';
+import cachePlugin from './plugins/cache.js';
 import authRoutes from './routes/v1/auth.js';
 import templateRoutes from './routes/v1/templates.js';
 import proposalRoutes from './routes/v1/proposals.js';
@@ -52,7 +53,20 @@ export async function buildServer() {
     },
   });
 
-  await app.register(cors, { origin: true, credentials: true });
+  // await app.register(cors, { origin: true, credentials: true });
+  await app.register(cors, {
+    origin: ['http://localhost:3000', 'http://127.0.0.1:3000'],
+    credentials: true,
+    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'Accept',
+      'X-Requested-With',
+      'Accept-Language',
+    ],
+    exposedHeaders: ['Content-Language'],
+  });
   await app.register(helmet);
   await app.register(multipart, {
     limits: { files: 5, fileSize: 15 * 1024 * 1024 },
@@ -76,6 +90,8 @@ export async function buildServer() {
     port: env.REDIS_PORT,
     password: env.REDIS_PASSWORD || undefined,
   });
+
+  await app.register(cachePlugin);
 
   await app.register(prismaPlugin);
   await app.register(seedPlans);

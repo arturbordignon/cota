@@ -1,10 +1,12 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
+
 import { toProposalSlug } from '../../utils/slug.js';
 import { renderProposalHtml } from '../../utils/render.js';
 import { resolveLocale } from '../../utils/locale.js';
 import { ensureProposalCapacity, incrementProposalUsage } from '../../services/billing.js';
 import { ProposalLimitError } from '../../errors/proposal-limit.js';
+import { invalidateReportsOverviewCache, invalidateTeamRankingCache } from '../../utils/cache.js';
 
 const createProposalSchema = z.object({
   templateId: z.string().uuid(),
@@ -129,6 +131,11 @@ const proposalRoutes: FastifyPluginAsync = async (app) => {
         return created;
       });
 
+      await Promise.all([
+        invalidateReportsOverviewCache(app, request.user.accountId),
+        invalidateTeamRankingCache(app, request.user.accountId),
+      ]);
+
       return reply.code(201).send({
         data: proposal,
         message: request.server.i18n.t('proposal.created', { lng: locale })
@@ -218,6 +225,11 @@ const proposalRoutes: FastifyPluginAsync = async (app) => {
         }
       }
     });
+
+    await Promise.all([
+      invalidateReportsOverviewCache(app, request.user.accountId),
+      invalidateTeamRankingCache(app, request.user.accountId),
+    ]);
 
     return reply.send({ data: updated });
   });

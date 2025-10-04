@@ -13,9 +13,9 @@
     "dev": "tsx watch src/index.ts",
     "lint": "eslint \"src/**/*.ts\"",
     "test": "vitest",
-    "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate dev",
-    "postinstall": "prisma generate"
+    "prisma:generate": "dotenv -e ../../.env -- prisma generate",
+    "prisma:migrate": "dotenv -e ../../.env -- prisma migrate dev",
+    "postinstall": "dotenv -e ../../.env -- prisma generate"
   },
   "dependencies": {
     "@crane/config": "workspace:*",
@@ -25,6 +25,7 @@
     "@types/node": "^20.11.30",
     "@typescript-eslint/eslint-plugin": "^6.21.0",
     "@typescript-eslint/parser": "^6.21.0",
+    "dotenv-cli": "^10.0.0",
     "eslint": "^8.57.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-import": "^2.29.1",

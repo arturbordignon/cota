@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import React, { memo, useMemo, useState } from 'react';
-import { ChartLine, Table as TableIcon } from '@phosphor-icons/react';
+import React, { memo, useMemo, useState } from "react";
+import { ChartLine, Table as TableIcon } from "@phosphor-icons/react";
 import {
   Bar,
   BarChart,
@@ -14,34 +14,34 @@ import {
   Tooltip,
   XAxis,
   YAxis,
-} from 'recharts';
-import { useQuery } from '@tanstack/react-query';
+} from "recharts";
+import { useQuery } from "@tanstack/react-query";
 
-import { PageHeader } from '@/components/layout/page-header';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import { Select, SelectItem } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Textarea } from '@/components/ui/textarea';
-import { useApi } from '@/hooks/use-api';
-import { ReportsOverviewResponse } from '@/types/api';
+import { PageHeader } from "@/components/layout/page-header";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Select, SelectItem } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
+import { useApi } from "@/hooks/use-api";
+import { ReportsOverviewResponse } from "@/types/api";
 
-import { StatCard } from '@/components/reports/stat-card';
-import { TeamBarChart } from '@/components/reports/team-bar-chart';
-import { DateRangePicker } from '@/components/reports/date-range-picker';
+import { StatCard } from "@/components/reports/stat-card";
+import { TeamBarChart } from "@/components/reports/team-bar-chart";
+import { DateRangePicker } from "@/components/reports/date-range-picker";
 
 const suggestions = [
-  'Receita por cliente nos últimos 90 dias',
-  'Taxa de conversão mensal por consultor',
-  'Tempo médio entre proposta e faturamento',
-  'Propostas enviadas por segmento',
+  "Receita por cliente nos últimos 90 dias",
+  "Taxa de conversão mensal por consultor",
+  "Tempo médio entre proposta e faturamento",
+  "Propostas enviadas por segmento",
 ];
 
 type ReportPayload = {
   sql: string;
-  visualization: 'table' | 'bar' | 'line';
+  visualization: "table" | "bar" | "line";
   range: { start: string; end: string };
   result: unknown;
 };
@@ -49,37 +49,37 @@ type ReportPayload = {
 type Range = { from?: Date; to?: Date };
 
 const toCurrency = (value: number) =>
-  value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
+  value.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 
 const STATUS_BADGES: Record<
   string,
-  { label: string; tone: 'neutral' | 'info' | 'warning' | 'success' | 'danger' }
+  { label: string; tone: "neutral" | "info" | "warning" | "success" | "danger" }
 > = {
-  DRAFT: { label: 'Rascunho', tone: 'neutral' },
-  PENDING: { label: 'Pendente', tone: 'warning' },
-  SENT: { label: 'Enviada', tone: 'info' },
-  ACCEPTED: { label: 'Aceita', tone: 'success' },
-  DECLINED: { label: 'Recusada', tone: 'danger' },
-  EXPIRED: { label: 'Expirada', tone: 'danger' },
-  default: { label: 'Outros', tone: 'neutral' },
+  DRAFT: { label: "Rascunho", tone: "neutral" },
+  PENDING: { label: "Pendente", tone: "warning" },
+  SENT: { label: "Enviada", tone: "info" },
+  ACCEPTED: { label: "Aceita", tone: "success" },
+  DECLINED: { label: "Recusada", tone: "danger" },
+  EXPIRED: { label: "Expirada", tone: "danger" },
+  default: { label: "Outros", tone: "neutral" },
 };
 
-const TONE_COLORS: Record<'neutral' | 'info' | 'warning' | 'success' | 'danger', string> = {
-  neutral: 'var(--color-outline)',
-  info: 'var(--color-primary)',
-  warning: 'var(--color-warning)',
-  success: 'var(--color-success)',
-  danger: 'var(--color-danger)',
+const TONE_COLORS: Record<"neutral" | "info" | "warning" | "success" | "danger", string> = {
+  neutral: "var(--color-outline)",
+  info: "var(--color-primary)",
+  warning: "var(--color-warning)",
+  success: "var(--color-success)",
+  danger: "var(--color-danger)",
 };
 
 // Palette for generic series
 const CATEGORICAL_COLORS = [
-  'var(--color-info)',
-  'hsl(20 90% 54%)',
-  'hsl(158 64% 45%)',
-  'hsl(262 83% 58%)',
-  'hsl(192 91% 36%)',
-  'hsl(340 82% 52%)',
+  "var(--color-info)",
+  "hsl(20 90% 54%)",
+  "hsl(158 64% 45%)",
+  "hsl(262 83% 58%)",
+  "hsl(192 91% 36%)",
+  "hsl(340 82% 52%)",
 ];
 
 /* ----------------------- small presentational bits ---------------------- */
@@ -92,7 +92,7 @@ const BarChartViz = memo(function BarChartViz({
   data: BarDatum[];
   valueFormatter?: (value: number) => string;
 }) {
-  const formatter = valueFormatter ?? ((value: number) => value.toLocaleString('pt-BR'));
+  const formatter = valueFormatter ?? ((value: number) => value.toLocaleString("pt-BR"));
   return (
     <div className="h-64">
       <ResponsiveContainer width="100%" height="100%">
@@ -131,7 +131,7 @@ const FunnelChartViz = memo(function FunnelChartViz({
   data: FunnelDatum[];
   valueFormatter?: (value: number) => string;
 }) {
-  const formatter = valueFormatter ?? ((value: number) => value.toLocaleString('pt-BR'));
+  const formatter = valueFormatter ?? ((value: number) => value.toLocaleString("pt-BR"));
   const first = data[0]?.value ?? 0;
   return (
     <div className="h-72">
@@ -183,7 +183,7 @@ function SimpleTable({ columns, rows }: { columns: string[]; rows: (string | num
             <tr key={index} className="even:bg-[var(--color-surface-muted)]/30">
               {row.map((cell, cellIndex) => (
                 <td key={cellIndex} className="px-4 py-2 text-ink">
-                  {typeof cell === 'number' ? cell.toLocaleString('pt-BR') : cell}
+                  {typeof cell === "number" ? cell.toLocaleString("pt-BR") : cell}
                 </td>
               ))}
             </tr>
@@ -215,7 +215,7 @@ export default function ReportsPage() {
   }, [appliedSel]);
 
   const overviewQuery = useQuery({
-    queryKey: ['reports', 'overview', overviewParsed.start, overviewParsed.end],
+    queryKey: ["reports", "overview", overviewParsed.start, overviewParsed.end],
     queryFn: () =>
       api.get<ReportsOverviewResponse>(
         `/reports/overview?start=${overviewParsed.start}&end=${overviewParsed.end}`,
@@ -230,9 +230,9 @@ export default function ReportsPage() {
   const overviewError = overviewQuery.error as Error | null;
 
   /* -------------------------- Custom generator state ------------------------- */
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState("");
   const [customSel, setCustomSel] = useState<Range>();
-  const [visualization, setVisualization] = useState<'table' | 'bar' | 'line'>('table');
+  const [visualization, setVisualization] = useState<"table" | "bar" | "line">("table");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [report, setReport] = useState<ReportPayload | null>(null);
@@ -244,7 +244,7 @@ export default function ReportsPage() {
         status: string;
         label: string;
         count: number;
-        tone: 'neutral' | 'info' | 'warning' | 'success' | 'danger';
+        tone: "neutral" | "info" | "warning" | "success" | "danger";
       }>;
     return Object.entries(overview.proposalsByStatus).map(([status, count]) => {
       const entry = STATUS_BADGES[status] ?? STATUS_BADGES.default;
@@ -285,7 +285,7 @@ export default function ReportsPage() {
   const teamChartData = useMemo(
     () =>
       propostasPorMembro.map((m: any) => ({
-        name: m.createdByName ?? m.createdById ?? '—',
+        name: m.createdByName ?? m.createdById ?? "—",
         total: Number(m.total ?? 0),
         aceitas: Number(m.aceitas ?? 0),
       })),
@@ -318,7 +318,7 @@ export default function ReportsPage() {
       pipelineSummary.map((stage) => [
         stage.name,
         Number(stage.leadCount ?? 0),
-        stage.totalValue != null ? toCurrency(Number(stage.totalValue)) : '—',
+        stage.totalValue != null ? toCurrency(Number(stage.totalValue)) : "—",
       ]),
     [pipelineSummary],
   );
@@ -327,11 +327,11 @@ export default function ReportsPage() {
 
   const handleGenerate = async () => {
     if (!query) {
-      setError('Descreva o que deseja analisar.');
+      setError("Descreva o que deseja analisar.");
       return;
     }
     if (!api.token) {
-      setError('Autentique-se para gerar relatórios.');
+      setError("Autentique-se para gerar relatórios.");
       return;
     }
     setIsLoading(true);
@@ -342,7 +342,7 @@ export default function ReportsPage() {
       const end = customSel?.to ?? now;
       const start = customSel?.from ?? new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-      const payload = await api.post<{ data: ReportPayload }>('/reports/run', {
+      const payload = await api.post<{ data: ReportPayload }>("/reports/run", {
         question: query,
         visualization,
         dateRange: {
@@ -353,7 +353,7 @@ export default function ReportsPage() {
       setReport(payload.data);
     } catch (err) {
       console.error(err);
-      setError('Erro inesperado ao gerar relatório.');
+      setError("Erro inesperado ao gerar relatório.");
       setReport(null);
     } finally {
       setIsLoading(false);
@@ -361,7 +361,7 @@ export default function ReportsPage() {
   };
 
   const handleClear = () => {
-    setQuery('');
+    setQuery("");
     setCustomSel(undefined);
     setReport(null);
     setError(null);
@@ -411,8 +411,8 @@ export default function ReportsPage() {
                   </div>
                   <div className="flex gap-2 justify-self-start sm:justify-self-end">
                     <Badge tone="info" className="self-center">
-                      Período: {new Date(overviewParsed.start).toLocaleDateString('pt-BR')} —{' '}
-                      {new Date(overviewParsed.end).toLocaleDateString('pt-BR')}
+                      Período: {new Date(overviewParsed.start).toLocaleDateString("pt-BR")} —{" "}
+                      {new Date(overviewParsed.end).toLocaleDateString("pt-BR")}
                     </Badge>
                     <Button size="sm" onClick={() => setAppliedSel(pendingSel)} type="button">
                       Aplicar
@@ -431,7 +431,7 @@ export default function ReportsPage() {
                   />
                   <StatCard
                     label="Taxa de conversão"
-                    value={`${Number(kpis.taxaConversao ?? 0).toLocaleString('pt-BR', { maximumFractionDigits: 2 })}%`}
+                    value={`${Number(kpis.taxaConversao ?? 0).toLocaleString("pt-BR", { maximumFractionDigits: 2 })}%`}
                     hint="Aceitas ÷ Total"
                   />
                   <StatCard
@@ -440,7 +440,7 @@ export default function ReportsPage() {
                   />
                   <StatCard
                     label="Propostas abertas 14d+"
-                    value={Number(kpis.propostasAbertas14dMais ?? 0).toLocaleString('pt-BR')}
+                    value={Number(kpis.propostasAbertas14dMais ?? 0).toLocaleString("pt-BR")}
                     hint="Atenção: priorizar follow-up"
                   />
                 </div>
@@ -452,13 +452,13 @@ export default function ReportsPage() {
                   <div className="flex items-center justify-between">
                     <h3 className="text-sm font-semibold text-ink">Propostas por status</h3>
                     <Badge tone="neutral">
-                      {totalProposals.toLocaleString('pt-BR')} no período
+                      {totalProposals.toLocaleString("pt-BR")} no período
                     </Badge>
                   </div>
                   {statusChartData.length > 0 ? (
                     <BarChartViz
                       data={statusChartData}
-                      valueFormatter={(value) => Number(value).toLocaleString('pt-BR')}
+                      valueFormatter={(value) => Number(value).toLocaleString("pt-BR")}
                     />
                   ) : (
                     <p className="text-xs text-muted">Sem propostas registradas neste período.</p>
@@ -516,13 +516,13 @@ export default function ReportsPage() {
                   <div className="flex items-center justify-between">
                     <h3 className="text-sm font-semibold text-ink">Resumo do pipeline</h3>
                     <Badge tone="info">
-                      {totalPipelineLeads.toLocaleString('pt-BR')} leads •{' '}
+                      {totalPipelineLeads.toLocaleString("pt-BR")} leads •{" "}
                       {toCurrency(totalPipelineValue)}
                     </Badge>
                   </div>
                   {pipelineTableRows.length > 0 ? (
                     <SimpleTable
-                      columns={['Etapa', 'Leads', 'Valor estimado']}
+                      columns={["Etapa", "Leads", "Valor estimado"]}
                       rows={pipelineTableRows}
                     />
                   ) : (
@@ -540,7 +540,7 @@ export default function ReportsPage() {
                   {pipelineChartData.length > 0 ? (
                     <FunnelChartViz
                       data={pipelineChartData}
-                      valueFormatter={(value) => `${Number(value).toLocaleString('pt-BR')} leads`}
+                      valueFormatter={(value) => `${Number(value).toLocaleString("pt-BR")} leads`}
                     />
                   ) : (
                     <p className="text-xs text-muted">Nenhum lead nas etapas do pipeline.</p>
@@ -553,8 +553,8 @@ export default function ReportsPage() {
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-semibold text-ink">Propostas recentes</h3>
                   <Badge tone="neutral">
-                    {range?.start ? new Date(range.start).toLocaleDateString('pt-BR') : '—'} —{' '}
-                    {range?.end ? new Date(range.end).toLocaleDateString('pt-BR') : '—'}
+                    {range?.start ? new Date(range.start).toLocaleDateString("pt-BR") : "—"} —{" "}
+                    {range?.end ? new Date(range.end).toLocaleDateString("pt-BR") : "—"}
                   </Badge>
                 </div>
                 <div className="overflow-auto rounded-lg border border-outline/40">
@@ -573,15 +573,15 @@ export default function ReportsPage() {
                       {recentProposals.length > 0 ? (
                         recentProposals.map((item) => (
                           <tr key={item.id} className="even:bg-[var(--color-surface-muted)]/30">
-                            <td className="px-4 py-2 text-ink">{item.title ?? 'Sem título'}</td>
-                            <td className="px-4 py-2 text-ink">{item.client ?? 'Sem cliente'}</td>
+                            <td className="px-4 py-2 text-ink">{item.title ?? "Sem título"}</td>
+                            <td className="px-4 py-2 text-ink">{item.client ?? "Sem cliente"}</td>
                             <td className="px-4 py-2 text-ink">
-                              <Badge tone={STATUS_BADGES[item.status]?.tone ?? 'neutral'}>
+                              <Badge tone={STATUS_BADGES[item.status]?.tone ?? "neutral"}>
                                 {STATUS_BADGES[item.status]?.label ?? item.status}
                               </Badge>
                             </td>
                             <td className="px-4 py-2 text-ink">
-                              {new Date(item.createdAt).toLocaleDateString('pt-BR')}
+                              {new Date(item.createdAt).toLocaleDateString("pt-BR")}
                             </td>
                           </tr>
                         ))
@@ -661,12 +661,12 @@ export default function ReportsPage() {
                     Limpar
                   </Button>
                   <Button onClick={handleGenerate} disabled={isLoading}>
-                    {visualization === 'table' ? (
+                    {visualization === "table" ? (
                       <TableIcon size={16} className="mr-2" />
                     ) : (
                       <ChartLine size={16} className="mr-2" />
                     )}
-                    {isLoading ? 'Gerando...' : 'Gerar relatório'}
+                    {isLoading ? "Gerando..." : "Gerar relatório"}
                   </Button>
                 </div>
               </div>
@@ -704,9 +704,9 @@ export default function ReportsPage() {
                               >
                                 {Object.values(row).map((value, cellIndex) => (
                                   <td key={cellIndex} className="px-4 py-2 text-ink">
-                                    {typeof value === 'number'
-                                      ? value.toLocaleString('pt-BR')
-                                      : String(value ?? '—')}
+                                    {typeof value === "number"
+                                      ? value.toLocaleString("pt-BR")
+                                      : String(value ?? "—")}
                                   </td>
                                 ))}
                               </tr>

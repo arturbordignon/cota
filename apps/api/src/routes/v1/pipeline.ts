@@ -2,6 +2,8 @@ import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import { Prisma } from '@crane/db';
 
+import { invalidateReportsOverviewCache } from '../../utils/cache.js';
+
 const moveLeadSchema = z.object({
   stageId: z.string().uuid()
 });
@@ -97,6 +99,8 @@ const pipelineRoutes: FastifyPluginAsync = async (app) => {
       return reply.status(404).send({ message: 'Lead not found.' });
     }
 
+    await invalidateReportsOverviewCache(app, request.user.accountId);
+
     return reply.status(204).send();
   });
 
@@ -122,6 +126,8 @@ const pipelineRoutes: FastifyPluginAsync = async (app) => {
         position: body.position ?? (maxPosition._max.position ?? 0) + 1
       }
     });
+
+    await invalidateReportsOverviewCache(app, request.user.accountId);
 
     return reply.code(201).send({ data: stage });
   });
@@ -149,6 +155,8 @@ const pipelineRoutes: FastifyPluginAsync = async (app) => {
         color: body.color ?? stage.color,
       },
     });
+
+    await invalidateReportsOverviewCache(app, request.user.accountId);
 
     return reply.status(204).send();
   });
@@ -182,6 +190,8 @@ const pipelineRoutes: FastifyPluginAsync = async (app) => {
       ),
     );
 
+    await invalidateReportsOverviewCache(app, request.user.accountId);
+
     return reply.status(204).send();
   });
 
@@ -204,6 +214,8 @@ const pipelineRoutes: FastifyPluginAsync = async (app) => {
     }
 
     await app.prisma.pipelineStage.delete({ where: { id: stage.id } });
+
+    await invalidateReportsOverviewCache(app, request.user.accountId);
 
     return reply.status(204).send();
   });
@@ -245,6 +257,8 @@ const pipelineRoutes: FastifyPluginAsync = async (app) => {
     };
 
     const lead = await app.prisma.pipelineLead.create({ data });
+
+    await invalidateReportsOverviewCache(app, request.user.accountId);
 
     return reply.code(201).send({ data: lead });
   });

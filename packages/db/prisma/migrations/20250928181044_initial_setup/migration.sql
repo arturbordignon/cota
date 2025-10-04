@@ -43,6 +43,11 @@ CREATE TABLE "User" (
     "isActive" BOOLEAN NOT NULL DEFAULT true,
     "lastLoginAt" TIMESTAMP(3),
     "departmentId" TEXT,
+    "invitedById" TEXT,
+    "inviteTokenHash" TEXT,
+    "inviteTokenExpiresAt" TIMESTAMP(3),
+    "invitedAt" TIMESTAMP(3),
+    "acceptedAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -323,6 +328,8 @@ CREATE UNIQUE INDEX "Account_slug_key" ON "Account"("slug");
 -- CreateIndex
 CREATE INDEX "User_departmentId_idx" ON "User"("departmentId");
 
+CREATE UNIQUE INDEX "User_inviteTokenHash_key" ON "User"("inviteTokenHash");
+
 -- CreateIndex
 CREATE UNIQUE INDEX "User_accountId_email_key" ON "User"("accountId", "email");
 
@@ -418,6 +425,8 @@ ALTER TABLE "User" ADD CONSTRAINT "User_accountId_fkey" FOREIGN KEY ("accountId"
 
 -- AddForeignKey
 ALTER TABLE "User" ADD CONSTRAINT "User_departmentId_fkey" FOREIGN KEY ("departmentId") REFERENCES "Department"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+ALTER TABLE "User" ADD CONSTRAINT "User_invitedById_fkey" FOREIGN KEY ("invitedById") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Department" ADD CONSTRAINT "Department_accountId_fkey" FOREIGN KEY ("accountId") REFERENCES "Account"("id") ON DELETE CASCADE ON UPDATE CASCADE;

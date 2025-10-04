@@ -29,12 +29,18 @@ const SEGMENT_OPTIONS = [
   { value: "Energia", label: "Energia" },
 ];
 
+const SOURCE_OPTIONS: Array<{ value: 'internal' | 'external'; label: string }> = [
+  { value: 'internal', label: 'Meus prospects' },
+  { value: 'external', label: 'Sugestões externas (Clearbit)' },
+];
+
 export default function ProspectsPage() {
   const api = useApi();
   const [keywords, setKeywords] = useState("");
   const [debouncedKeywords, setDebouncedKeywords] = useState("");
   const [region, setRegion] = useState(REGION_OPTIONS[0].value);
   const [segment, setSegment] = useState(SEGMENT_OPTIONS[0].value);
+  const [source, setSource] = useState<'internal' | 'external'>('internal');
 
   useEffect(() => {
     const handle = window.setTimeout(() => setDebouncedKeywords(keywords.trim()), 300);
@@ -42,20 +48,32 @@ export default function ProspectsPage() {
   }, [keywords]);
 
   const prospectsQuery = useQuery({
-    queryKey: ['prospects', debouncedKeywords, region, segment],
+    queryKey: ['prospects', source, debouncedKeywords, region, segment],
     queryFn: () => {
       const params = new URLSearchParams();
       if (debouncedKeywords) params.set('search', debouncedKeywords);
       if (region) params.set('region', region);
       if (segment) params.set('segment', segment);
+      if (source === 'external') {
+        params.set('limit', '12');
+        return api.get<ProspectsResponse>(`/prospects/suggest?${params.toString()}`);
+      }
       return api.get<ProspectsResponse>(`/prospects${params.size ? `?${params.toString()}` : ''}`);
     },
-    enabled: Boolean(api.token),
+    enabled:
+      source === 'external'
+        ? Boolean(api.token) && Boolean(debouncedKeywords)
+        : Boolean(api.token),
   });
 
-  const prospects = useMemo(() => prospectsQuery.data?.data ?? [], [prospectsQuery.data]);
+  const isExternalSource = source === 'external';
+  const prospects = useMemo(() => {
+    if (isExternalSource && !debouncedKeywords) return [];
+    return prospectsQuery.data?.data ?? [];
+  }, [prospectsQuery.data, isExternalSource, debouncedKeywords]);
   const isTokenMissing = !api.token;
-  const loadError = prospectsQuery.error as Error | null;
+  const loadError = prospectsQuery.isError ? (prospectsQuery.error as Error) : null;
+  const isSearchDisabled = isExternalSource ? !debouncedKeywords || !api.token : !api.token;
 
   const segmentsFromData = useMemo(() => {
     const values = new Set<string>();
@@ -79,7 +97,7 @@ export default function ProspectsPage() {
       />
 
       <Card className="space-y-4 p-6">
-        <div className="grid gap-4 md:grid-cols-[2fr,1fr,1fr]">
+        <div className="grid gap-4 md:grid-cols-[2fr,1fr,1fr,1.25fr]">
           <div className="space-y-2">
             <Label htmlFor="keywords">Palavras-chave</Label>
             <div className="flex items-center gap-2 rounded-lg border border-outline bg-white px-3 py-2">
@@ -117,15 +135,32 @@ export default function ProspectsPage() {
               ))}
             </Select>
           </div>
+          <div className="space-y-2">
+            <Label>Fonte de dados</Label>
+            <Select value={source} onValueChange={(value) => setSource(value as 'internal' | 'external')}>
+              {SOURCE_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </Select>
+          </div>
         </div>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-xs text-muted">
-            Em breve: integrações com provedores externos de dados (Google, APIs de prospecção) para sugestões em tempo real.
+            {isExternalSource
+              ? 'Sugestões fornecidas gratuitamente pela Clearbit Autocomplete. Preencha palavras-chave para buscar.'
+              : 'Em breve: integrações com provedores externos de dados para sugestões em tempo real.'}
           </p>
-          <Button variant="primary" onClick={() => prospectsQuery.refetch()} disabled={!api.token}>
+          <Button variant="primary" onClick={() => prospectsQuery.refetch()} disabled={isSearchDisabled}>
             Buscar prospects
           </Button>
         </div>
+        {isExternalSource && !debouncedKeywords ? (
+          <p className="rounded-lg border border-outline/40 bg-white px-4 py-2 text-xs text-warning">
+            Informe pelo menos duas letras nas palavras-chave para buscar sugestões externas.
+          </p>
+        ) : null}
       </Card>
 
       {loadError && !isTokenMissing ? (
@@ -135,7 +170,11 @@ export default function ProspectsPage() {
       ) : null}
 
       <div className="grid gap-4 xl:grid-cols-3">
-        {prospectsQuery.isLoading ? (
+        {isExternalSource && !debouncedKeywords ? (
+          <Card className="col-span-full border border-outline/40 bg-warning-soft/30 px-6 py-10 text-center text-sm text-warning">
+            Para buscar sugestões externas, informe palavras-chave relevantes e clique em "Buscar prospects".
+          </Card>
+        ) : prospectsQuery.isLoading ? (
           Array.from({ length: 3 }).map((_, index) => (
             <Card
               key={`prospect-skeleton-${index}`}

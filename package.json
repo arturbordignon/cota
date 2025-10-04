@@ -10,8 +10,8 @@
     "test": "pnpm -r test",
     "dev:api": "pnpm --filter api dev",
     "dev:worker": "pnpm --filter worker dev",
-    "migrate:dev": "pnpm --filter db prisma migrate dev",
-    "generate": "pnpm --filter db prisma generate",
+    "migrate:dev": "pnpm --filter db run prisma:migrate",
+    "generate": "pnpm --filter db run prisma:generate",
     "dev:web": "pnpm --filter web dev",
     "build:web": "pnpm --filter web build",
     "lint:web": "pnpm --filter web lint"

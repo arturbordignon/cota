@@ -2,7 +2,7 @@
 
 import { PropsWithChildren, ReactNode, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-
+import { cn } from '@/lib/utils';
 import { useCurrentUser } from '@/components/providers/user-provider';
 import { Sidebar } from '@/components/layout/sidebar';
 import { Topbar } from '@/components/layout/topbar';
@@ -17,12 +17,25 @@ export function DashboardShell({ children, headerActions, credits }: DashboardSh
   const router = useRouter();
   const { status } = useCurrentUser();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
+  // load from cookie
   useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.replace('/sign-in');
-    }
+    const match = document.cookie.match(/(?:^|;\s*)sidebar-collapsed=(true|false)/);
+    if (match) setSidebarCollapsed(match[1] === 'true');
+  }, []);
+
+  // redirect unauthenticated users
+  useEffect(() => {
+    if (status === 'unauthenticated') router.replace('/sign-in');
   }, [status, router]);
+
+  const handleToggleSidebar = (collapsed: boolean) => {
+    setSidebarCollapsed(collapsed);
+    document.cookie = `sidebar-collapsed=${collapsed ? 'true' : 'false'}; Path=/; Max-Age=${
+      60 * 60 * 24 * 30
+    }; SameSite=Lax`;
+  };
 
   if (status === 'loading') {
     return (
@@ -31,14 +44,16 @@ export function DashboardShell({ children, headerActions, credits }: DashboardSh
       </div>
     );
   }
-
-  if (status === 'unauthenticated') {
-    return null;
-  }
+  if (status === 'unauthenticated') return null;
 
   return (
-    <div className="min-h-screen bg-background lg:pl-72">
-      <Sidebar />
+    <div
+      className={cn(
+        'min-h-screen bg-background transition-all duration-300',
+        sidebarCollapsed ? 'lg:pl-20' : 'lg:pl-72',
+      )}
+    >
+      <Sidebar collapsed={sidebarCollapsed} onToggle={handleToggleSidebar} />
       <div className="flex min-h-screen flex-col">
         <Topbar
           credits={credits}

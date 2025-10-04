@@ -38,6 +38,12 @@ export default function SignUpPage() {
     }
   };
 
+  useEffect(() => {
+    if (status === "authenticated") {
+      router.replace("/");
+    }
+  }, [status, router]);
+
   const isDisabled =
     isSubmitting || companyName.trim().length < 2 || !email.includes("@") || password.length < 8;
 
@@ -123,8 +129,3 @@ export default function SignUpPage() {
     </div>
   );
 }
-  useEffect(() => {
-    if (status === "authenticated") {
-      router.replace("/");
-    }
-  }, [status, router]);
