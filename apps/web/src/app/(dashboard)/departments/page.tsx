@@ -175,7 +175,7 @@ export default function DepartmentsPage() {
       invalidateTeamOverview();
     },
     onError: (error) => {
-      const message = error instanceof Error ? error.message : "Não foi possível salvar o departamento.";
+      const message = error instanceof Error ? error.message : t("errors.saveFailed");
       setPageError(message);
     },
     onSettled: () => {
@@ -203,10 +203,13 @@ export default function DepartmentsPage() {
       setDraft(createDraft("view"));
     },
     onError: (error) => {
-      const message = error instanceof Error ? error.message : "Não foi possível criar o departamento.";
+      const message = error instanceof Error ? error.message : t("errors.createFailed");
       setDialogError(message);
     },
   });
+
+  const isCreatingDepartment = createDepartmentMutation.isPending;
+  const isUpdatingDepartment = updateDepartmentMutation.isPending;
 
   const persistDepartment = useCallback(
     (id: string, payload: DepartmentPayload) => {
@@ -281,7 +284,7 @@ export default function DepartmentsPage() {
       invalidateTeamOverview();
     },
     onError: (error) => {
-      setDeleteError(error instanceof Error ? error.message : 'Erro ao excluir departamento.');
+      setDeleteError(error instanceof Error ? error.message : t("errors.deleteFailed"));
     },
   });
 
@@ -386,6 +389,7 @@ export default function DepartmentsPage() {
   );
 
   const handleCreateDepartment = useCallback(() => {
+    if (isCreatingDepartment) return;
     const name = draft.name.trim();
     if (!name) {
       setDialogError(t("dialog.errors.nameRequired"));
@@ -402,7 +406,7 @@ export default function DepartmentsPage() {
     };
 
     createDepartmentMutation.mutate(payload);
-  }, [createDepartmentMutation, draft, t]);
+  }, [createDepartmentMutation, draft, isCreatingDepartment, t]);
 
   const handleDialogOpenChange = useCallback((open: boolean) => {
     setDialogOpen(open);
@@ -513,7 +517,7 @@ export default function DepartmentsPage() {
                       size="sm"
                       variant="ghost"
                       onClick={() => applyPreset(department.id, "none")}
-                      disabled={isSaving || updateDepartmentMutation.isLoading}
+                      disabled={isSaving || isUpdatingDepartment}
                     >
                       {t("presets.options.none")}
                     </Button>
@@ -521,14 +525,14 @@ export default function DepartmentsPage() {
                       size="sm"
                       variant="outline"
                       onClick={() => applyPreset(department.id, "view")}
-                      disabled={isSaving || updateDepartmentMutation.isLoading}
+                      disabled={isSaving || isUpdatingDepartment}
                     >
                       {t("presets.options.view")}
                     </Button>
                     <Button
                       size="sm"
                       onClick={() => applyPreset(department.id, "all")}
-                      disabled={isSaving || updateDepartmentMutation.isLoading}
+                      disabled={isSaving || isUpdatingDepartment}
                     >
                       {t("presets.options.all")}
                     </Button>
@@ -541,7 +545,7 @@ export default function DepartmentsPage() {
                         value={department.name}
                         onChange={(event) => updateDepartmentField(department.id, "name", event.target.value)}
                         onBlur={() => handleFieldBlur(department.id, "name")}
-                        disabled={isSaving || updateDepartmentMutation.isLoading}
+                        disabled={isSaving || isUpdatingDepartment}
                       />
                     </div>
                     <div className="space-y-2">
@@ -551,7 +555,7 @@ export default function DepartmentsPage() {
                         onChange={(event) => updateDepartmentField(department.id, "description", event.target.value)}
                         onBlur={() => handleFieldBlur(department.id, "description")}
                         rows={3}
-                        disabled={isSaving || updateDepartmentMutation.isLoading}
+                        disabled={isSaving || isUpdatingDepartment}
                       />
                     </div>
                   </div>
@@ -574,7 +578,7 @@ export default function DepartmentsPage() {
                                 size="sm"
                                 variant={ability.view ? "primary" : "outline"}
                                 onClick={() => togglePermission(department.id, module, "view")}
-                                disabled={isSaving || updateDepartmentMutation.isLoading}
+                                disabled={isSaving || isUpdatingDepartment}
                               >
                                 {tPermissions("actions.view")}
                               </Button>
@@ -582,7 +586,7 @@ export default function DepartmentsPage() {
                                 size="sm"
                                 variant={ability.edit ? "primary" : "outline"}
                                 onClick={() => togglePermission(department.id, module, "edit")}
-                                disabled={!ability.view || isSaving || updateDepartmentMutation.isLoading}
+                                disabled={!ability.view || isSaving || isUpdatingDepartment}
                               >
                                 {tPermissions("actions.edit")}
                               </Button>
@@ -635,6 +639,7 @@ export default function DepartmentsPage() {
                     onChange={(event) => setDraft((prev) => ({ ...prev, name: event.target.value }))}
                     placeholder={t("placeholders.name")}
                     autoFocus
+                    disabled={isCreatingDepartment}
                   />
                 </div>
                 <div className="space-y-2">
@@ -645,6 +650,7 @@ export default function DepartmentsPage() {
                     onChange={(event) => setDraft((prev) => ({ ...prev, description: event.target.value }))}
                     rows={3}
                     placeholder={t("placeholders.description")}
+                    disabled={isCreatingDepartment}
                   />
                 </div>
                 <div className="space-y-2">
@@ -654,7 +660,14 @@ export default function DepartmentsPage() {
                       type="button"
                       size="sm"
                       variant={draft.preset === "none" ? "primary" : "outline"}
-                      onClick={() => setDraft(createDraft("none"))}
+                      onClick={() =>
+                        setDraft((prev) => ({
+                          ...prev,
+                          preset: "none",
+                          permissions: createPermissionMap("none"),
+                        }))
+                      }
+                      disabled={isCreatingDepartment}
                     >
                       {t("presets.options.none")}
                     </Button>
@@ -662,7 +675,14 @@ export default function DepartmentsPage() {
                       type="button"
                       size="sm"
                       variant={draft.preset === "view" ? "primary" : "outline"}
-                      onClick={() => setDraft(createDraft("view"))}
+                      onClick={() =>
+                        setDraft((prev) => ({
+                          ...prev,
+                          preset: "view",
+                          permissions: createPermissionMap("view"),
+                        }))
+                      }
+                      disabled={isCreatingDepartment}
                     >
                       {t("presets.options.view")}
                     </Button>
@@ -670,7 +690,14 @@ export default function DepartmentsPage() {
                       type="button"
                       size="sm"
                       variant={draft.preset === "all" ? "primary" : "outline"}
-                      onClick={() => setDraft(createDraft("all"))}
+                      onClick={() =>
+                        setDraft((prev) => ({
+                          ...prev,
+                          preset: "all",
+                          permissions: createPermissionMap("all"),
+                        }))
+                      }
+                      disabled={isCreatingDepartment}
                     >
                       {t("presets.options.all")}
                     </Button>
@@ -694,6 +721,7 @@ export default function DepartmentsPage() {
                               size="sm"
                               variant={ability.view ? "primary" : "outline"}
                               onClick={() => handleToggleDraftPermission(module, "view")}
+                              disabled={isCreatingDepartment}
                             >
                               {tPermissions("actions.view")}
                             </Button>
@@ -702,7 +730,7 @@ export default function DepartmentsPage() {
                               size="sm"
                               variant={ability.edit ? "primary" : "outline"}
                               onClick={() => handleToggleDraftPermission(module, "edit")}
-                              disabled={!ability.view}
+                              disabled={!ability.view || isCreatingDepartment}
                             >
                               {tPermissions("actions.edit")}
                             </Button>
@@ -726,8 +754,8 @@ export default function DepartmentsPage() {
                     {t("dialog.actions.cancel")}
                   </Button>
                 </Dialog.Close>
-                <Button type="submit" disabled={createDepartmentMutation.isLoading}>
-                  {createDepartmentMutation.isLoading
+                <Button type="submit" disabled={isCreatingDepartment}>
+                  {isCreatingDepartment
                     ? t("dialog.actions.saving")
                     : t("dialog.actions.submit")}
                 </Button>

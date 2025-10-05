@@ -58,7 +58,16 @@ const envSchema = z.object({
   STRIPE_PRICE_US_50: z.string().default(''),
   STRIPE_PRICE_US_100: z.string().default(''),
   STRIPE_PRICE_US_UNLIMITED: z.string().default(''),
-  STRIPE_PRICE_US_UNLIMITED_ANNUAL: z.string().default('')
+  STRIPE_PRICE_US_UNLIMITED_ANNUAL: z.string().default(''),
+  SMTP_HOST: z.string().default(''),
+  SMTP_PORT: z.coerce.number().default(587),
+  SMTP_USER: z.string().default(''),
+  SMTP_PASSWORD: z.string().default(''),
+  SMTP_SECURE: z
+    .union([z.literal('true'), z.literal('false')])
+    .default('false')
+    .transform((value) => value === 'true'),
+  EMAIL_FROM: z.string().default('convites@crane.local')
 });
 
 type Env = z.infer<typeof envSchema>;

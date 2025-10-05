@@ -1,6 +1,7 @@
 "use client";
 
-import React, { memo, useMemo, useState } from "react";
+import React, { memo, useCallback, useMemo, useState } from "react";
+import { useFormatter, useTranslations } from "next-intl";
 import { ChartLine, Table as TableIcon } from "@phosphor-icons/react";
 import {
   Bar,
@@ -32,13 +33,6 @@ import { StatCard } from "@/components/reports/stat-card";
 import { TeamBarChart } from "@/components/reports/team-bar-chart";
 import { DateRangePicker } from "@/components/reports/date-range-picker";
 
-const suggestions = [
-  "Receita por cliente nos últimos 90 dias",
-  "Taxa de conversão mensal por consultor",
-  "Tempo médio entre proposta e faturamento",
-  "Propostas enviadas por segmento",
-];
-
 type ReportPayload = {
   sql: string;
   visualization: "table" | "bar" | "line";
@@ -48,21 +42,24 @@ type ReportPayload = {
 
 type Range = { from?: Date; to?: Date };
 
-const toCurrency = (value: number) =>
-  value.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
+type StatusTone = "neutral" | "info" | "warning" | "success" | "danger";
 
-const STATUS_BADGES: Record<
-  string,
-  { label: string; tone: "neutral" | "info" | "warning" | "success" | "danger" }
-> = {
-  DRAFT: { label: "Rascunho", tone: "neutral" },
-  PENDING: { label: "Pendente", tone: "warning" },
-  SENT: { label: "Enviada", tone: "info" },
-  ACCEPTED: { label: "Aceita", tone: "success" },
-  DECLINED: { label: "Recusada", tone: "danger" },
-  EXPIRED: { label: "Expirada", tone: "danger" },
-  default: { label: "Outros", tone: "neutral" },
+const STATUS_TONES: Record<string, StatusTone> = {
+  DRAFT: "neutral",
+  PENDING: "warning",
+  SENT: "info",
+  ACCEPTED: "success",
+  DECLINED: "danger",
+  EXPIRED: "danger",
+  default: "neutral",
 };
+
+const SUGGESTION_KEYS = [
+  "revenue90",
+  "conversionConsultant",
+  "cycle",
+  "segment",
+] as const;
 
 const TONE_COLORS: Record<"neutral" | "info" | "warning" | "success" | "danger", string> = {
   neutral: "var(--color-outline)",
@@ -165,7 +162,15 @@ const FunnelChartViz = memo(function FunnelChartViz({
   );
 });
 
-function SimpleTable({ columns, rows }: { columns: string[]; rows: (string | number)[][] }) {
+function SimpleTable({
+  columns,
+  rows,
+  formatNumber,
+}: {
+  columns: string[];
+  rows: (string | number)[][];
+  formatNumber: (value: number) => string;
+}) {
   return (
     <div className="overflow-auto rounded-lg border border-outline/40">
       <table className="w-full min-w-[360px] text-left text-xs">
@@ -183,7 +188,7 @@ function SimpleTable({ columns, rows }: { columns: string[]; rows: (string | num
             <tr key={index} className="even:bg-[var(--color-surface-muted)]/30">
               {row.map((cell, cellIndex) => (
                 <td key={cellIndex} className="px-4 py-2 text-ink">
-                  {typeof cell === "number" ? cell.toLocaleString("pt-BR") : cell}
+                  {typeof cell === "number" ? formatNumber(cell) : cell}
                 </td>
               ))}
             </tr>
@@ -198,9 +203,45 @@ function SimpleTable({ columns, rows }: { columns: string[]; rows: (string | num
 
 export default function ReportsPage() {
   const api = useApi();
+  const formatter = useFormatter();
+  const tPage = useTranslations("reports.page");
+  const tOverview = useTranslations("reports.page.overview");
+  const tCustom = useTranslations("reports.tabs.custom.form");
+  const tCustomResult = useTranslations("reports.tabs.custom.resultCard");
+
+  const formatCurrency = useCallback(
+    (value: number) => formatter.number(value, { style: "currency", currency: "BRL", maximumFractionDigits: 0 }),
+    [formatter],
+  );
+
+  const formatNumber = useCallback(
+    (value: number, options?: Intl.NumberFormatOptions) =>
+      formatter.number(value, options ?? { maximumFractionDigits: 0 }),
+    [formatter],
+  );
+
+  const formatDate = useCallback(
+    (value: string | Date) => formatter.dateTime(new Date(value), { dateStyle: "short" }),
+    [formatter],
+  );
+
+  const statusBadges = useMemo(() => ({
+    DRAFT: { label: tOverview("status.labels.DRAFT"), tone: STATUS_TONES.DRAFT },
+    PENDING: { label: tOverview("status.labels.PENDING"), tone: STATUS_TONES.PENDING },
+    SENT: { label: tOverview("status.labels.SENT"), tone: STATUS_TONES.SENT },
+    ACCEPTED: { label: tOverview("status.labels.ACCEPTED"), tone: STATUS_TONES.ACCEPTED },
+    DECLINED: { label: tOverview("status.labels.DECLINED"), tone: STATUS_TONES.DECLINED },
+    EXPIRED: { label: tOverview("status.labels.EXPIRED"), tone: STATUS_TONES.EXPIRED },
+    default: { label: tOverview("status.labels.default"), tone: STATUS_TONES.default },
+  }), [tOverview]);
+
+  const suggestions = useMemo(
+    () => SUGGESTION_KEYS.map((key) => tCustom(`suggestionValues.${key}`)),
+    [tCustom],
+  );
   const isTokenMissing = !api.token;
 
-  /* ----------------------- Visão Geral - date handling ----------------------- */
+  /* ----------------------- Overview date handling ----------------------- */
   const [pendingSel, setPendingSel] = useState<Range>();
   const [appliedSel, setAppliedSel] = useState<Range>();
 
@@ -244,13 +285,13 @@ export default function ReportsPage() {
         status: string;
         label: string;
         count: number;
-        tone: "neutral" | "info" | "warning" | "success" | "danger";
+        tone: StatusTone;
       }>;
     return Object.entries(overview.proposalsByStatus).map(([status, count]) => {
-      const entry = STATUS_BADGES[status] ?? STATUS_BADGES.default;
+      const entry = statusBadges[status] ?? statusBadges.default;
       return { status, label: entry.label, count: Number(count), tone: entry.tone };
     });
-  }, [overview?.proposalsByStatus]);
+  }, [overview?.proposalsByStatus, statusBadges]);
 
   const topClients = overview?.topClients ?? [];
   const recentProposals = overview?.recentProposals ?? [];
@@ -318,20 +359,23 @@ export default function ReportsPage() {
       pipelineSummary.map((stage) => [
         stage.name,
         Number(stage.leadCount ?? 0),
-        stage.totalValue != null ? toCurrency(Number(stage.totalValue)) : "—",
+        stage.totalValue != null ? formatCurrency(Number(stage.totalValue)) : "—",
       ]),
-    [pipelineSummary],
+    [formatCurrency, pipelineSummary],
   );
+
+  const recentRangeStart = range?.start ? formatDate(range.start) : tOverview("recentProposals.noDate");
+  const recentRangeEnd = range?.end ? formatDate(range.end) : tOverview("recentProposals.noDate");
 
   /* ----------------------------- custom: generate ---------------------------- */
 
   const handleGenerate = async () => {
     if (!query) {
-      setError("Descreva o que deseja analisar.");
+      setError(tCustom("errors.intent"));
       return;
     }
     if (!api.token) {
-      setError("Autentique-se para gerar relatórios.");
+      setError(tCustom("errors.auth"));
       return;
     }
     setIsLoading(true);
@@ -353,7 +397,7 @@ export default function ReportsPage() {
       setReport(payload.data);
     } catch (err) {
       console.error(err);
-      setError("Erro inesperado ao gerar relatório.");
+      setError(tCustom("errors.unexpected"));
       setReport(null);
     } finally {
       setIsLoading(false);
@@ -373,49 +417,47 @@ export default function ReportsPage() {
     <section className="space-y-6">
       {isTokenMissing ? (
         <Card className="border border-warning/40 bg-warning-soft px-6 py-4 text-sm text-warning">
-          Defina a variável `NEXT_PUBLIC_API_TOKEN` ou autentique-se para consultar seus dados
-          reais.
+          {tPage("alerts.missingToken")}
         </Card>
       ) : null}
 
       {overviewError && !isTokenMissing ? (
         <Card className="border border-danger/40 bg-danger-soft/20 px-6 py-4 text-sm text-danger">
-          Não foi possível carregar os indicadores: {overviewError.message}
+          {tPage("alerts.loadError", { error: overviewError.message })}
         </Card>
       ) : null}
 
-      <PageHeader
-        title="Relatórios dinâmicos"
-        description="Peça insights com linguagem natural. Geramos a consulta SQL e apresentamos os dados como tabela ou gráfico."
-      />
+      <PageHeader title={tPage("header.title")} description={tPage("header.description")} />
 
       <Tabs defaultValue="overview" className="space-y-4">
         <TabsList className="flex w-full flex-wrap gap-2">
-          <TabsTrigger value="overview">Visão geral</TabsTrigger>
-          <TabsTrigger value="custom">Gerador personalizado</TabsTrigger>
+          <TabsTrigger value="overview">{tPage("tabs.overview")}</TabsTrigger>
+          <TabsTrigger value="custom">{tPage("tabs.custom")}</TabsTrigger>
         </TabsList>
 
         {/* ------------------------- VISÃO GERAL ------------------------- */}
         <TabsContent value="overview">
           {overviewQuery.isLoading ? (
-            <Card className="p-6 text-sm text-muted">Carregando indicadores...</Card>
+            <Card className="p-6 text-sm text-muted">{tOverview("loading")}</Card>
           ) : overview ? (
             <div className="space-y-4">
               {/* Range selector with Apply */}
               <Card className="p-4">
-                <div className="grid gap-3 sm:grid-cols-[1fr_auto] items-end">
+                <div className="grid items-end gap-3 sm:grid-cols-[1fr_auto]">
                   <div className="space-y-1.5">
-                    <Label>Intervalo (Visão geral)</Label>
+                    <Label>{tOverview("filters.label")}</Label>
                     <DateRangePicker value={pendingSel} onChange={setPendingSel} />
-                    <p className="text-[11px] text-muted">Sem seleção = últimos 30 dias.</p>
+                    <p className="text-[11px] text-muted">{tOverview("filters.hint")}</p>
                   </div>
                   <div className="flex gap-2 justify-self-start sm:justify-self-end">
                     <Badge tone="info" className="self-center">
-                      Período: {new Date(overviewParsed.start).toLocaleDateString("pt-BR")} —{" "}
-                      {new Date(overviewParsed.end).toLocaleDateString("pt-BR")}
+                      {tOverview("filters.periodBadge", {
+                        start: formatDate(overviewParsed.start),
+                        end: formatDate(overviewParsed.end),
+                      })}
                     </Badge>
                     <Button size="sm" onClick={() => setAppliedSel(pendingSel)} type="button">
-                      Aplicar
+                      {tOverview("filters.apply")}
                     </Button>
                   </div>
                 </div>
@@ -425,23 +467,23 @@ export default function ReportsPage() {
               {kpis ? (
                 <div className="grid gap-4 lg:grid-cols-4">
                   <StatCard
-                    label="Receita (aceitas)"
-                    value={toCurrency(Number(kpis.receitaAceita ?? 0))}
-                    hint="Soma das propostas aceitas"
+                    label={tOverview("kpis.revenue.label")}
+                    value={formatCurrency(Number(kpis.receitaAceita ?? 0))}
+                    hint={tOverview("kpis.revenue.hint")}
                   />
                   <StatCard
-                    label="Taxa de conversão"
-                    value={`${Number(kpis.taxaConversao ?? 0).toLocaleString("pt-BR", { maximumFractionDigits: 2 })}%`}
-                    hint="Aceitas ÷ Total"
+                    label={tOverview("kpis.conversion.label")}
+                    value={`${formatNumber(Number(kpis.taxaConversao ?? 0), { maximumFractionDigits: 2 })}%`}
+                    hint={tOverview("kpis.conversion.hint")}
                   />
                   <StatCard
-                    label="Ticket médio (aceitas)"
-                    value={toCurrency(Number(kpis.ticketMedioAceitas ?? 0))}
+                    label={tOverview("kpis.ticket.label")}
+                    value={formatCurrency(Number(kpis.ticketMedioAceitas ?? 0))}
                   />
                   <StatCard
-                    label="Propostas abertas 14d+"
-                    value={Number(kpis.propostasAbertas14dMais ?? 0).toLocaleString("pt-BR")}
-                    hint="Atenção: priorizar follow-up"
+                    label={tOverview("kpis.aging.label")}
+                    value={formatNumber(Number(kpis.propostasAbertas14dMais ?? 0))}
+                    hint={tOverview("kpis.aging.hint")}
                   />
                 </div>
               ) : null}
@@ -450,35 +492,33 @@ export default function ReportsPage() {
               <div className="grid gap-4 lg:grid-cols-2">
                 <Card className="space-y-4 p-6">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-semibold text-ink">Propostas por status</h3>
+                    <h3 className="text-sm font-semibold text-ink">{tOverview("status.title")}</h3>
                     <Badge tone="neutral">
-                      {totalProposals.toLocaleString("pt-BR")} no período
+                      {tOverview("status.badge", { count: formatNumber(totalProposals) })}
                     </Badge>
                   </div>
                   {statusChartData.length > 0 ? (
                     <BarChartViz
                       data={statusChartData}
-                      valueFormatter={(value) => Number(value).toLocaleString("pt-BR")}
+                      valueFormatter={(value) => formatNumber(Number(value))}
                     />
                   ) : (
-                    <p className="text-xs text-muted">Sem propostas registradas neste período.</p>
+                    <p className="text-xs text-muted">{tOverview("status.empty")}</p>
                   )}
                 </Card>
 
                 <Card className="space-y-4 p-6">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-semibold text-ink">Receita por cliente</h3>
-                    <Badge tone="info">Top 5</Badge>
+                    <h3 className="text-sm font-semibold text-ink">{tOverview("topClients.title")}</h3>
+                    <Badge tone="info">{tOverview("topClients.badge")}</Badge>
                   </div>
                   {topClientsChartData.length > 0 ? (
                     <BarChartViz
                       data={topClientsChartData}
-                      valueFormatter={(value) => toCurrency(Number(value))}
+                      valueFormatter={(value) => formatCurrency(Number(value))}
                     />
                   ) : (
-                    <p className="text-xs text-muted">
-                      Nenhum cliente com propostas aceitas ainda.
-                    </p>
+                    <p className="text-xs text-muted">{tOverview("topClients.empty")}</p>
                   )}
                 </Card>
               </div>
@@ -486,13 +526,13 @@ export default function ReportsPage() {
               {/* Propostas por consultor */}
               <Card className="space-y-4 p-6">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-ink">Propostas por consultor</h3>
-                  <Badge tone="neutral">Total vs Aceitas</Badge>
+                  <h3 className="text-sm font-semibold text-ink">{tOverview("team.title")}</h3>
+                  <Badge tone="neutral">{tOverview("team.badge")}</Badge>
                 </div>
                 {teamChartData.length > 0 ? (
                   <TeamBarChart data={teamChartData} />
                 ) : (
-                  <p className="text-xs text-muted">Nenhuma proposta atribuída a membros.</p>
+                  <p className="text-xs text-muted">{tOverview("team.empty")}</p>
                 )}
               </Card>
 
@@ -500,12 +540,12 @@ export default function ReportsPage() {
               {receitaCidadeChartData.length > 0 ? (
                 <Card className="space-y-4 p-6">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-semibold text-ink">Receita por cidade</h3>
-                    <Badge tone="info">Top 8</Badge>
+                    <h3 className="text-sm font-semibold text-ink">{tOverview("cityRevenue.title")}</h3>
+                    <Badge tone="info">{tOverview("cityRevenue.badge")}</Badge>
                   </div>
                   <BarChartViz
                     data={receitaCidadeChartData}
-                    valueFormatter={(v) => toCurrency(Number(v))}
+                    valueFormatter={(v) => formatCurrency(Number(v))}
                   />
                 </Card>
               ) : null}
@@ -514,36 +554,45 @@ export default function ReportsPage() {
               <div className="grid gap-4 lg:grid-cols-2">
                 <Card className="space-y-4 p-6">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-semibold text-ink">Resumo do pipeline</h3>
+                    <h3 className="text-sm font-semibold text-ink">{tOverview("pipelineSummary.title")}</h3>
                     <Badge tone="info">
-                      {totalPipelineLeads.toLocaleString("pt-BR")} leads •{" "}
-                      {toCurrency(totalPipelineValue)}
+                      {tOverview("pipelineSummary.badge", {
+                        leads: formatNumber(totalPipelineLeads),
+                        value: formatCurrency(totalPipelineValue),
+                      })}
                     </Badge>
                   </div>
                   {pipelineTableRows.length > 0 ? (
                     <SimpleTable
-                      columns={["Etapa", "Leads", "Valor estimado"]}
+                      columns={[
+                        tOverview("pipelineSummary.columns.stage"),
+                        tOverview("pipelineSummary.columns.leads"),
+                        tOverview("pipelineSummary.columns.value"),
+                      ]}
                       rows={pipelineTableRows}
+                      formatNumber={formatNumber}
                     />
                   ) : (
-                    <p className="text-xs text-muted">
-                      Cadastre etapas e leads no pipeline para acompanhar aqui.
-                    </p>
+                    <p className="text-xs text-muted">{tOverview("pipelineSummary.empty")}</p>
                   )}
                 </Card>
 
                 <Card className="space-y-4 p-6">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-semibold text-ink">Distribuição do pipeline</h3>
-                    <Badge tone="neutral">Leads por etapa</Badge>
+                    <h3 className="text-sm font-semibold text-ink">{tOverview("pipelineDistribution.title")}</h3>
+                    <Badge tone="neutral">{tOverview("pipelineDistribution.badge")}</Badge>
                   </div>
                   {pipelineChartData.length > 0 ? (
                     <FunnelChartViz
                       data={pipelineChartData}
-                      valueFormatter={(value) => `${Number(value).toLocaleString("pt-BR")} leads`}
+                      valueFormatter={(value) =>
+                        tOverview("pipelineDistribution.formatLead", {
+                          value: formatNumber(Number(value)),
+                        })
+                      }
                     />
                   ) : (
-                    <p className="text-xs text-muted">Nenhum lead nas etapas do pipeline.</p>
+                    <p className="text-xs text-muted">{tOverview("pipelineDistribution.empty")}</p>
                   )}
                 </Card>
               </div>
@@ -551,21 +600,26 @@ export default function ReportsPage() {
               {/* Propostas recentes */}
               <Card className="space-y-4 p-6">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-ink">Propostas recentes</h3>
+                  <h3 className="text-sm font-semibold text-ink">{tOverview("recentProposals.title")}</h3>
                   <Badge tone="neutral">
-                    {range?.start ? new Date(range.start).toLocaleDateString("pt-BR") : "—"} —{" "}
-                    {range?.end ? new Date(range.end).toLocaleDateString("pt-BR") : "—"}
+                    {tOverview("recentProposals.badge", { start: recentRangeStart, end: recentRangeEnd })}
                   </Badge>
                 </div>
                 <div className="overflow-auto rounded-lg border border-outline/40">
                   <table className="w-full min-w-[520px] text-left text-xs">
                     <thead className="bg-[var(--color-surface-muted)]/50 text-muted">
                       <tr>
-                        <th className="px-4 py-3 font-semibold uppercase tracking-wide">Título</th>
-                        <th className="px-4 py-3 font-semibold uppercase tracking-wide">Cliente</th>
-                        <th className="px-4 py-3 font-semibold uppercase tracking-wide">Status</th>
                         <th className="px-4 py-3 font-semibold uppercase tracking-wide">
-                          Criada em
+                          {tOverview("recentProposals.columns.title")}
+                        </th>
+                        <th className="px-4 py-3 font-semibold uppercase tracking-wide">
+                          {tOverview("recentProposals.columns.client")}
+                        </th>
+                        <th className="px-4 py-3 font-semibold uppercase tracking-wide">
+                          {tOverview("recentProposals.columns.status")}
+                        </th>
+                        <th className="px-4 py-3 font-semibold uppercase tracking-wide">
+                          {tOverview("recentProposals.columns.createdAt")}
                         </th>
                       </tr>
                     </thead>
@@ -573,22 +627,26 @@ export default function ReportsPage() {
                       {recentProposals.length > 0 ? (
                         recentProposals.map((item) => (
                           <tr key={item.id} className="even:bg-[var(--color-surface-muted)]/30">
-                            <td className="px-4 py-2 text-ink">{item.title ?? "Sem título"}</td>
-                            <td className="px-4 py-2 text-ink">{item.client ?? "Sem cliente"}</td>
                             <td className="px-4 py-2 text-ink">
-                              <Badge tone={STATUS_BADGES[item.status]?.tone ?? "neutral"}>
-                                {STATUS_BADGES[item.status]?.label ?? item.status}
+                              {item.title ?? tOverview("recentProposals.fallbacks.title")}
+                            </td>
+                            <td className="px-4 py-2 text-ink">
+                              {item.client ?? tOverview("recentProposals.fallbacks.client")}
+                            </td>
+                            <td className="px-4 py-2 text-ink">
+                              <Badge tone={statusBadges[item.status]?.tone ?? statusBadges.default.tone}>
+                                {statusBadges[item.status]?.label ?? statusBadges.default.label}
                               </Badge>
                             </td>
                             <td className="px-4 py-2 text-ink">
-                              {new Date(item.createdAt).toLocaleDateString("pt-BR")}
+                              {formatDate(item.createdAt)}
                             </td>
                           </tr>
                         ))
                       ) : (
                         <tr>
                           <td colSpan={4} className="px-4 py-4 text-center text-muted">
-                            Nenhuma proposta criada no período analisado.
+                            {tOverview("recentProposals.fallbacks.empty")}
                           </td>
                         </tr>
                       )}
@@ -598,7 +656,7 @@ export default function ReportsPage() {
               </Card>
             </div>
           ) : (
-            <Card className="p-6 text-sm text-muted">Nenhum dado disponível ainda.</Card>
+            <Card className="p-6 text-sm text-muted">{tOverview("empty")}</Card>
           )}
         </TabsContent>
 
@@ -607,39 +665,36 @@ export default function ReportsPage() {
           <div className="space-y-4">
             <Card className="space-y-4 p-6">
               <div className="space-y-2">
-                <Label htmlFor="report-intent">O que você deseja analisar?</Label>
+                <Label htmlFor="report-intent">{tCustom("intent.label")}</Label>
                 <Textarea
                   id="report-intent"
-                  placeholder="Ex: Qual foi a taxa de conversão de propostas em fevereiro?"
+                  placeholder={tCustom("intent.placeholder")}
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
                 />
-                <p className="text-xs text-muted">
-                  Nenhuma integração de IA em produção ainda — exibimos a consulta gerada para
-                  validação antes da execução.
-                </p>
+                <p className="text-xs text-muted">{tCustom("helper")}</p>
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label>Visualização desejada</Label>
+                  <Label>{tCustom("visualization")}</Label>
                   <Select
                     value={visualization}
                     onValueChange={(value) => setVisualization(value as typeof visualization)}
                   >
-                    <SelectItem value="table">Tabela</SelectItem>
-                    <SelectItem value="bar">Gráfico de barras</SelectItem>
-                    <SelectItem value="line">Gráfico de linhas</SelectItem>
+                    <SelectItem value="table">{tCustom("visualizationOptions.table")}</SelectItem>
+                    <SelectItem value="bar">{tCustom("visualizationOptions.bar")}</SelectItem>
+                    <SelectItem value="line">{tCustom("visualizationOptions.line")}</SelectItem>
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Intervalo (datas)</Label>
+                  <Label>{tCustom("dateRange")}</Label>
                   <DateRangePicker value={customSel} onChange={setCustomSel} />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label>Sugestões rápidas</Label>
+                <Label>{tCustom("suggestions")}</Label>
                 <div className="flex flex-wrap gap-2">
                   {suggestions.map((item) => (
                     <button
@@ -658,15 +713,28 @@ export default function ReportsPage() {
                 <div className="inline-flex items-center gap-2 text-xs text-muted" />
                 <div className="flex gap-2">
                   <Button variant="ghost" onClick={handleClear}>
-                    Limpar
+                    {tCustom("clear")}
                   </Button>
-                  <Button onClick={handleGenerate} disabled={isLoading}>
+                  <Button
+                    onClick={handleGenerate}
+                    loading={isLoading}
+                    loadingText={
+                      <span className="inline-flex items-center gap-2">
+                        {visualization === "table" ? (
+                          <TableIcon size={16} className="mr-1" />
+                        ) : (
+                          <ChartLine size={16} className="mr-1" />
+                        )}
+                        {tCustom("generating")}
+                      </span>
+                    }
+                  >
                     {visualization === "table" ? (
                       <TableIcon size={16} className="mr-2" />
                     ) : (
                       <ChartLine size={16} className="mr-2" />
                     )}
-                    {isLoading ? "Gerando..." : "Gerar relatório"}
+                    {tCustom("generate")}
                   </Button>
                 </div>
               </div>
@@ -679,7 +747,7 @@ export default function ReportsPage() {
                 ) : report ? (
                   Array.isArray(report.result) ? (
                     <div className="space-y-2">
-                      <p className="text-sm font-semibold text-ink">Resultados</p>
+                      <p className="text-sm font-semibold text-ink">{tCustomResult("title")}</p>
                       <div className="overflow-auto rounded-lg border border-outline/40">
                         <table className="w-full min-w-[360px] text-left text-xs">
                           <thead className="bg-[var(--color-surface-muted)]/50 text-muted">
@@ -715,9 +783,9 @@ export default function ReportsPage() {
                         </table>
                       </div>
                     </div>
-                  ) : (
+                    ) : (
                     <div className="space-y-2">
-                      <p className="text-sm font-semibold text-ink">Retorno bruto</p>
+                      <p className="text-sm font-semibold text-ink">{tCustomResult("rawTitle")}</p>
                       <pre className="max-h-60 overflow-auto rounded-lg bg-[var(--color-surface-muted)]/60 p-4 text-xs text-muted">
                         {JSON.stringify(report.result, null, 2)}
                       </pre>
@@ -725,8 +793,8 @@ export default function ReportsPage() {
                   )
                 ) : (
                   <div className="space-y-2">
-                    <p className="text-sm font-semibold text-ink">Aguardando geração</p>
-                    <p>Solicite um relatório acima e exibiremos os dados aqui.</p>
+                    <p className="text-sm font-semibold text-ink">{tCustomResult("waitingTitle")}</p>
+                    <p>{tCustomResult("placeholder")}</p>
                   </div>
                 )}
               </Card>

@@ -9,6 +9,8 @@ import { CACHE_RESOURCES } from '../../constants/cache.js';
 import { toDepartmentSlug } from '../../utils/slug.js';
 import env from '@crane/config';
 
+import { sendInviteEmail } from '../../lib/mailer.js';
+
 const PERMISSION_KEYS = [
   'dashboard',
   'proposals',
@@ -94,6 +96,10 @@ const acceptInviteSchema = z.object({
   token: z.string().min(16),
   fullName: z.string().min(2).optional(),
   password: z.string().min(8),
+});
+
+const inviteLinkBodySchema = z.object({
+  sendEmail: z.boolean().optional(),
 });
 
 const INVITE_TOKEN_BYTES = 32;
@@ -272,6 +278,9 @@ const teamRoutes: FastifyPluginAsync = async (app) => {
           departmentId: true,
           isActive: true,
           createdAt: true,
+          inviteToken: true,
+          inviteTokenExpiresAt: true,
+          invitedAt: true,
           department: {
             select: {
               id: true,
@@ -295,6 +304,12 @@ const teamRoutes: FastifyPluginAsync = async (app) => {
       department: member.department,
       isActive: member.isActive,
       createdAt: member.createdAt,
+      inviteUrl:
+        !member.isActive && member.inviteToken
+          ? `${env.FRONTEND_BASE_URL.replace(/\/$/, '')}/accept-invite?token=${member.inviteToken}`
+          : null,
+      inviteTokenExpiresAt: member.inviteTokenExpiresAt,
+      invitedAt: member.invitedAt,
     }));
 
     return reply.send({
@@ -707,6 +722,7 @@ const teamRoutes: FastifyPluginAsync = async (app) => {
     await app.prisma.user.update({
       where: { id: invitee.id },
       data: {
+        inviteToken: null,
         passwordHash,
         fullName: body.fullName ?? invitee.fullName,
         isActive: true,
@@ -793,9 +809,15 @@ const teamRoutes: FastifyPluginAsync = async (app) => {
         departmentId: body.departmentId ?? null,
         isActive: false,
         invitedById: request.user.sub,
+        inviteToken,
         inviteTokenHash,
         inviteTokenExpiresAt,
         invitedAt,
+      },
+      include: {
+        account: {
+          select: { name: true },
+        },
       },
     });
 
@@ -817,7 +839,27 @@ const teamRoutes: FastifyPluginAsync = async (app) => {
 
     const inviteUrl = `${env.FRONTEND_BASE_URL.replace(/\/$/, '')}/accept-invite?token=${inviteToken}`;
 
-    request.log.info({ inviteUrl, invitee: member.email }, 'Invitation link generated');
+    const inviter = await app.prisma.user.findUnique({
+      where: { id: request.user.sub },
+      select: { fullName: true },
+    });
+
+    const emailSent = await sendInviteEmail({
+      to: member.email,
+      inviteUrl,
+      accountName: member.account?.name ?? 'Seu workspace',
+      invitedBy: inviter?.fullName ?? null,
+      logger: request.log,
+    });
+
+    await app.cache.invalidatePrefix(
+      app.cache.buildPrefix({
+        resource: CACHE_RESOURCES.TEAM_RANKING,
+        accountId: request.user.accountId,
+      }),
+    );
+
+    request.log.info({ invitee: member.email, emailSent }, 'Invitation generated');
 
     return reply.code(201).send({
       data: {
@@ -829,8 +871,136 @@ const teamRoutes: FastifyPluginAsync = async (app) => {
         departmentId: member.departmentId,
         isActive: member.isActive,
         inviteUrl,
+        inviteTokenExpiresAt,
+        invitedAt,
+        emailSent,
       },
     });
+  });
+
+  app.post('/members/:id/invite-link', async (request, reply) => {
+    if (request.user.role !== 'OWNER') {
+      return reply.status(403).send({ message: 'Forbidden' });
+    }
+
+    const params = z.object({ id: z.string().uuid() }).parse(request.params);
+    const body = inviteLinkBodySchema.parse(request.body ?? {});
+
+    const member = await app.prisma.user.findFirst({
+      where: {
+        id: params.id,
+        accountId: request.user.accountId,
+      },
+      include: {
+        account: {
+          select: { name: true },
+        },
+      },
+    });
+
+    if (!member) {
+      return reply.status(404).send({ message: 'Usuário não encontrado.' });
+    }
+
+    if (member.isActive) {
+      return reply.status(400).send({ message: 'Usuário já ativado.' });
+    }
+
+    const inviteToken = randomBytes(INVITE_TOKEN_BYTES).toString('hex');
+    const inviteTokenHash = hashInviteToken(inviteToken);
+    const inviteTokenExpiresAt = dayjs().add(INVITE_EXPIRATION_DAYS, 'day').toDate();
+    const invitedAt = new Date();
+
+    await app.prisma.user.update({
+      where: { id: member.id },
+      data: {
+        inviteToken,
+        inviteTokenHash,
+        inviteTokenExpiresAt,
+        invitedAt,
+      },
+    });
+
+    const inviteUrl = `${env.FRONTEND_BASE_URL.replace(/\/$/, '')}/accept-invite?token=${inviteToken}`;
+
+    let emailSent = false;
+    if (body.sendEmail) {
+      const inviter = await app.prisma.user.findUnique({
+        where: { id: request.user.sub },
+        select: { fullName: true },
+      });
+
+      emailSent = await sendInviteEmail({
+        to: member.email,
+        inviteUrl,
+        accountName: member.account?.name ?? 'Seu workspace',
+        invitedBy: inviter?.fullName ?? null,
+        logger: request.log,
+      });
+    }
+
+    return reply.send({
+      data: {
+        inviteUrl,
+        inviteTokenExpiresAt,
+        invitedAt,
+        emailSent,
+      },
+    });
+  });
+
+  app.delete('/members/:id', async (request, reply) => {
+    if (request.user.role !== 'OWNER') {
+      return reply.status(403).send({ message: 'Forbidden' });
+    }
+
+    const params = z.object({ id: z.string().uuid() }).parse(request.params);
+
+    const member = await app.prisma.user.findFirst({
+      where: {
+        id: params.id,
+        accountId: request.user.accountId,
+      },
+      select: {
+        id: true,
+        email: true,
+        isActive: true,
+      },
+    });
+
+    if (!member) {
+      return reply.status(404).send({ message: 'Usuário não encontrado.' });
+    }
+
+    if (member.isActive) {
+      return reply.status(400).send({ message: 'Não é possível remover usuários ativos.' });
+    }
+
+    await app.prisma.$transaction([
+      app.prisma.auditEvent.create({
+        data: {
+          accountId: request.user.accountId,
+          userId: request.user.sub,
+          action: 'user.invite.deleted',
+          entityType: 'User',
+          entityId: member.id,
+          summary: `Convite removido para ${member.email}`,
+          metadataJson: {
+            inviteeEmail: member.email,
+          },
+        },
+      }),
+      app.prisma.user.delete({ where: { id: member.id } }),
+    ]);
+
+    await app.cache.invalidatePrefix(
+      app.cache.buildPrefix({
+        resource: CACHE_RESOURCES.TEAM_RANKING,
+        accountId: request.user.accountId,
+      }),
+    );
+
+    return reply.status(204).send();
   });
 
   app.put('/members/:id', async (request, reply) => {

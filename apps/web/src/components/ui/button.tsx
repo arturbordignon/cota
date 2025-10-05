@@ -1,5 +1,6 @@
 import { Slot } from "@radix-ui/react-slot";
 import { forwardRef } from "react";
+import type { ButtonHTMLAttributes, ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -13,11 +14,12 @@ type ButtonVariant =
 
 type ButtonSize = "sm" | "md" | "lg";
 
-export interface ButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   asChild?: boolean;
   variant?: ButtonVariant;
   size?: ButtonSize;
+  loading?: boolean;
+  loadingText?: ReactNode;
 }
 
 const baseStyles =
@@ -39,15 +41,57 @@ const sizeStyles: Record<ButtonSize, string> = {
 };
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ asChild, className, variant = "primary", size = "md", ...props }, ref) => {
+  (
+    {
+      asChild,
+      className,
+      variant = "primary",
+      size = "md",
+      loading = false,
+      loadingText,
+      disabled,
+      children,
+      ...props
+    },
+    ref,
+  ) => {
     const Comp = asChild ? Slot : "button";
+    const isDisabled = Boolean(disabled);
+    const isLoading = Boolean(loading);
+    const computedDisabled = isDisabled || isLoading;
+    const content = isLoading ? loadingText ?? children : children;
+
+    const baseClass = cn(
+      baseStyles,
+      variantStyles[variant],
+      sizeStyles[size],
+      computedDisabled ? 'pointer-events-none' : '',
+      className,
+    );
+
+    if (asChild) {
+      return (
+        <Comp
+          ref={ref}
+          className={baseClass}
+          data-loading={isLoading ? "" : undefined}
+          aria-disabled={computedDisabled || undefined}
+          {...props}
+        >
+          {content}
+        </Comp>
+      );
+    }
 
     return (
       <Comp
         ref={ref}
-        className={cn(baseStyles, variantStyles[variant], sizeStyles[size], className)}
+        className={baseClass}
+        disabled={computedDisabled}
         {...props}
-      />
+      >
+        {content}
+      </Comp>
     );
   }
 );

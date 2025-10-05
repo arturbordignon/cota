@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import Link from "next/link";
-import { useLocale } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import * as Dialog from "@radix-ui/react-dialog";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { X } from "@phosphor-icons/react";
@@ -27,16 +27,6 @@ interface CreateTemplatePayload {
   htmlBody: string;
 }
 
-const DEFAULT_HTML_BODY = `<section style="font-family: Inter, Arial, sans-serif; padding: 24px;">
-  <h1 style="font-size: 24px; margin-bottom: 16px;">Proposta Comercial</h1>
-  <p style="margin-bottom: 12px;">Use este espaço para apresentar a sua empresa, serviços e condições.</p>
-  <ul>
-    <li>Escopo resumido</li>
-    <li>Investimento estimado</li>
-    <li>Prazo de execução</li>
-  </ul>
-</section>`;
-
 function CreateTemplateDialog({
   open,
   onOpenChange,
@@ -50,18 +40,22 @@ function CreateTemplateDialog({
   isSubmitting: boolean;
   errorMessage?: string;
 }) {
+  const t = useTranslations("templates.dialog");
+  const currentLocale = useLocale();
+  const defaultHtml = t("defaultHtml");
+
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
-  const [locale, setLocale] = useState<"pt-BR" | "en">("pt-BR");
-  const [htmlBody, setHtmlBody] = useState(DEFAULT_HTML_BODY);
+  const [locale, setLocale] = useState<"pt-BR" | "en">(currentLocale === "pt-BR" ? "pt-BR" : "en");
+  const [htmlBody, setHtmlBody] = useState(defaultHtml);
 
   const resetForm = () => {
     setName("");
     setDescription("");
     setCategory("");
-    setLocale("pt-BR");
-    setHtmlBody(DEFAULT_HTML_BODY);
+    setLocale(currentLocale === "pt-BR" ? "pt-BR" : "en");
+    setHtmlBody(defaultHtml);
   };
 
   const handleOpenChange = (next: boolean) => {
@@ -93,16 +87,14 @@ function CreateTemplateDialog({
           >
             <header className="flex items-center justify-between border-b border-outline/20 px-6 py-4">
               <div>
-                <Dialog.Title className="text-lg font-semibold text-ink">Criar modelo</Dialog.Title>
-                <Dialog.Description className="text-xs text-muted">
-                  Defina um layout e reutilize nas propostas da sua equipe.
-                </Dialog.Description>
+                <Dialog.Title className="text-lg font-semibold text-ink">{t("title")}</Dialog.Title>
+                <Dialog.Description className="text-xs text-muted">{t("description")}</Dialog.Description>
               </div>
               <Dialog.Close asChild>
                 <button
                   type="button"
                   className="rounded-full border border-outline bg-white p-2 text-ink shadow-sm transition hover:bg-primary-soft"
-                  aria-label="Fechar"
+                  aria-label={t("close")}
                 >
                   <X size={16} weight="bold" />
                 </button>
@@ -111,48 +103,48 @@ function CreateTemplateDialog({
 
             <div className="grid flex-1 gap-4 overflow-y-auto px-6 py-6">
               <div className="space-y-2">
-                <Label htmlFor="template-name">Nome do modelo</Label>
+                <Label htmlFor="template-name">{t("fields.name")}</Label>
                 <Input
                   id="template-name"
                   value={name}
                   onChange={(event) => setName(event.target.value)}
-                  placeholder="Ex.: Proposta padrão de locação"
+                  placeholder={t("placeholders.name")}
                   required
                   disabled={isSubmitting}
                   autoFocus
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="template-description">Descrição</Label>
+                <Label htmlFor="template-description">{t("fields.description")}</Label>
                 <Input
                   id="template-description"
                   value={description}
                   onChange={(event) => setDescription(event.target.value)}
-                  placeholder="Resumo exibido na listagem"
+                  placeholder={t("placeholders.description")}
                   disabled={isSubmitting}
                 />
               </div>
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="template-category">Categoria</Label>
+                  <Label htmlFor="template-category">{t("fields.category")}</Label>
                   <Input
                     id="template-category"
                     value={category}
                     onChange={(event) => setCategory(event.target.value)}
-                    placeholder="Ex.: Operações"
+                    placeholder={t("placeholders.category")}
                     disabled={isSubmitting}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Idioma</Label>
+                  <Label>{t("fields.locale")}</Label>
                   <Select value={locale} onValueChange={(value) => setLocale(value as "pt-BR" | "en")}> 
-                    <SelectItem value="pt-BR">Português</SelectItem>
-                    <SelectItem value="en">English</SelectItem>
+                    <SelectItem value="pt-BR">{t("localeLabels.ptBR")}</SelectItem>
+                    <SelectItem value="en">{t("localeLabels.en")}</SelectItem>
                   </Select>
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="template-html">HTML do modelo</Label>
+                <Label htmlFor="template-html">{t("fields.html")}</Label>
                 <Textarea
                   id="template-html"
                   value={htmlBody}
@@ -160,7 +152,7 @@ function CreateTemplateDialog({
                   rows={8}
                   disabled={isSubmitting}
                 />
-                <p className="text-xs text-muted">Use HTML básico. Você pode ajustar estilos posteriormente.</p>
+                <p className="text-xs text-muted">{t("fields.htmlHint")}</p>
               </div>
               {errorMessage ? (
                 <p className="rounded-lg border border-danger/40 bg-danger-soft/20 px-3 py-2 text-sm text-danger">
@@ -172,11 +164,11 @@ function CreateTemplateDialog({
             <footer className="flex justify-end gap-2 border-t border-outline/20 bg-[var(--color-surface-muted)]/40 px-6 py-4">
               <Dialog.Close asChild>
                 <Button type="button" variant="ghost" disabled={isSubmitting}>
-                  Cancelar
+                  {t("actions.cancel")}
                 </Button>
               </Dialog.Close>
               <Button type="submit" disabled={isSubmitting || !name.trim() || htmlBody.trim().length < 10}>
-                {isSubmitting ? 'Criando…' : 'Criar modelo'}
+                {isSubmitting ? t("actions.saving") : t("actions.submit")}
               </Button>
             </footer>
           </form>
@@ -186,21 +178,37 @@ function CreateTemplateDialog({
   );
 }
 
-const TAB_ITEMS = [
-  { id: "catalog", label: "Modelos Padrão", description: "Biblioteca curada para serviços pesados" },
-  { id: "mine", label: "Meus Modelos", description: "Favoritos e templates da sua equipe" },
-  { id: "upload", label: "Carregar Modelo", description: "Importe PDF ou DOCX e mapeie campos" },
-] as const;
-
-type TabValue = (typeof TAB_ITEMS)[number]["id"];
+type TabValue = "catalog" | "mine" | "upload";
 
 export default function TemplatesPage() {
+  const t = useTranslations("templates.page");
   const [activeTab, setActiveTab] = useState<TabValue>("catalog");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const locale = useLocale();
   const api = useApi();
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
+
+  const tabItems = useMemo(
+    () => [
+      {
+        id: "catalog" as const,
+        label: t("tabs.catalog.label"),
+        description: t("tabs.catalog.description"),
+      },
+      {
+        id: "mine" as const,
+        label: t("tabs.mine.label"),
+        description: t("tabs.mine.description"),
+      },
+      {
+        id: "upload" as const,
+        label: t("tabs.upload.label"),
+        description: t("tabs.upload.description"),
+      },
+    ],
+    [t],
+  );
 
   useEffect(() => {
     setCategoryFilter("all");
@@ -271,31 +279,31 @@ export default function TemplatesPage() {
     <section className="space-y-8">
       {isTokenMissing ? (
         <Card className="border border-warning/40 bg-warning-soft px-6 py-4 text-sm text-warning">
-          Defina a variável `NEXT_PUBLIC_API_TOKEN` ou autentique-se para carregar os templates reais.
+          {t("alerts.missingToken")}
         </Card>
       ) : null}
 
       <PageHeader
-        title="Modelos de Propostas"
-        description="Crie propostas com rapidez usando modelos sugeridos ou personalizando layouts para o seu negócio."
+        title={t("header.title")}
+        description={t("header.description")}
         action={
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
             <Button asChild variant="secondary" className="w-full sm:w-auto">
-              <Link href="/templates/builder">Editor visual</Link>
+              <Link href="/templates/builder">{t("actions.openBuilder")}</Link>
             </Button>
             <Button className="w-full sm:w-auto" onClick={() => setDialogOpen(true)} disabled={isTokenMissing}>
-              Criar novo modelo
+              {t("actions.new")}
             </Button>
           </div>
         }
       />
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <Tabs items={TAB_ITEMS} defaultValue="catalog" onChange={(value) => setActiveTab(value as TabValue)} />
+        <Tabs items={tabItems} defaultValue="catalog" onChange={(value) => setActiveTab(value as TabValue)} />
         {activeTab !== "upload" ? (
           <div className="w-full max-w-xs">
             <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectItem value="all">Todos os segmentos</SelectItem>
+              <SelectItem value="all">{t("filters.category.all")}</SelectItem>
               {categories.map((category) => (
                 <SelectItem key={category} value={category}>
                   {category}
@@ -309,17 +317,17 @@ export default function TemplatesPage() {
       {showUpload ? (
         <Card className="flex flex-col items-center justify-center gap-4 rounded-3xl border-dashed border-outline bg-white/90 px-10 py-16 text-center">
           <p className="max-w-lg text-sm text-muted">
-            Arraste e solte arquivos PDF ou DOCX para transformar em modelos preenchíveis. Você poderá mapear campos depois do upload.
+            {t("upload.description")}
           </p>
           <Button variant="secondary" size="lg">
-            Carregar arquivo
+            {t("upload.button")}
           </Button>
         </Card>
       ) : (
         <div className="space-y-5">
           {loadError ? (
             <Card className="border border-danger/40 bg-danger-soft/20 px-6 py-4 text-sm text-danger">
-              Não foi possível carregar os modelos: {loadError.message}
+              {t("alerts.loadError", { message: loadError.message })}
             </Card>
           ) : null}
 
@@ -344,7 +352,7 @@ export default function TemplatesPage() {
                     <div className="space-y-1">
                       <h3 className="text-base font-semibold text-ink">{template.name}</h3>
                       <p className="text-sm text-muted">
-                        {template.description ?? 'Sem descrição disponível.'}
+                        {template.description ?? t("cards.noDescription")}
                       </p>
                       {template.category ? (
                         <p className="text-xs uppercase tracking-wide text-muted">{template.category}</p>
@@ -352,16 +360,16 @@ export default function TemplatesPage() {
                     </div>
                   </div>
                   <Button variant="outline" asChild>
-                    <Link href={`/templates/${template.id}`}>Usar modelo</Link>
+                    <Link href={`/templates/${template.id}`}>{t("cards.use")}</Link>
                   </Button>
                 </Card>
               ))
             ) : (
               <Card className="col-span-full flex flex-col items-center justify-center gap-3 rounded-3xl border-dashed border-outline bg-white/90 px-10 py-16 text-center text-muted">
-                <span className="font-medium text-ink">Nenhum modelo encontrado para este filtro</span>
-                <p className="text-sm">Crie um layout do zero ou faça upload de um arquivo existente para começar.</p>
+                <span className="font-medium text-ink">{t("empty.title")}</span>
+                <p className="text-sm">{t("empty.description")}</p>
                 <Button onClick={() => setDialogOpen(true)} disabled={isTokenMissing}>
-                  Criar modelo personalizado
+                  {t("empty.action")}
                 </Button>
               </Card>
             )}

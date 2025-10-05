@@ -48,7 +48,8 @@ model User {
   lastLoginAt     DateTime?
   departmentId    String?
   invitedById     String?
-  inviteTokenHash String?  @unique
+  inviteToken      String?
+  inviteTokenHash  String?  @unique
   inviteTokenExpiresAt DateTime?
   invitedAt       DateTime?
   acceptedAt      DateTime?

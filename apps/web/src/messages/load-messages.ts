@@ -1,15 +1,6 @@
-import { namespaces } from "@/messages/namespaces";
+import { locales, type SupportedLocale } from "@/messages/locales";
 
 export async function loadMessages(locale: string) {
-  const entries = await Promise.all(
-    namespaces.map(async (namespace) => {
-      const messagesModule = await import(`@/messages/${locale}/${namespace}.json`);
-      return [namespace, messagesModule.default] as const;
-    })
-  );
-
-  return entries.reduce<Record<string, unknown>>((acc, [namespace, messages]) => {
-    acc[namespace] = messages;
-    return acc;
-  }, {});
+  const key = (locale as SupportedLocale) in locales ? (locale as SupportedLocale) : 'en';
+  return locales[key];
 }

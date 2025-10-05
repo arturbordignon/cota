@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import * as Dialog from "@radix-ui/react-dialog";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowDown, ArrowUp, DotsSixVertical, PaintBrushBroad, Plus, X } from "@phosphor-icons/react";
@@ -74,12 +75,7 @@ function formatCurrency(value?: string | number | null) {
   });
 }
 
-const STAGE_COLOR_OPTIONS: Array<{ value: StageColor; label: string }> = [
-  { value: 'info', label: 'Informativo' },
-  { value: 'warning', label: 'Atenção' },
-  { value: 'success', label: 'Ganho' },
-  { value: 'neutral', label: 'Pendente' },
-];
+const STAGE_COLORS: StageColor[] = ['info', 'warning', 'success', 'neutral'];
 
 const COLUMN_HEADER_STYLES: Record<StageColor, string> = {
   info: 'border-[var(--color-info)]/20 bg-[var(--color-info-soft)] text-[var(--color-info)]',
@@ -90,6 +86,7 @@ const COLUMN_HEADER_STYLES: Record<StageColor, string> = {
 
 export default function CrmBoardPage() {
   const { isAdmin } = useCurrentUser();
+  const t = useTranslations("crm.page");
   const api = useApi();
   const queryClient = useQueryClient();
   const [columns, setColumns] = useState<ColumnState[]>([]);
@@ -113,6 +110,11 @@ export default function CrmBoardPage() {
     estimatedValue: '',
     notes: '',
   });
+
+  const stageColorOptions = useMemo(
+    () => STAGE_COLORS.map((value) => ({ value, label: t(`stageColors.${value}`) })),
+    [t],
+  );
 
   const pipelineQuery = useQuery({
     queryKey: ['pipeline', 'stages'],
@@ -204,7 +206,7 @@ export default function CrmBoardPage() {
       queryClient.invalidateQueries({ queryKey: ['pipeline', 'stages'] });
     },
     onError: (error) => {
-      setCustomizeError(error instanceof Error ? error.message : 'Não foi possível atualizar a etapa.');
+      setCustomizeError(error instanceof Error ? error.message : t('errors.updateStage'));
       queryClient.invalidateQueries({ queryKey: ['pipeline', 'stages'] });
     },
     onSettled: () => {
@@ -225,7 +227,7 @@ export default function CrmBoardPage() {
       queryClient.invalidateQueries({ queryKey: ['pipeline', 'stages'] });
     },
     onError: (error) => {
-      setCustomizeError(error instanceof Error ? error.message : 'Não foi possível reordenar as etapas.');
+      setCustomizeError(error instanceof Error ? error.message : t('errors.reorderStages'));
       queryClient.invalidateQueries({ queryKey: ['pipeline', 'stages'] });
     },
     onSettled: () => {
@@ -243,7 +245,7 @@ export default function CrmBoardPage() {
       queryClient.invalidateQueries({ queryKey: ['pipeline', 'stages'] });
     },
     onError: (error) => {
-      setCustomizeError(error instanceof Error ? error.message : 'Não foi possível remover a etapa. Verifique se não há leads associados.');
+      setCustomizeError(error instanceof Error ? error.message : t('errors.deleteStage'));
       queryClient.invalidateQueries({ queryKey: ['pipeline', 'stages'] });
     },
     onSettled: () => {
@@ -263,7 +265,7 @@ export default function CrmBoardPage() {
       setNewStageColor('info');
     },
     onError: (error) => {
-      setCustomizeError(error instanceof Error ? error.message : 'Não foi possível criar a etapa.');
+      setCustomizeError(error instanceof Error ? error.message : t('errors.createStage'));
     },
   });
 
@@ -335,7 +337,7 @@ export default function CrmBoardPage() {
 
   const handleDeleteStage = (stage: StageEditor) => {
     if (stage.leadCount > 0) {
-      setCustomizeError('Remova ou mova os leads desta etapa antes de excluí-la.');
+      setCustomizeError(t('errors.deleteStageBlocked'));
       return;
     }
     deleteStageMutation.mutate(stage.id);
@@ -344,7 +346,7 @@ export default function CrmBoardPage() {
   const handleCreateStage = () => {
     const trimmed = newStageName.trim();
     if (trimmed.length < 2) {
-      setCustomizeError('Informe um nome válido para a nova etapa.');
+      setCustomizeError(t('errors.invalidStageName'));
       return;
     }
     createStageMutation.mutate({ name: trimmed, color: newStageColor });
@@ -384,13 +386,13 @@ export default function CrmBoardPage() {
     <section className="space-y-6">
       {isTokenMissing ? (
         <Card className="border border-warning/40 bg-warning-soft px-6 py-4 text-sm text-warning">
-          Defina a variável `NEXT_PUBLIC_API_TOKEN` ou autentique-se para visualizar o pipeline real.
+          {t('alerts.missingToken')}
         </Card>
       ) : null}
 
       <PageHeader
-        title="Pipeline de vendas"
-        description="Organize prospects em etapas, mova oportunidades entre colunas e acompanhe o potencial de receita por fase."
+        title={t('header.title')}
+        description={t('header.description')}
         action={
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
             <Button
@@ -398,7 +400,7 @@ export default function CrmBoardPage() {
               disabled={!isAdmin || columns.length === 0}
               onClick={() => setCreateDialogOpen(true)}
             >
-              <Plus size={16} className="mr-2" /> Novo lead
+              <Plus size={16} className="mr-2" /> {t('actions.newLead')}
             </Button>
             <Button
               variant="outline"
@@ -406,7 +408,7 @@ export default function CrmBoardPage() {
               disabled={!isAdmin}
               onClick={() => setCustomizeDialogOpen(true)}
             >
-              <PaintBrushBroad size={16} className="mr-2" /> Personalizar etapas
+              <PaintBrushBroad size={16} className="mr-2" /> {t('actions.customizeStages')}
             </Button>
           </div>
         }
@@ -414,26 +416,26 @@ export default function CrmBoardPage() {
 
       {loadError && !isTokenMissing ? (
         <Card className="border border-danger/40 bg-danger-soft/20 px-6 py-4 text-sm text-danger">
-          Não foi possível carregar o pipeline: {loadError.message}
+          {t('alerts.loadError', { message: loadError.message })}
         </Card>
       ) : null}
 
       <Card className="flex flex-wrap items-center gap-4 border border-outline/50 bg-white px-6 py-4 shadow-sm">
         <div>
-          <p className="text-xs uppercase tracking-wide text-muted">Oportunidades</p>
+          <p className="text-xs uppercase tracking-wide text-muted">{t('summary.leads')}</p>
           <p className="text-lg font-semibold text-ink">{totals.leads}</p>
         </div>
         <div>
-          <p className="text-xs uppercase tracking-wide text-muted">Valor potencial</p>
+          <p className="text-xs uppercase tracking-wide text-muted">{t('summary.value')}</p>
           <p className="text-lg font-semibold text-primary">{formatCurrency(totals.value) ?? 'R$ 0'}</p>
         </div>
         {!isAdmin ? (
           <p className="text-xs text-muted">
-            Você possui acesso de visualização. Solicite permissões de edição para movimentar etapas ou criar novos leads.
+            {t('overview.viewOnly')}
           </p>
         ) : (
           <p className="text-xs text-muted">
-            Arraste e solte cards para movimentar leads entre etapas. Etapas personalizadas serão salvas por workspace em uma próxima atualização.
+            {t('overview.dragHint')}
           </p>
         )}
       </Card>
@@ -628,7 +630,7 @@ export default function CrmBoardPage() {
                     rows={3}
                     value={draft.notes}
                     onChange={(event) => setDraft((prev) => ({ ...prev, notes: event.target.value }))}
-                    placeholder="Resumo do projeto, próximas ações..."
+                    placeholder={t('forms.notesPlaceholder')}
                   />
                 </div>
                 <div className="space-y-1">
@@ -754,7 +756,7 @@ export default function CrmBoardPage() {
                           onValueChange={(value) => handleStageColorChange(stage.id, value as StageColor)}
                           disabled={updatingStageId === stage.id}
                         >
-                          {STAGE_COLOR_OPTIONS.map((option) => (
+                          {stageColorOptions.map((option) => (
                             <SelectItem key={option.value} value={option.value}>
                               {option.label}
                             </SelectItem>
@@ -821,7 +823,7 @@ export default function CrmBoardPage() {
                       onValueChange={(value) => setNewStageColor(value as StageColor)}
                       disabled={createStageMutation.isPending}
                     >
-                      {STAGE_COLOR_OPTIONS.map((option) => (
+                      {stageColorOptions.map((option) => (
                         <SelectItem key={option.value} value={option.value}>
                           {option.label}
                         </SelectItem>

@@ -3,6 +3,7 @@
 import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useMutation } from "@tanstack/react-query";
 import { ArrowDown, ArrowUp, DownloadSimple, Plus, Printer, Trash } from "@phosphor-icons/react";
 
@@ -143,6 +144,7 @@ function openPrintPreview(html: string) {
 }
 
 export default function TemplateBuilderPage() {
+  const tCommon = useTranslations("common");
   const api = useApi();
   const router = useRouter();
 
@@ -525,8 +527,18 @@ export default function TemplateBuilderPage() {
           </div>
 
           <div className="space-y-2 border-t border-outline/20 pt-4">
-            <Button className="w-full" onClick={() => saveTemplate.mutateAsync()} disabled={!canSave}>
-              {saveTemplate.isLoading ? "Salvando..." : "Salvar modelo"}
+            <Button
+              className="w-full"
+              onClick={() => {
+                if (!saveTemplate.isLoading) {
+                  void saveTemplate.mutateAsync();
+                }
+              }}
+              disabled={!canSave}
+              loading={saveTemplate.isLoading}
+              loadingText={tCommon("loading.saving")}
+            >
+              Salvar modelo
             </Button>
             {feedback ? <p className="text-xs text-muted">{feedback}</p> : null}
           </div>

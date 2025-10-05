@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 
 import { Button, type ButtonProps } from '@/components/ui/button';
 
@@ -12,9 +13,11 @@ interface CheckoutButtonProps extends ButtonProps {
 const API_BASE = process.env.NEXT_PUBLIC_API_URL;
 
 export function CheckoutButton({ planSlug, label, onClick, ...props }: CheckoutButtonProps) {
+  const t = useTranslations('common');
   const [isLoading, setIsLoading] = useState(false);
 
   const handleClick = async (event: React.MouseEvent<HTMLButtonElement>) => {
+    if (isLoading) return;
     onClick?.(event);
     if (!API_BASE) {
       window.alert('API base URL não configurado.');
@@ -55,8 +58,14 @@ export function CheckoutButton({ planSlug, label, onClick, ...props }: CheckoutB
   };
 
   return (
-    <Button {...props} disabled={isLoading || props.disabled} onClick={handleClick}>
-      {isLoading ? 'Redirecionando...' : label}
+    <Button
+      {...props}
+      disabled={props.disabled}
+      loading={isLoading}
+      loadingText={t('loading.redirecting')}
+      onClick={handleClick}
+    >
+      {label}
     </Button>
   );
 }
@@ -66,9 +75,11 @@ interface PortalButtonProps extends ButtonProps {
 }
 
 export function PortalButton({ label, onClick, ...props }: PortalButtonProps) {
+  const t = useTranslations('common');
   const [isLoading, setIsLoading] = useState(false);
 
   const handleClick = async (event: React.MouseEvent<HTMLButtonElement>) => {
+    if (isLoading) return;
     onClick?.(event);
     if (!API_BASE) {
       window.alert('API base URL não configurado.');
@@ -101,8 +112,14 @@ export function PortalButton({ label, onClick, ...props }: PortalButtonProps) {
   };
 
   return (
-    <Button {...props} disabled={isLoading || props.disabled} onClick={handleClick}>
-      {isLoading ? 'Abrindo...' : label}
+    <Button
+      {...props}
+      disabled={props.disabled}
+      loading={isLoading}
+      loadingText={t('loading.opening')}
+      onClick={handleClick}
+    >
+      {label}
     </Button>
   );
 }

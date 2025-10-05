@@ -87,6 +87,7 @@ function AddClientDialog({
   });
 
   const handleSubmit = form.handleSubmit(async (values) => {
+    if (isLoading) return;
     try {
       await onSubmit(values);
       form.reset();
@@ -132,6 +133,7 @@ function AddClientDialog({
                   id="client-name"
                   {...form.register('name')}
                   placeholder={t('placeholders.name')}
+                  disabled={isLoading}
                 />
                 {form.formState.errors.name ? (
                   <p className="text-xs text-danger">{t('errors.name')}</p>
@@ -144,29 +146,32 @@ function AddClientDialog({
                   id="client-company"
                   {...form.register('companyName')}
                   placeholder={t('placeholders.company')}
+                  disabled={isLoading}
                 />
               </div>
 
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="client-email">{t('fields.email')}</Label>
-                  <Input
-                    id="client-email"
-                    type="email"
-                    {...form.register('email')}
-                    placeholder={t('placeholders.email')}
-                  />
+                <Input
+                  id="client-email"
+                  type="email"
+                  {...form.register('email')}
+                  placeholder={t('placeholders.email')}
+                  disabled={isLoading}
+                />
                   {form.formState.errors.email ? (
                     <p className="text-xs text-danger">{t('errors.email')}</p>
                   ) : null}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="client-phone">{t('fields.phone')}</Label>
-                  <Input
-                    id="client-phone"
-                    {...form.register('phone')}
-                    placeholder={t('placeholders.phone')}
-                  />
+                <Input
+                  id="client-phone"
+                  {...form.register('phone')}
+                  placeholder={t('placeholders.phone')}
+                  disabled={isLoading}
+                />
                 </div>
               </div>
 
@@ -177,6 +182,7 @@ function AddClientDialog({
                   rows={3}
                   {...form.register('notes')}
                   placeholder={t('placeholders.notes')}
+                  disabled={isLoading}
                 />
               </div>
 
@@ -188,8 +194,13 @@ function AddClientDialog({
                     {t('cancel')}
                   </Button>
                 </Dialog.Close>
-                <Button type="submit" disabled={!form.formState.isValid}>
-                  {isLoading ? t('saving') : t('save')}
+                <Button
+                  type="submit"
+                  disabled={!form.formState.isValid}
+                  loading={isLoading}
+                  loadingText={t('saving')}
+                >
+                  {t('save')}
                 </Button>
               </div>
             </form>

@@ -1,11 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import * as Dialog from "@radix-ui/react-dialog";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { UserPlus, X } from "@phosphor-icons/react";
+import { Trash, UserPlus, X } from "@phosphor-icons/react";
 
 import { useCurrentUser } from "@/components/providers/user-provider";
 import { PageHeader } from "@/components/layout/page-header";
@@ -91,6 +91,7 @@ interface AddMemberDialogProps {
   inviteLink: string | null;
   onCopyInvite: (link: string) => Promise<void>;
   copySuccess: boolean;
+  inviteEmailSent: boolean | null;
 }
 
 function AddMemberDialog({
@@ -105,8 +106,10 @@ function AddMemberDialog({
   inviteLink,
   onCopyInvite,
   copySuccess,
+  inviteEmailSent,
 }: AddMemberDialogProps) {
   const t = useTranslations("team.dialog");
+  const tTeam = useTranslations("team");
   const tInvite = useTranslations("team.invite");
   const hasValidDepartment =
     draft.departmentId === UNASSIGNED_DEPARTMENT_VALUE ||
@@ -186,7 +189,7 @@ function AddMemberDialog({
                   disabled={isSubmitting}
                 >
                   <SelectItem value={UNASSIGNED_DEPARTMENT_VALUE}>
-                    {t('memberCard.badge.noDepartment')}
+                    {tTeam('memberCard.badge.noDepartment')}
                   </SelectItem>
                   {departments.map((department) => (
                     <SelectItem key={department.id} value={department.id}>
@@ -200,21 +203,22 @@ function AddMemberDialog({
                 <div className="space-y-2 rounded-xl border border-success/40 bg-success-soft/20 px-4 py-3 text-sm">
                   <p className="font-semibold text-ink">{tInvite('successTitle')}</p>
                   <p className="text-xs text-muted">{tInvite('successDescription')}</p>
-                  <div className="flex flex-col gap-2 sm:flex-row">
-                    <Input value={inviteLink} readOnly className="bg-white sm:flex-1" />
-                    <Button
-                      type="button"
-                      variant="primary"
-                      className="sm:w-40"
-                      onClick={async () => {
-                        await onCopyInvite(inviteLink);
-                      }}
-                    >
-                      {tInvite('copy')}
-                    </Button>
-                  </div>
+                  <Button
+                    type="button"
+                    variant="primary"
+                    onClick={async () => {
+                      await onCopyInvite(inviteLink);
+                    }}
+                  >
+                    {tInvite('copy')}
+                  </Button>
                   {copySuccess ? (
                     <p className="text-xs font-medium text-success">{tInvite('copied')}</p>
+                  ) : null}
+                  {inviteEmailSent === true ? (
+                    <p className="text-xs font-medium text-success">{tInvite('emailSent')}</p>
+                  ) : inviteEmailSent === false ? (
+                    <p className="text-xs text-warning">{tInvite('emailNotSent')}</p>
                   ) : null}
                 </div>
               ) : null}
@@ -223,11 +227,16 @@ function AddMemberDialog({
             <footer className="flex justify-end gap-2 border-t border-outline/20 bg-[var(--color-surface-muted)]/40 px-6 py-4">
               <Dialog.Close asChild>
                 <Button type="button" variant="ghost">
-                  {t('actions.cancel')}
+                  {t('dialog.actions.cancel')}
                 </Button>
               </Dialog.Close>
-              <Button type="submit" disabled={!isValid || isSubmitting}>
-                {isSubmitting ? t('actions.saving') : t('actions.submit')}
+              <Button
+                type="submit"
+                disabled={!isValid}
+                loading={isSubmitting}
+                loadingText={t('actions.saving')}
+              >
+                {t('actions.submit')}
               </Button>
             </footer>
           </form>
@@ -244,6 +253,8 @@ interface MemberRow extends TeamMemberSummary {
 export default function TeamPage() {
   const { isAdmin } = useCurrentUser();
   const t = useTranslations("team");
+  const tRoles = useTranslations("team.roles");
+  const tInvite = useTranslations("team.invite");
   const api = useApi();
   const queryClient = useQueryClient();
 
@@ -261,6 +272,14 @@ export default function TeamPage() {
   const [savingMemberId, setSavingMemberId] = useState<string | null>(null);
   const [inviteLink, setInviteLink] = useState<string | null>(null);
   const [copySuccess, setCopySuccess] = useState(false);
+  const [pendingInviteMemberId, setPendingInviteMemberId] = useState<string | null>(null);
+  const [pendingInviteAction, setPendingInviteAction] = useState<'copy' | 'email' | null>(null);
+  const [copiedMemberId, setCopiedMemberId] = useState<string | null>(null);
+  const [resentMemberId, setResentMemberId] = useState<string | null>(null);
+  const [inviteEmailSent, setInviteEmailSent] = useState<boolean | null>(null);
+  const [deletingMemberId, setDeletingMemberId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<MemberRow | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const teamQuery = useQuery({
     queryKey: ['team', 'overview'],
@@ -328,7 +347,15 @@ export default function TeamPage() {
     if (!open) {
       setInviteLink(null);
       setCopySuccess(false);
+      setInviteEmailSent(null);
       setDraft({ fullName: '', email: '', jobTitle: '', departmentId: UNASSIGNED_DEPARTMENT_VALUE });
+      setPendingInviteMemberId(null);
+      setPendingInviteAction(null);
+      setCopiedMemberId(null);
+      setResentMemberId(null);
+    }
+    if (open) {
+      setInviteEmailSent(null);
     }
   };
 
@@ -352,9 +379,129 @@ export default function TeamPage() {
     }
   };
 
+  const inviteLinkMutation = useMutation({
+    mutationFn: ({ memberId, sendEmail }: { memberId: string; sendEmail?: boolean }) =>
+      api.post<{
+        data: {
+          inviteUrl: string;
+          inviteTokenExpiresAt: string | null;
+          invitedAt: string | null;
+          emailSent: boolean;
+        };
+      }>(
+        `/team/members/${memberId}/invite-link`,
+        sendEmail ? { sendEmail } : {},
+      ),
+  });
+
+  const removeMember = useMutation({
+    mutationFn: (memberId: string) => api.del(`/team/members/${memberId}`),
+    onSuccess: (_, memberId) => {
+      setMembers((prev) => prev.filter((member) => member.id !== memberId));
+      setBaselines((prev) => {
+        const { [memberId]: _discarded, ...rest } = prev;
+        return rest;
+      });
+      queryClient.invalidateQueries({ queryKey: ['team', 'overview'] });
+      setDeleteTarget((current) => (current?.id === memberId ? null : current));
+      setDeleteError(null);
+    },
+    onSettled: () => {
+      setDeletingMemberId(null);
+    },
+  });
+
+  const applyInviteUpdate = useCallback(
+    (memberId: string, payload: { inviteUrl: string; inviteTokenExpiresAt: string | null; invitedAt: string | null }) => {
+      setMembers((prev) =>
+        prev.map((member) =>
+          member.id === memberId
+            ? {
+                ...member,
+                inviteUrl: payload.inviteUrl,
+                inviteTokenExpiresAt: payload.inviteTokenExpiresAt,
+                invitedAt: payload.invitedAt,
+              }
+            : member,
+        ),
+      );
+    },
+    [setMembers],
+  );
+
+  const handleCopyMemberInvite = useCallback(
+    async (memberId: string) => {
+      try {
+        setPendingInviteMemberId(memberId);
+        setPendingInviteAction('copy');
+        const response = await inviteLinkMutation.mutateAsync({ memberId });
+        applyInviteUpdate(memberId, response.data);
+        await handleCopyInvite(response.data.inviteUrl);
+        setCopiedMemberId(memberId);
+        setTimeout(() => {
+          setCopiedMemberId((prev) => (prev === memberId ? null : prev));
+        }, 4000);
+      } catch (error) {
+        console.error('Failed to copy invite link', error);
+      } finally {
+        setPendingInviteMemberId(null);
+        setPendingInviteAction(null);
+      }
+    },
+    [applyInviteUpdate, handleCopyInvite, inviteLinkMutation],
+  );
+
+  const handleResendInvite = useCallback(
+    async (memberId: string) => {
+      try {
+        setPendingInviteMemberId(memberId);
+        setPendingInviteAction('email');
+        const response = await inviteLinkMutation.mutateAsync({ memberId, sendEmail: true });
+        applyInviteUpdate(memberId, response.data);
+        setResentMemberId(memberId);
+        setTimeout(() => {
+          setResentMemberId((prev) => (prev === memberId ? null : prev));
+        }, 4000);
+      } catch (error) {
+        console.error('Failed to resend invite email', error);
+      } finally {
+        setPendingInviteMemberId(null);
+        setPendingInviteAction(null);
+      }
+    },
+    [applyInviteUpdate, inviteLinkMutation],
+  );
+
+  const handleDeleteMember = useCallback(
+    (member: MemberRow) => {
+      setDeleteError(null);
+      setDeleteTarget(member);
+    },
+    [],
+  );
+
+  const confirmDeleteMember = useCallback(async () => {
+    if (!deleteTarget) return;
+    try {
+      setDeletingMemberId(deleteTarget.id);
+      setDeleteError(null);
+      await removeMember.mutateAsync(deleteTarget.id);
+    } catch (error) {
+      console.error('Failed to delete pending invite', error);
+      setDeleteError(error instanceof Error ? error.message : tInvite('deleteError'));
+    }
+  }, [deleteTarget, removeMember, tInvite]);
+
   const inviteMember = useMutation({
     mutationFn: async () => {
-      return api.post<{ data: TeamMemberSummary & { inviteUrl?: string | null } }>('/team/members', {
+      return api.post<{
+        data: TeamMemberSummary & {
+          inviteUrl?: string | null;
+          inviteTokenExpiresAt?: string | null;
+          invitedAt?: string | null;
+          emailSent?: boolean;
+        };
+      }>('/team/members', {
         fullName: draft.fullName.trim(),
         email: draft.email.trim().toLowerCase(),
         jobTitle: draft.jobTitle.trim() || undefined,
@@ -362,11 +509,18 @@ export default function TeamPage() {
           draft.departmentId === UNASSIGNED_DEPARTMENT_VALUE ? undefined : draft.departmentId,
       });
     },
+    onMutate: () => {
+      setInviteEmailSent(null);
+    },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['team', 'overview'] });
       setInviteLink(result.data.inviteUrl ?? null);
+      setInviteEmailSent(result.data.emailSent ?? null);
       setCopySuccess(false);
       setDraft({ fullName: '', email: '', jobTitle: '', departmentId: draft.departmentId });
+    },
+    onError: () => {
+      setInviteEmailSent(null);
     },
   });
 
@@ -447,11 +601,33 @@ export default function TeamPage() {
 
   const formatCurrency = (value: number) => currencyFormatter.format(value);
 
+  const resolveRoleLabel = useCallback(
+    (role: string | null | undefined, fallback: string | null | undefined) => {
+      if (fallback && fallback.trim().length > 0) {
+        return fallback.trim();
+      }
+      const value = role?.toLowerCase() ?? 'member';
+      switch (value) {
+        case 'owner':
+          return tRoles('owner');
+        case 'admin':
+          return tRoles('admin');
+        case 'manager':
+          return tRoles('manager');
+        case 'viewer':
+          return tRoles('viewer');
+        default:
+          return tRoles('member');
+      }
+    },
+    [tRoles],
+  );
+
   return (
     <section className="space-y-6">
       {isTokenMissing ? (
         <Card className="border border-warning/40 bg-warning-soft px-6 py-4 text-sm text-warning">
-          Defina a variável `NEXT_PUBLIC_API_TOKEN` ou autentique-se para visualizar a equipe real.
+          {t('alerts.missingToken')}
         </Card>
       ) : null}
 
@@ -463,11 +639,7 @@ export default function TeamPage() {
             <Button asChild variant="ghost">
               <Link href="/departments">{t('actions.manageDepartments')}</Link>
             </Button>
-            <Button
-              onClick={() => handleDialogOpenChange(true)}
-              className="gap-2"
-              disabled={departments.length === 0}
-            >
+            <Button onClick={() => handleDialogOpenChange(true)} className="gap-2">
               <UserPlus size={18} weight="bold" />
               {t('actions.addMember')}
             </Button>
@@ -477,7 +649,7 @@ export default function TeamPage() {
 
       {loadError && !isTokenMissing ? (
         <Card className="border border-danger/40 bg-danger-soft/20 px-6 py-4 text-sm text-danger">
-          Não foi possível carregar a equipe: {loadError.message}
+          {t('alerts.loadError', { message: loadError.message })}
         </Card>
       ) : null}
 
@@ -611,17 +783,34 @@ export default function TeamPage() {
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <h3 className="text-base font-semibold text-ink">{member.displayName}</h3>
-                    <p className="text-sm text-muted">{member.jobTitle ?? t('defaults.role')}</p>
+                    <p className="text-sm text-muted">
+                      {resolveRoleLabel(member.role, member.jobTitle)}
+                    </p>
                     <p className="text-xs text-muted">{member.email}</p>
                   </div>
-                  <Badge tone="info">{department?.name ?? t('memberCard.badge.noDepartment')}</Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge tone="info">{department?.name ?? t('memberCard.badge.noDepartment')}</Badge>
+                    {!member.isActive ? (
+                      <Button
+                        size="sm"
+                        variant="danger"
+                        onClick={() => handleDeleteMember(member)}
+                        loading={deletingMemberId === member.id}
+                        loadingText={tInvite('deleting')}
+                      >
+                        <Trash size={14} weight="bold" />
+                        {tInvite('delete')}
+                      </Button>
+                    ) : null}
+                  </div>
                 </div>
 
                 <div className="space-y-2">
                   <Label>{t('memberCard.fields.department')}</Label>
-                  <Select
+                 <Select
                     value={member.departmentId ?? UNASSIGNED_DEPARTMENT_VALUE}
                     onValueChange={(value) => updateDepartment(member.id, value)}
+                    disabled={savingMemberId === member.id}
                   >
                     <SelectItem value={UNASSIGNED_DEPARTMENT_VALUE}>
                       {t('memberCard.badge.noDepartment')}
@@ -641,6 +830,65 @@ export default function TeamPage() {
                   </div>
                 ) : null}
 
+                {!member.isActive ? (
+                  <div className="rounded-lg border border-outline/30 bg-[var(--color-surface-muted)]/50 px-3 py-3 text-xs text-muted">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span>{tInvite('pendingNote')}</span>
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleResendInvite(member.id)}
+                          loading={pendingInviteMemberId === member.id && pendingInviteAction === 'email'}
+                          loadingText={tInvite('resending')}
+                        >
+                          {tInvite('resend')}
+                        </Button>
+                      </div>
+                    </div>
+                    {member.inviteUrl ? (
+                      <div className="mt-3 space-y-2 text-left">
+                        <p className="text-xs font-medium text-ink">{tInvite('linkLabel')}</p>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={async () => {
+                            try {
+                              await handleCopyInvite(member.inviteUrl!);
+                              setCopiedMemberId(member.id);
+                              setTimeout(() => {
+                                setCopiedMemberId((prev) => (prev === member.id ? null : prev));
+                              }, 4000);
+                            } catch (error) {
+                              console.error('Failed to copy invite link', error);
+                            }
+                          }}
+                        >
+                          {tInvite('copyExisting')}
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleCopyMemberInvite(member.id)}
+                          loading={pendingInviteMemberId === member.id && pendingInviteAction === 'copy'}
+                          loadingText={tInvite('generating')}
+                        >
+                          {tInvite('generateLink')}
+                        </Button>
+                      </div>
+                    )}
+                    {copiedMemberId === member.id ? (
+                      <p className="mt-2 font-medium text-success">{tInvite('copiedExisting')}</p>
+                    ) : null}
+                    {resentMemberId === member.id ? (
+                      <p className="mt-2 font-medium text-success">{tInvite('resent')}</p>
+                    ) : null}
+                  </div>
+                ) : null}
+
                 <div className="flex justify-end gap-2">
                   <Button
                     variant="ghost"
@@ -653,11 +901,11 @@ export default function TeamPage() {
                   <Button
                     size="sm"
                     onClick={() => persistChanges(member.id)}
-                    disabled={!hasChanges || savingMemberId === member.id}
+                    disabled={!hasChanges}
+                    loading={savingMemberId === member.id}
+                    loadingText={t('memberCard.buttons.saving')}
                   >
-                    {savingMemberId === member.id
-                      ? t('memberCard.buttons.saving')
-                      : t('memberCard.buttons.save')}
+                    {t('memberCard.buttons.save')}
                   </Button>
                 </div>
               </Card>
@@ -678,7 +926,66 @@ export default function TeamPage() {
         inviteLink={inviteLink}
         onCopyInvite={handleCopyInvite}
         copySuccess={copySuccess}
+        inviteEmailSent={inviteEmailSent}
       />
+
+      <Dialog.Root
+        open={Boolean(deleteTarget)}
+        onOpenChange={(open) => {
+          if (!open) {
+            if (deleteTarget && deletingMemberId === deleteTarget.id) {
+              return;
+            }
+            setDeleteTarget(null);
+            setDeleteError(null);
+          }
+        }}
+      >
+        <Dialog.Portal>
+          <Dialog.Overlay className="fixed inset-0 z-40 bg-ink/40 backdrop-blur-sm" />
+          <Dialog.Content className="fixed inset-0 z-50 flex items-center justify-center px-4 py-6">
+            <div className="w-full max-w-sm rounded-2xl border border-outline/40 bg-white p-6 shadow-2xl">
+              <Dialog.Title className="text-lg font-semibold text-ink">
+                {tInvite('deleteTitle')}
+              </Dialog.Title>
+              <Dialog.Description className="mt-2 text-sm text-muted">
+                {tInvite('deleteConfirm')}
+              </Dialog.Description>
+              {deleteTarget ? (
+                <p className="mt-3 text-xs font-medium text-ink">
+                  {deleteTarget.displayName} · {deleteTarget.email}
+                </p>
+              ) : null}
+              {deleteError ? <p className="mt-4 text-sm text-danger">{deleteError}</p> : null}
+              <div className="mt-6 flex justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => {
+                    if (deleteTarget && deletingMemberId === deleteTarget.id) {
+                      return;
+                    }
+                    setDeleteTarget(null);
+                    setDeleteError(null);
+                  }}
+                  disabled={Boolean(deleteTarget && deletingMemberId === deleteTarget.id)}
+                >
+                  {t('dialog.actions.cancel')}
+                </Button>
+                <Button
+                  type="button"
+                  variant="danger"
+                  onClick={confirmDeleteMember}
+                  loading={Boolean(deleteTarget && deletingMemberId === deleteTarget.id)}
+                  loadingText={tInvite('deleting')}
+                >
+                  {tInvite('deleteConfirmButton')}
+                </Button>
+              </div>
+            </div>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
     </section>
   );
 }

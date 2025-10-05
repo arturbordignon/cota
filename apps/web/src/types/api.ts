@@ -144,6 +144,9 @@ export interface TeamMemberSummary {
   department?: { id: string; name: string } | null;
   isActive: boolean;
   createdAt: string;
+  inviteUrl?: string | null;
+  inviteTokenExpiresAt?: string | null;
+  invitedAt?: string | null;
 }
 
 export interface TeamOverviewResponse {
