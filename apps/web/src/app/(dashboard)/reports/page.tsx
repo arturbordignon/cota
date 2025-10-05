@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import React, { memo, useCallback, useMemo, useState } from "react";
 import { useFormatter, useTranslations } from "next-intl";
 import { ChartLine, Table as TableIcon } from "@phosphor-icons/react";
@@ -54,12 +55,7 @@ const STATUS_TONES: Record<string, StatusTone> = {
   default: "neutral",
 };
 
-const SUGGESTION_KEYS = [
-  "revenue90",
-  "conversionConsultant",
-  "cycle",
-  "segment",
-] as const;
+const SUGGESTION_KEYS = ["revenue90", "conversionConsultant", "cycle", "segment"] as const;
 
 const TONE_COLORS: Record<"neutral" | "info" | "warning" | "success" | "danger", string> = {
   neutral: "var(--color-outline)",
@@ -89,7 +85,11 @@ const BarChartViz = memo(function BarChartViz({
   data: BarDatum[];
   valueFormatter?: (value: number) => string;
 }) {
-  const formatter = valueFormatter ?? ((value: number) => value.toLocaleString("pt-BR"));
+  const defaultFormatter = useMemo(
+    () => new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 }),
+    [],
+  );
+  const formatter = valueFormatter ?? ((value: number) => defaultFormatter.format(value));
   return (
     <div className="h-64">
       <ResponsiveContainer width="100%" height="100%">
@@ -128,7 +128,11 @@ const FunnelChartViz = memo(function FunnelChartViz({
   data: FunnelDatum[];
   valueFormatter?: (value: number) => string;
 }) {
-  const formatter = valueFormatter ?? ((value: number) => value.toLocaleString("pt-BR"));
+  const defaultFormatter = useMemo(
+    () => new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 }),
+    [],
+  );
+  const formatter = valueFormatter ?? ((value: number) => defaultFormatter.format(value));
   const first = data[0]?.value ?? 0;
   return (
     <div className="h-72">
@@ -203,6 +207,7 @@ function SimpleTable({
 
 export default function ReportsPage() {
   const api = useApi();
+  const [activeTab, setActiveTab] = useState<"overview" | "custom">("overview");
   const formatter = useFormatter();
   const tPage = useTranslations("reports.page");
   const tOverview = useTranslations("reports.page.overview");
@@ -210,7 +215,8 @@ export default function ReportsPage() {
   const tCustomResult = useTranslations("reports.tabs.custom.resultCard");
 
   const formatCurrency = useCallback(
-    (value: number) => formatter.number(value, { style: "currency", currency: "BRL", maximumFractionDigits: 0 }),
+    (value: number) =>
+      formatter.number(value, { style: "currency", currency: "BRL", maximumFractionDigits: 0 }),
     [formatter],
   );
 
@@ -225,15 +231,28 @@ export default function ReportsPage() {
     [formatter],
   );
 
-  const statusBadges = useMemo(() => ({
-    DRAFT: { label: tOverview("status.labels.DRAFT"), tone: STATUS_TONES.DRAFT },
-    PENDING: { label: tOverview("status.labels.PENDING"), tone: STATUS_TONES.PENDING },
-    SENT: { label: tOverview("status.labels.SENT"), tone: STATUS_TONES.SENT },
-    ACCEPTED: { label: tOverview("status.labels.ACCEPTED"), tone: STATUS_TONES.ACCEPTED },
-    DECLINED: { label: tOverview("status.labels.DECLINED"), tone: STATUS_TONES.DECLINED },
-    EXPIRED: { label: tOverview("status.labels.EXPIRED"), tone: STATUS_TONES.EXPIRED },
-    default: { label: tOverview("status.labels.default"), tone: STATUS_TONES.default },
-  }), [tOverview]);
+  const formatPercent = useCallback(
+    (value: number, options?: Intl.NumberFormatOptions) =>
+      formatter.number(value / 100, {
+        style: "percent",
+        maximumFractionDigits: 1,
+        ...options,
+      }),
+    [formatter],
+  );
+
+  const statusBadges = useMemo(
+    () => ({
+      DRAFT: { label: tOverview("status.labels.DRAFT"), tone: STATUS_TONES.DRAFT },
+      PENDING: { label: tOverview("status.labels.PENDING"), tone: STATUS_TONES.PENDING },
+      SENT: { label: tOverview("status.labels.SENT"), tone: STATUS_TONES.SENT },
+      ACCEPTED: { label: tOverview("status.labels.ACCEPTED"), tone: STATUS_TONES.ACCEPTED },
+      DECLINED: { label: tOverview("status.labels.DECLINED"), tone: STATUS_TONES.DECLINED },
+      EXPIRED: { label: tOverview("status.labels.EXPIRED"), tone: STATUS_TONES.EXPIRED },
+      default: { label: tOverview("status.labels.default"), tone: STATUS_TONES.default },
+    }),
+    [tOverview],
+  );
 
   const suggestions = useMemo(
     () => SUGGESTION_KEYS.map((key) => tCustom(`suggestionValues.${key}`)),
@@ -318,10 +337,14 @@ export default function ReportsPage() {
     [statusEntries],
   );
 
-  const topClientsChartData = useMemo(
-    () => topClients.map((client) => ({ name: client.client, value: client.value ?? 0 })),
-    [topClients],
-  );
+  const { topClientsChartData, topClientsTotal } = useMemo(() => {
+    const chartData = topClients.map((client) => ({
+      name: client.client,
+      value: client.value ?? 0,
+    }));
+    const total = chartData.reduce((acc, client) => acc + Number(client.value ?? 0), 0);
+    return { topClientsChartData: chartData, topClientsTotal: total };
+  }, [topClients]);
 
   const teamChartData = useMemo(
     () =>
@@ -364,8 +387,24 @@ export default function ReportsPage() {
     [formatCurrency, pipelineSummary],
   );
 
-  const recentRangeStart = range?.start ? formatDate(range.start) : tOverview("recentProposals.noDate");
+  const recentRangeStart = range?.start
+    ? formatDate(range.start)
+    : tOverview("recentProposals.noDate");
   const recentRangeEnd = range?.end ? formatDate(range.end) : tOverview("recentProposals.noDate");
+
+  const acceptedCount = useMemo(
+    () => statusEntries.find((entry) => entry.status === "ACCEPTED")?.count ?? 0,
+    [statusEntries],
+  );
+
+  const conversionRate = totalProposals ? (acceptedCount / totalProposals) * 100 : 0;
+  const pipelineAverageValue = totalPipelineLeads ? totalPipelineValue / totalPipelineLeads : 0;
+  const topPerformer = useMemo(() => {
+    if (!teamChartData || teamChartData.length === 0) return null;
+    const sorted = [...teamChartData].sort((a, b) => Number(b.total ?? 0) - Number(a.total ?? 0));
+    return sorted[0] ?? null;
+  }, [teamChartData]);
+  const upcomingHighlights = useMemo(() => recentProposals.slice(0, 3), [recentProposals]);
 
   /* ----------------------------- custom: generate ---------------------------- */
 
@@ -429,7 +468,11 @@ export default function ReportsPage() {
 
       <PageHeader title={tPage("header.title")} description={tPage("header.description")} />
 
-      <Tabs defaultValue="overview" className="space-y-4">
+      <Tabs
+        value={activeTab}
+        onValueChange={(value) => setActiveTab(value as "overview" | "custom")}
+        className="space-y-4"
+      >
         <TabsList className="flex w-full flex-wrap gap-2">
           <TabsTrigger value="overview">{tPage("tabs.overview")}</TabsTrigger>
           <TabsTrigger value="custom">{tPage("tabs.custom")}</TabsTrigger>
@@ -441,6 +484,115 @@ export default function ReportsPage() {
             <Card className="p-6 text-sm text-muted">{tOverview("loading")}</Card>
           ) : overview ? (
             <div className="space-y-4">
+              <div className="grid gap-4 md:grid-cols-3">
+                <StatCard
+                  label={tPage("stats.totalProposals")}
+                  value={formatNumber(totalProposals)}
+                  hint={tPage("stats.totalHint")}
+                />
+                <StatCard
+                  label={tPage("stats.accepted")}
+                  value={formatPercent(conversionRate)}
+                  hint={tPage("stats.acceptedHint")}
+                />
+                <StatCard
+                  label={tPage("stats.pipeline")}
+                  value={formatCurrency(totalPipelineValue)}
+                  hint={tPage("stats.pipelineHint", { avg: formatCurrency(pipelineAverageValue) })}
+                />
+              </div>
+
+              <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
+                <Card className="space-y-4 border border-outline/0 bg-gradient-to-r from-primary/15 via-primary/10 to-primary/5 px-6 py-6 shadow-sm">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h3 className="text-base font-semibold text-ink">
+                        {tPage("quickActions.title")}
+                      </h3>
+                      <p className="text-sm text-muted">{tPage("quickActions.description")}</p>
+                    </div>
+                    <Badge tone="info">{tPage("quickActions.badge")}</Badge>
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    <Button
+                      variant="primary"
+                      className="justify-start gap-2 shadow"
+                      onClick={() => setActiveTab("custom")}
+                    >
+                      <ChartLine size={16} />
+                      {tPage("quickActions.generate")}
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      className="justify-start gap-2 shadow-sm"
+                      onClick={() => {
+                        setActiveTab("custom");
+                        setVisualization("bar");
+                        setQuery(suggestions[0] ?? "");
+                      }}
+                    >
+                      {tPage("quickActions.useSuggestion")}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      className="justify-start gap-2"
+                      onClick={() => {
+                        setPendingSel(undefined);
+                        setAppliedSel(undefined);
+                        overviewQuery.refetch();
+                      }}
+                    >
+                      {tPage("quickActions.refresh")}
+                    </Button>
+                  </div>
+                </Card>
+
+                <Card className="space-y-4 border border-outline/40 bg-white px-6 py-6 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-base font-semibold text-ink">
+                      {tPage("highlights.title")}
+                    </h3>
+                    <Badge tone="neutral">{tPage("highlights.badge")}</Badge>
+                  </div>
+                  {topPerformer ? (
+                    <div className="rounded-xl border border-outline/30 bg-[var(--color-surface-muted)]/60 px-4 py-3">
+                      <p className="text-xs uppercase tracking-wide text-muted">
+                        {tPage("highlights.topPerformer")}
+                      </p>
+                      <p className="text-sm font-semibold text-ink">
+                        {topPerformer.name ?? tPage("highlights.unknown")}
+                      </p>
+                      <p className="text-xs text-muted">
+                        {tPage("highlights.totalSent", {
+                          value: formatNumber(Number(topPerformer.total ?? 0)),
+                        })}
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted">{tPage("highlights.noPerformer")}</p>
+                  )}
+                  <div className="space-y-2">
+                    <p className="text-xs uppercase tracking-wide text-muted">
+                      {tPage("highlights.upcoming")}
+                    </p>
+                    {upcomingHighlights.length > 0 ? (
+                      upcomingHighlights.map((item) => (
+                        <div
+                          key={item.id}
+                          className="flex items-center justify-between rounded-lg bg-[var(--color-surface-muted)]/50 px-3 py-2 text-sm"
+                        >
+                          <span className="text-ink">
+                            {item.client ?? tPage("highlights.noClient")}
+                          </span>
+                          <span className="text-muted">{formatDate(item.createdAt)}</span>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-xs text-muted">{tPage("highlights.noUpcoming")}</p>
+                    )}
+                  </div>
+                </Card>
+              </div>
               {/* Range selector with Apply */}
               <Card className="p-4">
                 <div className="grid items-end gap-3 sm:grid-cols-[1fr_auto]">
@@ -509,8 +661,19 @@ export default function ReportsPage() {
 
                 <Card className="space-y-4 p-6">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-semibold text-ink">{tOverview("topClients.title")}</h3>
-                    <Badge tone="info">{tOverview("topClients.badge")}</Badge>
+                    <h3 className="text-sm font-semibold text-ink">
+                      {tOverview("topClients.title")}
+                    </h3>
+                    <div className="flex items-center gap-2">
+                      <Badge tone="info">{tOverview("topClients.badge")}</Badge>
+                      {topClientsTotal > 0 ? (
+                        <Badge tone="neutral">
+                          {tOverview("topClients.total", {
+                            value: formatCurrency(topClientsTotal),
+                          })}
+                        </Badge>
+                      ) : null}
+                    </div>
                   </div>
                   {topClientsChartData.length > 0 ? (
                     <BarChartViz
@@ -540,7 +703,9 @@ export default function ReportsPage() {
               {receitaCidadeChartData.length > 0 ? (
                 <Card className="space-y-4 p-6">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-semibold text-ink">{tOverview("cityRevenue.title")}</h3>
+                    <h3 className="text-sm font-semibold text-ink">
+                      {tOverview("cityRevenue.title")}
+                    </h3>
                     <Badge tone="info">{tOverview("cityRevenue.badge")}</Badge>
                   </div>
                   <BarChartViz
@@ -554,7 +719,9 @@ export default function ReportsPage() {
               <div className="grid gap-4 lg:grid-cols-2">
                 <Card className="space-y-4 p-6">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-semibold text-ink">{tOverview("pipelineSummary.title")}</h3>
+                    <h3 className="text-sm font-semibold text-ink">
+                      {tOverview("pipelineSummary.title")}
+                    </h3>
                     <Badge tone="info">
                       {tOverview("pipelineSummary.badge", {
                         leads: formatNumber(totalPipelineLeads),
@@ -579,7 +746,9 @@ export default function ReportsPage() {
 
                 <Card className="space-y-4 p-6">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-semibold text-ink">{tOverview("pipelineDistribution.title")}</h3>
+                    <h3 className="text-sm font-semibold text-ink">
+                      {tOverview("pipelineDistribution.title")}
+                    </h3>
                     <Badge tone="neutral">{tOverview("pipelineDistribution.badge")}</Badge>
                   </div>
                   {pipelineChartData.length > 0 ? (
@@ -600,9 +769,14 @@ export default function ReportsPage() {
               {/* Propostas recentes */}
               <Card className="space-y-4 p-6">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-ink">{tOverview("recentProposals.title")}</h3>
+                  <h3 className="text-sm font-semibold text-ink">
+                    {tOverview("recentProposals.title")}
+                  </h3>
                   <Badge tone="neutral">
-                    {tOverview("recentProposals.badge", { start: recentRangeStart, end: recentRangeEnd })}
+                    {tOverview("recentProposals.badge", {
+                      start: recentRangeStart,
+                      end: recentRangeEnd,
+                    })}
                   </Badge>
                 </div>
                 <div className="overflow-auto rounded-lg border border-outline/40">
@@ -634,13 +808,13 @@ export default function ReportsPage() {
                               {item.client ?? tOverview("recentProposals.fallbacks.client")}
                             </td>
                             <td className="px-4 py-2 text-ink">
-                              <Badge tone={statusBadges[item.status]?.tone ?? statusBadges.default.tone}>
+                              <Badge
+                                tone={statusBadges[item.status]?.tone ?? statusBadges.default.tone}
+                              >
                                 {statusBadges[item.status]?.label ?? statusBadges.default.label}
                               </Badge>
                             </td>
-                            <td className="px-4 py-2 text-ink">
-                              {formatDate(item.createdAt)}
-                            </td>
+                            <td className="px-4 py-2 text-ink">{formatDate(item.createdAt)}</td>
                           </tr>
                         ))
                       ) : (
@@ -783,7 +957,7 @@ export default function ReportsPage() {
                         </table>
                       </div>
                     </div>
-                    ) : (
+                  ) : (
                     <div className="space-y-2">
                       <p className="text-sm font-semibold text-ink">{tCustomResult("rawTitle")}</p>
                       <pre className="max-h-60 overflow-auto rounded-lg bg-[var(--color-surface-muted)]/60 p-4 text-xs text-muted">
@@ -793,7 +967,9 @@ export default function ReportsPage() {
                   )
                 ) : (
                   <div className="space-y-2">
-                    <p className="text-sm font-semibold text-ink">{tCustomResult("waitingTitle")}</p>
+                    <p className="text-sm font-semibold text-ink">
+                      {tCustomResult("waitingTitle")}
+                    </p>
                     <p>{tCustomResult("placeholder")}</p>
                   </div>
                 )}

@@ -70,6 +70,73 @@ export const enMessages = {
     "badges": {
       "memberSince": "Since {date}"
     },
+    "stats": {
+      "total": "Total clients",
+      "recent": "Added in last 30 days",
+      "recentHint": "Based on creation date",
+      "withEmail": "Clients with email"
+    },
+    "quickActions": {
+      "title": "Quick actions",
+      "description": "Keep relationships moving with fast follow-ups.",
+      "badge": "Engagement",
+      "newProposal": "New proposal",
+      "registerClient": "Register client",
+      "importCsv": "Import CSV"
+    },
+    "topClients": {
+      "title": "Latest clients",
+      "badge": "Last 3",
+      "noCompany": "No company",
+      "joined": "Joined",
+      "empty": "We will highlight your newest clients here.",
+      "viewAll": "View all clients"
+    },
+    "filters": {
+      "search": {
+        "label": "Search",
+        "placeholder": "Search by name, company, email or phone"
+      },
+      "clearSearch": "Clear",
+      "show": "Show filters",
+      "hide": "Hide filters",
+      "summaryFiltered": "Showing {count} of {total} clients",
+      "summaryAll": "Showing all {total} clients",
+      "clear": "Reset filters",
+      "sort": {
+        "label": "Sort",
+        "recent": "Newest first",
+        "oldest": "Oldest first",
+        "name": "Name (A-Z)"
+      },
+      "contact": {
+        "label": "Contact",
+        "all": "All contacts",
+        "withEmail": "With email",
+        "withPhone": "With phone"
+      }
+    },
+    "table": {
+      "headers": {
+        "name": "Name",
+        "company": "Company",
+        "email": "Email",
+        "phone": "Phone",
+        "createdAt": "Created on",
+        "actions": "Actions"
+      },
+      "noCompany": "No company",
+      "noEmail": "No email",
+      "noPhone": "No phone",
+      "view": "View details",
+      "actions": {
+        "openMenu": "Open actions",
+        "sendProposal": "Send proposal",
+        "copyEmail": "Copy email",
+        "copied": "Copied",
+        "noEmail": "Email not provided"
+      }
+    },
     "dialog": {
       "title": "Add client",
       "description": "Provide the main information to create a new contact.",
@@ -419,14 +486,41 @@ export const enMessages = {
         "missingToken": "Set the `NEXT_PUBLIC_API_TOKEN` or sign in to load live data.",
         "loadError": "We couldn't load the metrics: {error}"
       },
-      "header": {
-        "title": "Dynamic reports",
-        "description": "Ask for insights in natural language. We build the SQL query and present the data as a table or chart."
-      },
-      "tabs": {
-        "overview": "Overview",
-        "custom": "Custom builder"
-      },
+    "header": {
+      "title": "Dynamic reports",
+      "description": "Ask for insights in natural language. We build the SQL query and present the data as a table or chart."
+    },
+    "stats": {
+      "totalProposals": "Total proposals",
+      "totalHint": "Includes all statuses in the selected window",
+      "accepted": "Conversion this period",
+      "acceptedHint": "Accepted ÷ Total",
+      "pipeline": "Pipeline value",
+      "pipelineHint": "Average ticket {avg}"
+    },
+    "quickActions": {
+      "title": "Quick actions",
+      "description": "Move faster on decisions without leaving the dashboard.",
+      "badge": "Productivity",
+      "generate": "Open custom builder",
+      "useSuggestion": "Apply smart suggestion",
+      "refresh": "Refresh overview"
+    },
+    "highlights": {
+      "title": "Highlights",
+      "badge": "This period",
+      "topPerformer": "Top performer",
+      "totalSent": "{value} proposals sent",
+      "unknown": "Unknown",
+      "noPerformer": "We will highlight performance as soon as proposals arrive.",
+      "upcoming": "Most recent proposals",
+      "noClient": "Unassigned client",
+      "noUpcoming": "No proposals were created during the selected range."
+    },
+    "tabs": {
+      "overview": "Overview",
+      "custom": "Custom builder"
+    },
       "overview": {
         "loading": "Loading metrics...",
         "empty": "No data available yet.",
@@ -470,6 +564,7 @@ export const enMessages = {
         "topClients": {
           "title": "Revenue by client",
           "badge": "Top 5",
+          "total": "Total {value}",
           "empty": "No clients with accepted proposals yet."
         },
         "team": {

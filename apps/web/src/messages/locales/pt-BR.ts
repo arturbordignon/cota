@@ -70,6 +70,73 @@ export const ptBRMessages = {
     "badges": {
       "memberSince": "Desde {date}"
     },
+    "stats": {
+      "total": "Total de clientes",
+      "recent": "Adicionados nos últimos 30 dias",
+      "recentHint": "Considera a data de criação",
+      "withEmail": "Clientes com e-mail"
+    },
+    "quickActions": {
+      "title": "Ações rápidas",
+      "description": "Mantenha o relacionamento ativo com follow-ups imediatos.",
+      "badge": "Engajamento",
+      "newProposal": "Nova proposta",
+      "registerClient": "Cadastrar cliente",
+      "importCsv": "Importar CSV"
+    },
+    "topClients": {
+      "title": "Clientes recentes",
+      "badge": "Últimos 3",
+      "noCompany": "Sem empresa",
+      "joined": "Desde",
+      "empty": "Assim que cadastrar clientes eles aparecerão aqui.",
+      "viewAll": "Ver todos os clientes"
+    },
+    "filters": {
+      "search": {
+        "label": "Pesquisar",
+        "placeholder": "Busque por nome, empresa, e-mail ou telefone"
+      },
+      "clearSearch": "Limpar",
+      "show": "Mostrar filtros",
+      "hide": "Ocultar filtros",
+      "summaryFiltered": "Exibindo {count} de {total} clientes",
+      "summaryAll": "Exibindo todos os {total} clientes",
+      "clear": "Limpar filtros",
+      "sort": {
+        "label": "Ordenar",
+        "recent": "Mais recentes",
+        "oldest": "Mais antigos",
+        "name": "Nome (A-Z)"
+      },
+      "contact": {
+        "label": "Contato",
+        "all": "Todos os contatos",
+        "withEmail": "Com e-mail",
+        "withPhone": "Com telefone"
+      }
+    },
+    "table": {
+      "headers": {
+        "name": "Nome",
+        "company": "Empresa",
+        "email": "E-mail",
+        "phone": "Telefone",
+        "createdAt": "Criado em",
+        "actions": "Ações"
+      },
+      "noCompany": "Sem empresa",
+      "noEmail": "Sem e-mail",
+      "noPhone": "Sem telefone",
+      "view": "Ver detalhes",
+      "actions": {
+        "openMenu": "Abrir ações",
+        "sendProposal": "Enviar proposta",
+        "copyEmail": "Copiar e-mail",
+        "copied": "Copiado",
+        "noEmail": "E-mail não informado"
+      }
+    },
     "dialog": {
       "title": "Adicionar cliente",
       "description": "Informe os dados principais para cadastrar um novo contato.",
@@ -419,14 +486,41 @@ export const ptBRMessages = {
         "missingToken": "Defina a variável `NEXT_PUBLIC_API_TOKEN` ou autentique-se para consultar seus dados reais.",
         "loadError": "Não foi possível carregar os indicadores: {error}"
       },
-      "header": {
-        "title": "Relatórios dinâmicos",
-        "description": "Peça insights com linguagem natural. Geramos a consulta SQL e apresentamos os dados como tabela ou gráfico."
-      },
-      "tabs": {
-        "overview": "Visão geral",
-        "custom": "Gerador personalizado"
-      },
+    "header": {
+      "title": "Relatórios dinâmicos",
+      "description": "Peça insights com linguagem natural. Geramos a consulta SQL e apresentamos os dados como tabela ou gráfico."
+    },
+    "stats": {
+      "totalProposals": "Total de propostas",
+      "totalHint": "Inclui todos os status no período selecionado",
+      "accepted": "Conversão no período",
+      "acceptedHint": "Aceitas ÷ Total",
+      "pipeline": "Valor em pipeline",
+      "pipelineHint": "Ticket médio {avg}"
+    },
+    "quickActions": {
+      "title": "Ações rápidas",
+      "description": "Acelere as decisões sem sair do painel.",
+      "badge": "Produtividade",
+      "generate": "Abrir gerador personalizado",
+      "useSuggestion": "Aplicar sugestão",
+      "refresh": "Atualizar visão"
+    },
+    "highlights": {
+      "title": "Destaques",
+      "badge": "Neste período",
+      "topPerformer": "Melhor desempenho",
+      "totalSent": "{value} propostas enviadas",
+      "unknown": "Indefinido",
+      "noPerformer": "Exibiremos os destaques assim que houver propostas no período.",
+      "upcoming": "Propostas mais recentes",
+      "noClient": "Cliente não atribuído",
+      "noUpcoming": "Nenhuma proposta foi criada no período selecionado."
+    },
+    "tabs": {
+      "overview": "Visão geral",
+      "custom": "Gerador personalizado"
+    },
       "overview": {
         "loading": "Carregando indicadores...",
         "empty": "Nenhum dado disponível ainda.",
@@ -470,6 +564,7 @@ export const ptBRMessages = {
         "topClients": {
           "title": "Receita por cliente",
           "badge": "Top 5",
+          "total": "Total {value}",
           "empty": "Nenhum cliente com propostas aceitas ainda."
         },
         "team": {
