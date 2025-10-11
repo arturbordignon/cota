@@ -837,6 +837,48 @@ export const enMessages = {
         "description": "Start from scratch or upload an existing file to begin.",
         "action": "Create custom template"
       }
+    },
+    "detail": {
+      "titleFallback": "Template",
+      "descriptionFallback": "Sign in to view the full template details.",
+      "backButton": "Back to templates",
+      "loadingTitle": "Loading template…",
+      "loadingDescription": "Retrieving template information.",
+      "defaultDescription": "Template detail",
+      "actions": {
+        "duplicate": "Duplicate template",
+        "duplicating": "Duplicating..."
+      },
+      "alerts": {
+        "missingToken": "Sign in or provide an API token to access templates."
+      },
+      "badges": {
+        "system": "Curated template",
+        "custom": "Workspace template"
+      },
+      "info": {
+        "title": "Template details",
+        "locale": "Language",
+        "category": "Category",
+        "createdAt": "Created at",
+        "updatedAt": "Last updated"
+      },
+      "preview": {
+        "title": "Preview",
+        "subtitle": "Rendered HTML"
+      },
+      "locales": {
+        "ptBR": "Portuguese",
+        "en": "English"
+      },
+      "duplicateSuffix": "(copy)",
+      "duplicateSuccess": "Template duplicated. Redirecting to your templates...",
+      "errors": {
+        "load": "We couldn't load the template: {message}",
+        "notFound": "Template not found or removed.",
+        "duplicate": "We couldn't duplicate this template.",
+        "unavailable": "Template data is not available yet."
+      }
     }
   },
   "proposals": {

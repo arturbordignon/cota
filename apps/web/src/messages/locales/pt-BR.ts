@@ -837,6 +837,48 @@ export const ptBRMessages = {
         "description": "Crie um layout do zero ou faça upload de um arquivo existente para começar.",
         "action": "Criar modelo personalizado"
       }
+    },
+    "detail": {
+      "titleFallback": "Modelo",
+      "descriptionFallback": "Autentique-se para visualizar os detalhes completos do modelo.",
+      "backButton": "Voltar para modelos",
+      "loadingTitle": "Carregando modelo…",
+      "loadingDescription": "Buscando informações do modelo.",
+      "defaultDescription": "Detalhes do modelo",
+      "actions": {
+        "duplicate": "Duplicar modelo",
+        "duplicating": "Duplicando..."
+      },
+      "alerts": {
+        "missingToken": "Autentique-se ou informe um token de API para acessar os modelos."
+      },
+      "badges": {
+        "system": "Modelo curado",
+        "custom": "Modelo da equipe"
+      },
+      "info": {
+        "title": "Informações do modelo",
+        "locale": "Idioma",
+        "category": "Categoria",
+        "createdAt": "Criado em",
+        "updatedAt": "Atualizado em"
+      },
+      "preview": {
+        "title": "Pré-visualização",
+        "subtitle": "HTML renderizado"
+      },
+      "locales": {
+        "ptBR": "Português",
+        "en": "Inglês"
+      },
+      "duplicateSuffix": "(cópia)",
+      "duplicateSuccess": "Modelo duplicado. Redirecionando para Meus modelos...",
+      "errors": {
+        "load": "Não foi possível carregar o modelo: {message}",
+        "notFound": "Modelo não encontrado ou removido.",
+        "duplicate": "Não foi possível duplicar este modelo.",
+        "unavailable": "Os dados do modelo ainda não estão disponíveis."
+      }
     }
   },
   "proposals": {

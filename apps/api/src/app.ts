@@ -14,6 +14,7 @@ import i18nPlugin from './plugins/i18n.js';
 import prismaPlugin from './plugins/prisma.js';
 import queuesPlugin from './plugins/queues.js';
 import seedPlans from './plugins/seed-plans.js';
+import seedTemplates from './plugins/seed-templates.js';
 import cachePlugin from './plugins/cache.js';
 import authRoutes from './routes/v1/auth.js';
 import templateRoutes from './routes/v1/templates.js';
@@ -94,6 +95,7 @@ export async function buildServer() {
 
   await app.register(prismaPlugin);
   await app.register(seedPlans);
+  await app.register(seedTemplates);
   await app.register(i18nPlugin);
   await app.register(queuesPlugin);
 

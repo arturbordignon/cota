@@ -43,6 +43,18 @@ export interface TemplatesResponse {
   cached?: boolean;
 }
 
+export interface TemplateDetail extends TemplateSummary {
+  accountId?: string | null;
+  inputSchemaJson?: Record<string, unknown> | null;
+  defaultDataJson?: Record<string, unknown> | null;
+  htmlBody: string;
+  pdfLayoutOptionsJson?: Record<string, unknown> | null;
+}
+
+export interface TemplateDetailResponse {
+  data: TemplateDetail;
+}
+
 export interface BillingOverviewResponse {
   data: {
     usage: {

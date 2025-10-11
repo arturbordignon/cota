@@ -1,8 +1,11 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
+import * as Dialog from "@radix-ui/react-dialog";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { TemplateSummary, TemplatesResponse } from "@/types/api";
 
+import { useApi } from "@/hooks/use-api";
 import { PageHeader } from "@/components/layout/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,7 +17,7 @@ import { Stepper } from "@/components/ui/stepper";
 import { Textarea } from "@/components/ui/textarea";
 import { UploadArea } from "@/components/ui/upload-area";
 
-const templateCatalog = [
+const sampleTemplates = [
   {
     id: "crane",
     name: "Locação de Guindaste",
@@ -38,7 +41,16 @@ const templateCatalog = [
   },
 ];
 
-const clients = [
+interface TemplateCard {
+  id: string;
+  name: string;
+  category?: string | null;
+  summary?: string | null;
+  metrics?: string | null;
+}
+
+// clients will be loaded from API (use fallback samples when API isn't available)
+const sampleClients = [
   { id: "1", name: "Construtora Horizonte" },
   { id: "2", name: "Indústria Metal Forte" },
   { id: "3", name: "Logística Integrada" },
@@ -52,9 +64,66 @@ const steps = [
 
 export default function NewProposalPage() {
   const [stepIndex, setStepIndex] = useState(0);
-  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(templateCatalog[0]?.id ?? null);
+  const api = useApi();
+
+  const clientsQuery = useQuery<{ data: { id: string; name: string }[] }>(
+    {
+      queryKey: ["clients", "summary"],
+      queryFn: () => api.get<{ data: { id: string; name: string }[] }>("/clients"),
+      enabled: Boolean(api.token),
+    }
+  );
+
+  const clients = useMemo(() => clientsQuery.data?.data ?? sampleClients, [clientsQuery.data]);
+  const queryClient = useQueryClient();
+
+  // Inline add client dialog state and mutation
+  const [addClientOpen, setAddClientOpen] = useState(false);
+  const [newClient, setNewClient] = useState({ name: "", companyName: "" });
+
+  const createClient = useMutation({
+    mutationFn: (payload: { name: string; companyName?: string }) =>
+      api.post<{ data: { id: string; name: string } }>("/clients", payload),
+    onSuccess: (res) => {
+      // refresh clients and select the newly created client
+      queryClient.invalidateQueries({ queryKey: ["clients", "summary"] });
+      const created = res.data;
+      setForm((prev) => ({ ...prev, clientId: created.id }));
+      setNewClient({ name: "", companyName: "" });
+      setAddClientOpen(false);
+    },
+  });
+
+  const systemTemplatesQuery = useQuery<TemplatesResponse>({
+    queryKey: ["templates", "system"],
+    queryFn: () => api.get<TemplatesResponse>(`/templates?scope=system`),
+    enabled: Boolean(api.token),
+  });
+
+  const customTemplatesQuery = useQuery<TemplatesResponse>({
+    queryKey: ["templates", "custom"],
+    queryFn: () => api.get<TemplatesResponse>(`/templates?scope=custom`),
+    enabled: Boolean(api.token),
+  });
+
+  const fetchedTemplates = useMemo<TemplateCard[]>(() => {
+    const system: TemplateSummary[] = systemTemplatesQuery.data?.data ?? [];
+    const custom: TemplateSummary[] = customTemplatesQuery.data?.data ?? [];
+    // flatten and map to a simplified shape used below
+    return [...custom, ...system].map((t) => ({
+      id: String(t.id),
+      name: t.name,
+      category: t.category ?? null,
+      summary: t.description ?? null,
+      metrics: t.accountId ? "Meu modelo" : "Modelo padrão",
+    }));
+  }, [systemTemplatesQuery.data, customTemplatesQuery.data]);
+
+  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(
+    fetchedTemplates[0]?.id ?? sampleTemplates[0]?.id ?? null
+  );
   const [form, setForm] = useState({
-    clientId: clients[0]?.id ?? "",
+    clientId: sampleClients[0]?.id ?? "",
     jobTitle: "",
     startDate: "",
     endDate: "",
@@ -62,10 +131,21 @@ export default function NewProposalPage() {
     notes: "",
   });
 
-  const activeTemplate = useMemo(
-    () => templateCatalog.find((template) => template.id === selectedTemplate) ?? null,
-    [selectedTemplate]
-  );
+  // when clients load from API, set a sensible default clientId if none chosen
+  useMemo(() => {
+    if (!form.clientId && clients.length > 0) {
+      setForm((prev) => ({ ...prev, clientId: clients[0].id }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clients]);
+
+  const activeTemplate = useMemo(() => {
+    return (
+      fetchedTemplates.find((template: TemplateCard) => template.id === selectedTemplate) ??
+      sampleTemplates.find((template) => template.id === selectedTemplate) ??
+      null
+    );
+  }, [selectedTemplate, fetchedTemplates]);
 
   const handleNext = () => setStepIndex((prev) => Math.min(prev + 1, steps.length - 1));
   const handlePrevious = () => setStepIndex((prev) => Math.max(prev - 1, 0));
@@ -95,27 +175,45 @@ export default function NewProposalPage() {
               </Button>
             </Card>
 
-            {templateCatalog.map((template) => (
-              <Card
-                key={template.id}
-                className="flex flex-col gap-3 border border-outline/60 bg-white p-5 transition hover:-translate-y-1 hover:shadow-lg"
-              >
-                <div className="flex items-center gap-2 text-xs text-muted">
-                  <Badge tone="info">{template.category}</Badge>
-                  <span>{template.metrics}</span>
-                </div>
-                <div className="space-y-2">
-                  <h3 className="text-base font-semibold text-ink">{template.name}</h3>
-                  <p className="text-sm text-muted">{template.summary}</p>
-                </div>
-                <Button
-                  variant={selectedTemplate === template.id ? "primary" : "secondary"}
-                  onClick={() => setSelectedTemplate(template.id)}
+            {(fetchedTemplates.length > 0 ? fetchedTemplates : sampleTemplates).map((template: TemplateCard) => {
+              const isSelected = selectedTemplate === template.id;
+              return (
+                <Card
+                  key={template.id}
+                  onClick={() => {
+                    setSelectedTemplate(template.id);
+                    // auto-advance to next step for a smoother flow
+                    setStepIndex(1);
+                  }}
+                  className={`flex cursor-pointer flex-col gap-3 border p-5 transition hover:-translate-y-1 hover:shadow-lg ${
+                    isSelected
+                      ? "border-primary bg-[var(--color-surface-muted)]/60 ring-2 ring-primary/20"
+                      : "border-outline/60 bg-white"
+                  }`}
                 >
-                  {selectedTemplate === template.id ? "Selecionado" : "Selecionar modelo"}
-                </Button>
-              </Card>
-            ))}
+                  <div className="flex items-center gap-2 text-xs text-muted">
+                    <Badge tone="info">{template.category}</Badge>
+                    <span>{template.metrics}</span>
+                  </div>
+                  <div className="space-y-2">
+                    <h3 className="text-base font-semibold text-ink">{template.name}</h3>
+                    <p className="text-sm text-muted">{template.summary}</p>
+                  </div>
+                  <div className="mt-auto">
+                    <Button
+                      variant={isSelected ? "primary" : "secondary"}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedTemplate(template.id);
+                        setStepIndex(1);
+                      }}
+                    >
+                      {isSelected ? "Selecionado" : "Selecionar modelo"}
+                    </Button>
+                  </div>
+                </Card>
+              );
+            })}
           </div>
         )}
 
@@ -124,13 +222,72 @@ export default function NewProposalPage() {
             <div className="space-y-5">
               <div className="space-y-2">
                 <Label>Cliente</Label>
-                <Select value={form.clientId} onValueChange={(value) => setForm((prev) => ({ ...prev, clientId: value }))}>
-                  {clients.map((client) => (
-                    <SelectItem key={client.id} value={client.id}>
-                      {client.name}
-                    </SelectItem>
-                  ))}
-                </Select>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1">
+                    <Select value={form.clientId} onValueChange={(value) => setForm((prev) => ({ ...prev, clientId: value }))}>
+                      {clients.map((client) => (
+                        <SelectItem key={client.id} value={client.id}>
+                          {client.name}
+                        </SelectItem>
+                      ))}
+                    </Select>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button variant="ghost" size="sm" onClick={() => setAddClientOpen(true)}>
+                      Adicionar
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Inline Add Client Dialog */}
+                <Dialog.Root open={addClientOpen} onOpenChange={setAddClientOpen}>
+                  <Dialog.Portal>
+                    <Dialog.Overlay className="fixed inset-0 z-40 bg-ink/40 backdrop-blur-sm" />
+                    <Dialog.Content className="fixed inset-0 z-50 flex items-start justify-center px-4 py-10">
+                      <form
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          if (!newClient.name.trim()) return;
+                          createClient.mutate({ name: newClient.name.trim(), companyName: newClient.companyName.trim() || undefined });
+                        }}
+                        className="w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl"
+                      >
+                        <div className="flex items-center justify-between border-b border-outline/20 px-6 py-4">
+                          <div>
+                            <h3 className="text-lg font-semibold text-ink">Adicionar cliente</h3>
+                            <p className="text-xs text-muted">Adicione um cliente sem sair da criação de proposta</p>
+                          </div>
+                          <Dialog.Close asChild>
+                            <button
+                              type="button"
+                              className="rounded-full border border-outline bg-white p-2 text-ink shadow-sm transition hover:bg-primary-soft"
+                              aria-label="close"
+                              onClick={() => setAddClientOpen(false)}
+                            >
+                              ×
+                            </button>
+                          </Dialog.Close>
+                        </div>
+                        <div className="space-y-4 px-6 py-6">
+                          <div className="space-y-2">
+                            <Label>Nome</Label>
+                            <Input value={newClient.name} onChange={(e) => setNewClient((s) => ({ ...s, name: e.target.value }))} />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Empresa</Label>
+                            <Input value={newClient.companyName} onChange={(e) => setNewClient((s) => ({ ...s, companyName: e.target.value }))} />
+                          </div>
+                        </div>
+                        <div className="flex justify-end gap-2 border-t border-outline/20 bg-[var(--color-surface-muted)]/40 px-6 py-4">
+                          <Dialog.Close asChild>
+                            <Button variant="ghost">Cancelar</Button>
+                          </Dialog.Close>
+                          <Button type="submit" loading={createClient.isPending}>Salvar</Button>
+                        </div>
+                      </form>
+                    </Dialog.Content>
+                  </Dialog.Portal>
+                </Dialog.Root>
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">
@@ -206,9 +363,13 @@ export default function NewProposalPage() {
                   <span className="text-muted">Período:</span> {form.startDate || "–"} até {form.endDate || "–"}
                 </p>
               </div>
-              <Link href="/clients/new" className="text-xs font-semibold text-primary hover:underline">
-                Adicionar novo cliente
-              </Link>
+              <button
+                type="button"
+                className="text-xs font-semibold text-primary hover:underline bg-transparent border-0 p-0"
+                onClick={() => setStepIndex(1)}
+              >
+                Gerenciar clientes
+              </button>
             </Card>
           </div>
         )}

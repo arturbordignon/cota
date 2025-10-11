@@ -78,6 +78,7 @@ docker compose -f docker-compose.aws.yml up --build
 - Stripe billing targets proposal-based plans (BR/US) rather than credits; see `/plans` for UI and expect to configure `price_` ids per tier.
 - Design system components live under `apps/web/src/components/ui` & `layout`.
 - Core dashboard routes already scaffolded (Dashboard, Clients, Proposals, Templates, Plans, Services, Team, Auth).
+- Catálogo de templates já inclui um modelo de proposta para serviços de guindaste (duplicável e editável pelos clientes).
 
 ## AWS deployment outline
 1. **Infrastructure** – RDS (PostgreSQL), ElastiCache (Redis), S3 for assets, ECS Fargate services for API & worker, optional CloudFront for proposal pages.

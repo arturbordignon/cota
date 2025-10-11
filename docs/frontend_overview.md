@@ -77,6 +77,10 @@ apps/web
 4. **Proposal Detail**: Show PDF status (spinner -> ready). Provide CTA for share/copy link, regenerate, mark accepted/declined.
 5. **Plans**: Display credit balance, purchase modal (future integration with payment gateway) + plan comparison cards.
 
+## Ready-made Templates
+
+- Catálogo inicia com um modelo de proposta para serviços de guindaste, com dados default em Mustache prontos para duplicação ou edição pelos clientes.
+
 ## API Integration Layer
 
 - `lib/api/client.ts`: Rest wrapper with `fetch` using base URL env `NEXT_PUBLIC_API_URL`. Includes reauth handling via refresh endpoint.
