@@ -197,7 +197,6 @@ export const ptBRMessages = {
       "team": "Equipe",
       "activity": "Registros de Logs",
       "account": "Minha Conta",
-      "prospects": "Prospecções",
       "crm": "Pipeline",
       "reports": "Relatórios"
     },
@@ -218,8 +217,7 @@ export const ptBRMessages = {
         "all": "Tudo",
         "proposals": "Propostas",
         "clients": "Clientes",
-        "templates": "Modelos",
-        "prospects": "Prospects"
+        "templates": "Modelos"
       },
       "recentLabel": "Buscas recentes",
       "recentSamples": [
@@ -256,10 +254,6 @@ export const ptBRMessages = {
       "templates": {
         "label": "Modelos",
         "description": "Biblioteca de modelos reutilizáveis."
-      },
-      "prospects": {
-        "label": "Prospects",
-        "description": "Prospecção e qualificação de novos clientes."
       },
       "crm": {
         "label": "Pipeline",
@@ -442,7 +436,6 @@ export const ptBRMessages = {
     "services": "Serviços",
     "team": "Equipe",
     "activity": "Registros de Logs",
-    "prospects": "Prospecções",
     "crm": "Pipeline",
     "reports": "Relatórios",
     "account": "Minha Conta"
@@ -843,69 +836,6 @@ export const ptBRMessages = {
         "title": "Nenhum modelo encontrado para este filtro",
         "description": "Crie um layout do zero ou faça upload de um arquivo existente para começar.",
         "action": "Criar modelo personalizado"
-      }
-    }
-  },
-  "prospects": {
-    "page": {
-      "alerts": {
-        "missingToken": "Defina a variável `NEXT_PUBLIC_API_TOKEN` ou autentique-se para visualizar seus prospects reais.",
-        "loadError": "Não foi possível carregar os prospects: {message}"
-      },
-      "header": {
-        "title": "Buscar prospects",
-        "description": "Encontre empresas com potencial para contratar guindastes, movimentação de carga e apoio a obras."
-      },
-      "filters": {
-        "keywords": {
-          "label": "Palavras-chave",
-          "placeholder": "Ex.: terraplanagem, porto, guindaste telescópico"
-        },
-        "region": {
-          "label": "Estado/Região",
-          "options": {
-            "all": "Brasil inteiro",
-            "southeast": "Sudeste",
-            "south": "Sul",
-            "usa": "Estados Unidos"
-          }
-        },
-        "segment": {
-          "label": "Segmento",
-          "options": {
-            "all": "Todos",
-            "construction": "Construção",
-            "logistics": "Logística",
-            "industry": "Indústria pesada",
-            "energy": "Energia"
-          }
-        },
-        "source": {
-          "label": "Fonte de dados",
-          "options": {
-            "internal": "Meus prospects",
-            "external": "Sugestões externas (Clearbit)"
-          }
-        },
-        "helper": {
-          "external": "Sugestões fornecidas gratuitamente pela Clearbit Autocomplete. Preencha palavras-chave para buscar.",
-          "internal": "Em breve: integrações com provedores externos de dados para sugestões em tempo real."
-        },
-        "externalPrompt": "Informe pelo menos duas letras nas palavras-chave para buscar sugestões externas."
-      },
-      "actions": {
-        "search": "Buscar prospects"
-      },
-      "empty": {
-        "externalPrompt": "Para buscar sugestões externas, informe palavras-chave relevantes e clique em “Buscar prospects”.",
-        "list": "Nenhum prospect cadastrado ainda. Utilize o botão acima para buscar novamente ou cadastre manualmente quando a integração estiver disponível."
-      },
-      "cards": {
-        "noOpportunity": "Sem oportunidade cadastrada.",
-        "email": "E-mail: {value}",
-        "phone": "Telefone: {value}",
-        "view": "Ver detalhes",
-        "addToCrm": "Adicionar ao CRM"
       }
     }
   },

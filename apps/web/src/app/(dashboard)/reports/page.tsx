@@ -222,7 +222,9 @@ export default function ReportsPage() {
 
   const formatNumber = useCallback(
     (value: number, options?: Intl.NumberFormatOptions) =>
-      formatter.number(value, options ?? { maximumFractionDigits: 0 }),
+      // formatter.number uses formatjs types which are slightly different from Intl.NumberFormatOptions
+      // cast the options to any to avoid type mismatch while keeping runtime behavior
+      formatter.number(value as any, (options ?? { maximumFractionDigits: 0 }) as any),
     [formatter],
   );
 
@@ -233,11 +235,15 @@ export default function ReportsPage() {
 
   const formatPercent = useCallback(
     (value: number, options?: Intl.NumberFormatOptions) =>
-      formatter.number(value / 100, {
-        style: "percent",
-        maximumFractionDigits: 1,
-        ...options,
-      }),
+      // cast options to any to match the formatter.number signature from next-intl
+      formatter.number(
+        (value / 100) as any,
+        {
+          style: "percent",
+          maximumFractionDigits: 1,
+          ...options,
+        } as any,
+      ),
     [formatter],
   );
 
@@ -312,9 +318,9 @@ export default function ReportsPage() {
     });
   }, [overview?.proposalsByStatus, statusBadges]);
 
-  const topClients = overview?.topClients ?? [];
-  const recentProposals = overview?.recentProposals ?? [];
-  const pipelineSummary = overview?.pipelineSummary ?? [];
+  const topClients: any[] = overview?.topClients ?? [];
+  const recentProposals: any[] = overview?.recentProposals ?? [];
+  const pipelineSummary: any[] = overview?.pipelineSummary ?? [];
 
   // Optional fields if your backend sends them
   const propostasPorMembro = (overview as any)?.propostasPorMembro ?? [];
@@ -487,17 +493,31 @@ export default function ReportsPage() {
               <div className="grid gap-4 md:grid-cols-3">
                 <StatCard
                   label={tPage("stats.totalProposals")}
-                  value={formatNumber(totalProposals)}
+                  value={
+                    <span className="inline-flex items-baseline gap-2">
+                      <span className="text-3xl font-extrabold text-ink">
+                        {formatNumber(totalProposals)}
+                      </span>
+                    </span>
+                  }
                   hint={tPage("stats.totalHint")}
                 />
                 <StatCard
                   label={tPage("stats.accepted")}
-                  value={formatPercent(conversionRate)}
+                  value={
+                    <span className="text-3xl font-extrabold text-success">
+                      {formatPercent(conversionRate)}
+                    </span>
+                  }
                   hint={tPage("stats.acceptedHint")}
                 />
                 <StatCard
                   label={tPage("stats.pipeline")}
-                  value={formatCurrency(totalPipelineValue)}
+                  value={
+                    <span className="text-3xl font-extrabold text-success">
+                      {formatCurrency(totalPipelineValue)}
+                    </span>
+                  }
                   hint={tPage("stats.pipelineHint", { avg: formatCurrency(pipelineAverageValue) })}
                 />
               </div>
@@ -650,10 +670,26 @@ export default function ReportsPage() {
                     </Badge>
                   </div>
                   {statusChartData.length > 0 ? (
-                    <BarChartViz
-                      data={statusChartData}
-                      valueFormatter={(value) => formatNumber(Number(value))}
-                    />
+                    <>
+                      <div className="mb-3 flex flex-wrap gap-2">
+                        {statusChartData.map((s) => (
+                          <div key={s.name} className="inline-flex items-center gap-2 text-xs">
+                            <span
+                              aria-hidden
+                              style={{ background: s.color }}
+                              className="inline-block h-3 w-3 rounded-sm"
+                            />
+                            <span className="text-muted">
+                              {s.name} <span className="text-[11px] text-muted">({s.value})</span>
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                      <BarChartViz
+                        data={statusChartData}
+                        valueFormatter={(value) => formatNumber(Number(value))}
+                      />
+                    </>
                   ) : (
                     <p className="text-xs text-muted">{tOverview("status.empty")}</p>
                   )}
@@ -693,7 +729,7 @@ export default function ReportsPage() {
                   <Badge tone="neutral">{tOverview("team.badge")}</Badge>
                 </div>
                 {teamChartData.length > 0 ? (
-                  <TeamBarChart data={teamChartData} />
+                  <TeamBarChart data={teamChartData} height={320} />
                 ) : (
                   <p className="text-xs text-muted">{tOverview("team.empty")}</p>
                 )}
@@ -920,43 +956,70 @@ export default function ReportsPage() {
                   <p>{error}</p>
                 ) : report ? (
                   Array.isArray(report.result) ? (
-                    <div className="space-y-2">
-                      <p className="text-sm font-semibold text-ink">{tCustomResult("title")}</p>
-                      <div className="overflow-auto rounded-lg border border-outline/40">
-                        <table className="w-full min-w-[360px] text-left text-xs">
-                          <thead className="bg-[var(--color-surface-muted)]/50 text-muted">
-                            <tr>
-                              {Object.keys(
-                                (report.result as Record<string, unknown>[])[0] ?? {},
-                              ).map((key) => (
-                                <th
-                                  key={key}
-                                  className="px-4 py-3 font-semibold uppercase tracking-wide"
-                                >
-                                  {key}
-                                </th>
-                              ))}
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {(report.result as Record<string, unknown>[]).map((row, rowIndex) => (
-                              <tr
-                                key={rowIndex}
-                                className="even:bg-[var(--color-surface-muted)]/30"
-                              >
-                                {Object.values(row).map((value, cellIndex) => (
-                                  <td key={cellIndex} className="px-4 py-2 text-ink">
-                                    {typeof value === "number"
-                                      ? value.toLocaleString("pt-BR")
-                                      : String(value ?? "—")}
-                                  </td>
+                    (() => {
+                      const arr = report.result as Record<string, unknown>[];
+                      // If the generator already returned a name/value series, render a bar chart
+                      const looksLikeSeries =
+                        arr.length > 0 &&
+                        typeof arr[0].name === "string" &&
+                        (typeof arr[0].value === "number" || !Number.isNaN(Number(arr[0].value)));
+                      if (report.visualization === "bar" && looksLikeSeries) {
+                        const barData = arr.map((r) => ({
+                          name: String(r.name ?? "—"),
+                          value: Number(r.value ?? 0),
+                        }));
+                        return (
+                          <div className="space-y-3">
+                            <p className="text-sm font-semibold text-ink">
+                              {tCustomResult("title")}
+                            </p>
+                            <BarChartViz
+                              data={barData}
+                              valueFormatter={(v) => v.toLocaleString("pt-BR")}
+                            />
+                          </div>
+                        );
+                      }
+
+                      // Fallback to table
+                      return (
+                        <div className="space-y-2">
+                          <p className="text-sm font-semibold text-ink">{tCustomResult("title")}</p>
+                          <div className="overflow-auto rounded-lg border border-outline/40">
+                            <table className="w-full min-w-[360px] text-left text-xs">
+                              <thead className="bg-[var(--color-surface-muted)]/50 text-muted">
+                                <tr>
+                                  {Object.keys(arr[0] ?? {}).map((key) => (
+                                    <th
+                                      key={key}
+                                      className="px-4 py-3 font-semibold uppercase tracking-wide"
+                                    >
+                                      {key}
+                                    </th>
+                                  ))}
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {arr.map((row, rowIndex) => (
+                                  <tr
+                                    key={rowIndex}
+                                    className="even:bg-[var(--color-surface-muted)]/30"
+                                  >
+                                    {Object.values(row).map((value, cellIndex) => (
+                                      <td key={cellIndex} className="px-4 py-2 text-ink">
+                                        {typeof value === "number"
+                                          ? value.toLocaleString("pt-BR")
+                                          : String(value ?? "—")}
+                                      </td>
+                                    ))}
+                                  </tr>
                                 ))}
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      );
+                    })()
                   ) : (
                     <div className="space-y-2">
                       <p className="text-sm font-semibold text-ink">{tCustomResult("rawTitle")}</p>

@@ -6,7 +6,6 @@ export type NavKey =
   | "services"
   | "team"
   | "activity"
-  | "prospects"
   | "crm"
   | "reports"
   | "account";
@@ -25,7 +24,6 @@ export const dashboardNav: NavItem[] = [
   { key: "services", href: "/services", icon: "briefcase" },
   { key: "team", href: "/team", icon: "userList" },
   { key: "activity", href: "/activity", icon: "target" },
-  { key: "prospects", href: "/prospects", icon: "target" },
   { key: "crm", href: "/crm", icon: "kanban" },
   { key: "reports", href: "/reports", icon: "chart" },
   { key: "account", href: "/account", icon: "userCircle" },

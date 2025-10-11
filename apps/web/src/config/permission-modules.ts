@@ -2,7 +2,6 @@ export const permissionModules = [
   "dashboard",
   "proposals",
   "templates",
-  "prospects",
   "crm",
   "reports",
   "plan",

@@ -15,7 +15,6 @@ const PERMISSION_KEYS = [
   'dashboard',
   'proposals',
   'templates',
-  'prospects',
   'crm',
   'reports',
   'plan',
@@ -29,7 +28,6 @@ const PERMISSION_KEY_TO_MODULE: Record<PermissionKey, PermissionModule> = {
   dashboard: 'DASHBOARD',
   proposals: 'PROPOSALS',
   templates: 'TEMPLATES',
-  prospects: 'PROSPECTS',
   crm: 'CRM',
   reports: 'REPORTS',
   plan: 'PLAN',
@@ -39,7 +37,7 @@ const PERMISSION_KEY_TO_MODULE: Record<PermissionKey, PermissionModule> = {
 
 const MODULE_TO_KEY = Object.fromEntries(
   Object.entries(PERMISSION_KEY_TO_MODULE).map(([key, value]) => [value, key as PermissionKey]),
-) as Record<PermissionModule, PermissionKey>;
+) as Partial<Record<PermissionModule, PermissionKey>>;
 
 const departmentPresetSchema = z.enum(['none', 'view', 'all', 'custom']);
 type DepartmentPresetInput = z.infer<typeof departmentPresetSchema>;

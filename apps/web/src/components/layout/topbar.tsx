@@ -40,7 +40,6 @@ export function Topbar({
       proposals: `/proposals?search=${encodedQuery}`,
       clients: `/clients?search=${encodedQuery}`,
       templates: `/templates?search=${encodedQuery}`,
-      prospects: `/prospects?search=${encodedQuery}`,
     };
 
     setSearchOpen(false);

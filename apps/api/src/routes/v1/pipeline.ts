@@ -28,7 +28,6 @@ const pipelineRoutes: FastifyPluginAsync = async (app) => {
         leads: {
           orderBy: { updatedAt: 'desc' },
           include: {
-            prospect: true,
             proposals: {
               select: { id: true, title: true, status: true, totalsJson: true }
             }
@@ -65,7 +64,6 @@ const pipelineRoutes: FastifyPluginAsync = async (app) => {
           leads: {
             orderBy: { updatedAt: 'desc' },
             include: {
-              prospect: true,
               proposals: {
                 select: { id: true, title: true, status: true, totalsJson: true }
               }
@@ -230,7 +228,6 @@ const pipelineRoutes: FastifyPluginAsync = async (app) => {
         contactPhone: z.string().optional(),
         estimatedValue: z.number().nonnegative().optional(),
         notes: z.string().optional(),
-        prospectId: z.string().uuid().optional()
       })
       .parse(request.body);
 
@@ -252,7 +249,6 @@ const pipelineRoutes: FastifyPluginAsync = async (app) => {
       estimatedValue: body.estimatedValue != null ? new Prisma.Decimal(body.estimatedValue) : undefined,
       notes: body.notes,
       metadataJson: null,
-      prospect: body.prospectId ? { connect: { id: body.prospectId } } : undefined,
       proposals: { connect: [] }
     };
 

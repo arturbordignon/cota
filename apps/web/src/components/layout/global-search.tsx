@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectItem } from "@/components/ui/select";
 
-export const searchScopes = ["all", "proposals", "clients", "templates", "prospects"] as const;
+export const searchScopes = ["all", "proposals", "clients", "templates"] as const;
 export type SearchScope = (typeof searchScopes)[number];
 
 interface GlobalSearchProps {

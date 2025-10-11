@@ -29,8 +29,6 @@ apps/web
  │   │   │   └─ new/page.tsx
  │   │   ├─ templates/
  │   │   │   ├─ page.tsx (tabs: Catalog, My Templates, Upload)
- │   │   ├─ prospects/
- │   │   │   └─ page.tsx (prospect discovery + filters)
  │   │   ├─ crm/
  │   │   │   └─ page.tsx (kanban board for pipeline)
  │   │   ├─ reports/

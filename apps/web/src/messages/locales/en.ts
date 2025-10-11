@@ -197,7 +197,6 @@ export const enMessages = {
       "team": "Team",
       "activity": "Audit Logs",
       "account": "My Account",
-      "prospects": "Prospects",
       "crm": "Pipeline",
       "reports": "Reports"
     },
@@ -218,8 +217,7 @@ export const enMessages = {
         "all": "Everything",
         "proposals": "Proposals",
         "clients": "Clients",
-        "templates": "Templates",
-        "prospects": "Prospects"
+        "templates": "Templates"
       },
       "recentLabel": "Recent searches",
       "recentSamples": [
@@ -256,10 +254,6 @@ export const enMessages = {
       "templates": {
         "label": "Templates",
         "description": "Library of reusable templates."
-      },
-      "prospects": {
-        "label": "Prospects",
-        "description": "Prospecting and qualifying new customers."
       },
       "crm": {
         "label": "Pipeline",
@@ -442,7 +436,6 @@ export const enMessages = {
     "services": "Services",
     "team": "Team",
     "activity": "Audit Logs",
-    "prospects": "Prospects",
     "crm": "Pipeline",
     "reports": "Reports",
     "account": "My Account"
@@ -843,69 +836,6 @@ export const enMessages = {
         "title": "No templates found for this filter",
         "description": "Start from scratch or upload an existing file to begin.",
         "action": "Create custom template"
-      }
-    }
-  },
-  "prospects": {
-    "page": {
-      "alerts": {
-        "missingToken": "Set the `NEXT_PUBLIC_API_TOKEN` or sign in to view real prospects.",
-        "loadError": "We couldn't load the prospects: {message}"
-      },
-      "header": {
-        "title": "Find prospects",
-        "description": "Discover companies that could hire crane rentals, heavy lifting, or construction support services."
-      },
-      "filters": {
-        "keywords": {
-          "label": "Keywords",
-          "placeholder": "e.g. earthmoving, port, telescopic crane"
-        },
-        "region": {
-          "label": "State/Region",
-          "options": {
-            "all": "Entire country",
-            "southeast": "Southeast",
-            "south": "South",
-            "usa": "United States"
-          }
-        },
-        "segment": {
-          "label": "Segment",
-          "options": {
-            "all": "All",
-            "construction": "Construction",
-            "logistics": "Logistics",
-            "industry": "Heavy industry",
-            "energy": "Energy"
-          }
-        },
-        "source": {
-          "label": "Data source",
-          "options": {
-            "internal": "My prospects",
-            "external": "External suggestions (Clearbit)"
-          }
-        },
-        "helper": {
-          "external": "Suggestions powered by Clearbit Autocomplete. Provide keywords to start searching.",
-          "internal": "Coming soon: integrations with external data providers for real-time suggestions."
-        },
-        "externalPrompt": "Enter at least two letters in the keywords to fetch external suggestions."
-      },
-      "actions": {
-        "search": "Search prospects"
-      },
-      "empty": {
-        "externalPrompt": "Provide relevant keywords and click “Search prospects” to fetch external suggestions.",
-        "list": "No prospects yet. Use the button above to search again or add them manually once the integration is available."
-      },
-      "cards": {
-        "noOpportunity": "No opportunity registered.",
-        "email": "Email: {value}",
-        "phone": "Phone: {value}",
-        "view": "View details",
-        "addToCrm": "Add to CRM"
       }
     }
   },

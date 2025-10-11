@@ -9,7 +9,6 @@ const copyMap: Record<PermissionModuleKey, PermissionModuleCopy> = {
   dashboard: { label: 'Painel', description: 'Resumo geral de desempenho.' },
   proposals: { label: 'Propostas', description: 'Criação, edição e envio de propostas.' },
   templates: { label: 'Modelos', description: 'Biblioteca de modelos personalizados.' },
-  prospects: { label: 'Prospects', description: 'Pesquisa de clientes potenciais.' },
   crm: { label: 'Pipeline', description: 'Kanban e relacionamento comercial.' },
   reports: { label: 'Relatórios', description: 'Consultas dinâmicas e métricas.' },
   plan: { label: 'Planos', description: 'Gestão de assinatura e cobrança.' },

@@ -75,10 +75,9 @@ docker compose -f docker-compose.aws.yml up --build
 - See `docs/frontend_overview.md` for navigation map, design tokens, and component strategy.
 - Localization handled by `next-intl` with `pt-BR` default + `en` fallback.
 - Locale detection is cookie-based (with Accept-Language fallback) so routes stay clean: `/dashboard`, `/proposals`, etc.
-- Prospect explorer lets equipes pesquisar novos clientes com filtros por palavra-chave, região e segmento (API provider to be integrated).
 - Stripe billing targets proposal-based plans (BR/US) rather than credits; see `/plans` for UI and expect to configure `price_` ids per tier.
 - Design system components live under `apps/web/src/components/ui` & `layout`.
-- Core dashboard routes already scaffolded (Dashboard, Clients, Proposals, Templates, Prospects, Plans, Services, Team, Auth).
+- Core dashboard routes already scaffolded (Dashboard, Clients, Proposals, Templates, Plans, Services, Team, Auth).
 
 ## AWS deployment outline
 1. **Infrastructure** – RDS (PostgreSQL), ElastiCache (Redis), S3 for assets, ECS Fargate services for API & worker, optional CloudFront for proposal pages.

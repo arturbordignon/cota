@@ -2,7 +2,6 @@ export const CACHE_RESOURCES = {
   REPORTS_OVERVIEW: 'reports:overview',
   TEMPLATES_LIST: 'templates:list',
   PIPELINE_STAGES: 'pipeline:stages',
-  PROSPECTS_LOOKUP: 'prospects:lookup',
   TEAM_RANKING: 'team:ranking',
 } as const;
 

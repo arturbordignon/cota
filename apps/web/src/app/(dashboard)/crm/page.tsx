@@ -17,11 +17,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectItem } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useApi } from "@/hooks/use-api";
-import {
-  PipelineLeadSummary,
-  PipelineStagesResponse,
-  ProspectsResponse,
-} from "@/types/api";
+import { PipelineLeadSummary, PipelineStagesResponse } from "@/types/api";
 import { cn } from "@/lib/utils";
 
 interface ColumnState {
@@ -41,10 +37,7 @@ interface NewLeadDraft {
   stageId: string;
   estimatedValue: string;
   notes: string;
-  prospectId?: string;
 }
-
-const NO_PROSPECT_VALUE = "__no_prospect__";
 
 interface StageEditor {
   id: string;
@@ -122,12 +115,6 @@ export default function CrmBoardPage() {
     enabled: Boolean(api.token),
   });
 
-  const prospectsQuery = useQuery({
-    queryKey: ['prospects', 'lookup'],
-    queryFn: () => api.get<ProspectsResponse>('/prospects?limit=200'),
-    enabled: Boolean(api.token),
-  });
-
   useEffect(() => {
     if (pipelineQuery.data) {
       const mapped: ColumnState[] = pipelineQuery.data.data.map((stage) => ({
@@ -185,7 +172,6 @@ export default function CrmBoardPage() {
         contactPhone: draft.contactPhone.trim() || undefined,
         estimatedValue: draft.estimatedValue ? Number(draft.estimatedValue.replace(/[^0-9.,]/g, '').replace(',', '.')) : undefined,
         notes: draft.notes.trim() || undefined,
-        prospectId: draft.prospectId || undefined,
       });
     },
     onSuccess: () => {
@@ -551,9 +537,6 @@ export default function CrmBoardPage() {
                     <p>Valor estimado: {formatCurrency(activeLead.lead.estimatedValue)}</p>
                   ) : null}
                   {activeLead.lead.notes ? <p>Notas: {activeLead.lead.notes}</p> : null}
-                  {activeLead.lead.prospect ? (
-                    <p>Prospect: {activeLead.lead.prospect.name}</p>
-                  ) : null}
                 </div>
               </Card>
             ) : null}
@@ -632,25 +615,6 @@ export default function CrmBoardPage() {
                     onChange={(event) => setDraft((prev) => ({ ...prev, notes: event.target.value }))}
                     placeholder={t('forms.notesPlaceholder')}
                   />
-                </div>
-                <div className="space-y-1">
-                  <Label>Prospect vinculado</Label>
-                  <Select
-                    value={draft.prospectId ?? NO_PROSPECT_VALUE}
-                    onValueChange={(value) =>
-                      setDraft((prev) => ({
-                        ...prev,
-                        prospectId: value === NO_PROSPECT_VALUE ? undefined : value,
-                      }))
-                    }
-                  >
-                    <SelectItem value={NO_PROSPECT_VALUE}>Nenhum</SelectItem>
-                    {(prospectsQuery.data?.data ?? []).map((prospect) => (
-                      <SelectItem key={prospect.id} value={prospect.id}>
-                        {prospect.name}
-                      </SelectItem>
-                    ))}
-                  </Select>
                 </div>
                 <div className="space-y-1">
                   <Label>Etapa</Label>

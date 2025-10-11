@@ -70,25 +70,6 @@ export interface EquipmentResponse {
   data: EquipmentSummary[];
 }
 
-export interface ProspectSummary {
-  id: string;
-  name: string;
-  segment?: string | null;
-  region?: string | null;
-  city?: string | null;
-  state?: string | null;
-  opportunity?: string | null;
-  email?: string | null;
-  phone?: string | null;
-  notesJson?: Record<string, unknown> | null;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface ProspectsResponse {
-  data: ProspectSummary[];
-}
-
 export interface PipelineLeadSummary {
   id: string;
   companyName: string;
@@ -98,7 +79,6 @@ export interface PipelineLeadSummary {
   estimatedValue?: string | null;
   notes?: string | null;
   metadataJson?: Record<string, unknown> | null;
-  prospect?: ProspectSummary | null;
   proposals?: Array<{
     id: string;
     title: string | null;
