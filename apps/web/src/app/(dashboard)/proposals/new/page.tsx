@@ -1,9 +1,15 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import * as Dialog from "@radix-ui/react-dialog";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { TemplateSummary, TemplatesResponse } from "@/types/api";
+import {
+  CreateProposalResponse,
+  GenerateProposalResponse,
+  TemplateSummary,
+  TemplatesResponse,
+} from "@/types/api";
 
 import { useApi } from "@/hooks/use-api";
 import { PageHeader } from "@/components/layout/page-header";
@@ -56,6 +62,11 @@ const sampleClients = [
   { id: "3", name: "Logística Integrada" },
 ];
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const MAX_ATTACHMENTS = 5;
+
+const isUuid = (value: string | null | undefined) => (value ? UUID_REGEX.test(value) : false);
+
 const steps = [
   { id: 1, title: "Escolher modelo", description: "Inicie com um template ou proposta em branco." },
   { id: 2, title: "Detalhar proposta", description: "Dados do cliente, escopo e condições comerciais." },
@@ -64,7 +75,10 @@ const steps = [
 
 export default function NewProposalPage() {
   const [stepIndex, setStepIndex] = useState(0);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [submissionError, setSubmissionError] = useState<string | null>(null);
   const api = useApi();
+  const router = useRouter();
 
   const clientsQuery = useQuery<{ data: { id: string; name: string }[] }>(
     {
@@ -131,13 +145,18 @@ export default function NewProposalPage() {
     notes: "",
   });
 
+  useEffect(() => {
+    if (fetchedTemplates.length > 0 && (!selectedTemplate || !isUuid(selectedTemplate))) {
+      setSelectedTemplate(fetchedTemplates[0].id);
+    }
+  }, [fetchedTemplates, selectedTemplate]);
+
   // when clients load from API, set a sensible default clientId if none chosen
-  useMemo(() => {
+  useEffect(() => {
     if (!form.clientId && clients.length > 0) {
       setForm((prev) => ({ ...prev, clientId: clients[0].id }));
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clients]);
+  }, [clients, form.clientId]);
 
   const activeTemplate = useMemo(() => {
     return (
@@ -147,8 +166,86 @@ export default function NewProposalPage() {
     );
   }, [selectedTemplate, fetchedTemplates]);
 
+  const createProposalFlow = useMutation({
+    mutationFn: async ({ queue }: { queue: boolean }) => {
+      if (!api.isAuthenticated) {
+        throw new Error("Você precisa estar autenticado para criar uma proposta real.");
+      }
+
+      if (!selectedTemplate || !isUuid(selectedTemplate)) {
+        throw new Error("Selecione um modelo válido antes de continuar.");
+      }
+
+      const clientId = isUuid(form.clientId) ? form.clientId : undefined;
+      const selectedClient = clients.find((client) => client.id === form.clientId);
+      const payload = {
+        jobTitle: form.jobTitle,
+        startDate: form.startDate,
+        endDate: form.endDate,
+        scope: form.scope,
+        notes: form.notes,
+        clientName: selectedClient?.name,
+        attachments: selectedFiles.slice(0, MAX_ATTACHMENTS).map((file) => ({
+          name: file.name,
+          size: file.size,
+          type: file.type,
+        })),
+      };
+
+      const title =
+        form.jobTitle.trim().length > 0
+          ? form.jobTitle.trim()
+          : activeTemplate?.name ?? "Proposta sem título";
+
+      const response = await api.post<CreateProposalResponse>("/proposals", {
+        templateId: selectedTemplate,
+        clientId,
+        title,
+        payload,
+        totals: {},
+      });
+
+      const proposalId = response.data.id;
+      if (!proposalId) {
+        throw new Error("O servidor não retornou o identificador da proposta.");
+      }
+
+      if (queue) {
+        await api.post<GenerateProposalResponse>(`/proposals/${response.data.publicSlug ?? proposalId}/generate`, {});
+      }
+
+      return {
+        proposalId,
+        queued: queue,
+        publicSlug: response.data.publicSlug ?? null,
+      };
+    },
+    onMutate: () => {
+      setSubmissionError(null);
+    },
+    onSuccess: async ({ proposalId, queued, publicSlug }) => {
+      await Promise.allSettled([
+        queryClient.invalidateQueries({ queryKey: ["proposals", "list"] }),
+        queryClient.invalidateQueries({ queryKey: ["proposals", "dashboard"] }),
+      ]);
+      const target = publicSlug ?? proposalId;
+      router.push(`/proposals/${target}${queued ? "?queued=1" : ""}`);
+    },
+    onError: (error: unknown) => {
+      setSubmissionError(
+        error instanceof Error ? error.message : "Não foi possível finalizar a proposta."
+      );
+    },
+  });
+
   const handleNext = () => setStepIndex((prev) => Math.min(prev + 1, steps.length - 1));
   const handlePrevious = () => setStepIndex((prev) => Math.max(prev - 1, 0));
+  const handleFilesSelected = (files: FileList) => {
+    const limited = Array.from(files).slice(0, MAX_ATTACHMENTS);
+    setSelectedFiles(limited);
+  };
+  const formatFileSize = (size: number) =>
+    size >= 1024 * 1024 ? `${(size / (1024 * 1024)).toFixed(1)} MB` : `${Math.max(1, Math.round(size / 1024))} KB`;
 
   return (
     <section className="space-y-8">
@@ -379,7 +476,25 @@ export default function NewProposalPage() {
             <div className="space-y-5">
               <div className="space-y-2">
                 <Label>Anexos visuais (máx. 5 fotos)</Label>
-                <UploadArea hint="Formatos aceitos: JPG, PNG – tamanho máximo 5MB" />
+                <UploadArea
+                  hint="Formatos aceitos: JPG, PNG – tamanho máximo 5MB"
+                  onFilesSelected={handleFilesSelected}
+                  accept="image/png,image/jpeg"
+                />
+                {selectedFiles.length > 0 ? (
+                  <ul className="space-y-2 rounded-lg border border-outline/40 bg-white px-4 py-3 text-sm text-muted">
+                    {selectedFiles.map((file) => (
+                      <li key={`${file.name}-${file.lastModified}`} className="flex items-center justify-between gap-3">
+                        <span className="truncate">{file.name}</span>
+                        <span className="text-xs uppercase tracking-wide text-muted">
+                          {formatFileSize(file.size)}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-xs text-muted">Nenhum arquivo selecionado ainda.</p>
+                )}
               </div>
               <div className="space-y-3 rounded-xl border border-outline bg-white p-5 shadow-sm">
                 <h3 className="text-sm font-semibold text-ink">Checklist antes de gerar</h3>
@@ -409,24 +524,64 @@ export default function NewProposalPage() {
                   <p className="text-muted">Período</p>
                   <p className="font-medium text-ink">{form.startDate || "–"} / {form.endDate || "–"}</p>
                 </div>
+                <div>
+                  <p className="text-muted">Anexos</p>
+                  <p className="font-medium text-ink">
+                    {selectedFiles.length > 0 ? `${selectedFiles.length} arquivo(s)` : "Nenhum"}
+                  </p>
+                </div>
               </div>
-              <Button className="w-full">Gerar proposta</Button>
-              <Button variant="ghost" className="w-full">
+              <Button
+                className="w-full"
+                loading={createProposalFlow.isPending}
+                loadingText="Gerando..."
+                onClick={() => createProposalFlow.mutate({ queue: true })}
+              >
+                Gerar proposta
+              </Button>
+              <Button
+                variant="ghost"
+                className="w-full"
+                loading={createProposalFlow.isPending}
+                loadingText="Salvando..."
+                onClick={() => createProposalFlow.mutate({ queue: false })}
+              >
                 Salvar rascunho
               </Button>
             </Card>
           </div>
         )}
 
+        {submissionError ? (
+          <div className="rounded-lg border border-danger/30 bg-danger-soft/40 px-4 py-3 text-sm text-danger">
+            {submissionError}
+          </div>
+        ) : null}
+
         <div className="flex justify-between border-t border-outline/60 pt-4">
-          <Button variant="ghost" onClick={handlePrevious} disabled={stepIndex === 0}>
+          <Button
+            variant="ghost"
+            onClick={handlePrevious}
+            disabled={stepIndex === 0 || createProposalFlow.isPending}
+          >
             Voltar
           </Button>
           <div className="flex gap-2">
             {stepIndex < steps.length - 1 && (
-              <Button onClick={handleNext}>Continuar</Button>
+              <Button onClick={handleNext} disabled={createProposalFlow.isPending}>
+                Continuar
+              </Button>
             )}
-            {stepIndex === steps.length - 1 && <Button variant="primary">Finalizar geração</Button>}
+            {stepIndex === steps.length - 1 && (
+              <Button
+                variant="primary"
+                onClick={() => createProposalFlow.mutate({ queue: true })}
+                loading={createProposalFlow.isPending}
+                loadingText="Finalizando..."
+              >
+                Finalizar geração
+              </Button>
+            )}
           </div>
         </div>
       </Card>

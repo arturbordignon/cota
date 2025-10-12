@@ -8,6 +8,9 @@ import { ensureProposalCapacity, incrementProposalUsage } from '../../services/b
 import { ProposalLimitError } from '../../errors/proposal-limit.js';
 import { invalidateReportsOverviewCache, invalidateTeamRankingCache } from '../../utils/cache.js';
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const isUuid = (value: string) => UUID_REGEX.test(value);
+
 const createProposalSchema = z.object({
   templateId: z.string().uuid(),
   clientId: z.string().uuid().optional(),
@@ -149,13 +152,15 @@ const proposalRoutes: FastifyPluginAsync = async (app) => {
   });
 
   app.get('/:id', async (request, reply) => {
-    const paramsSchema = z.object({ id: z.string().uuid() });
+    const paramsSchema = z.object({ id: z.string().min(1) });
     const params = paramsSchema.parse(request.params);
+
+    const identifier = params.id;
 
     const proposal = await app.prisma.proposal.findFirst({
       where: {
-        id: params.id,
-        accountId: request.user.accountId
+        accountId: request.user.accountId,
+        ...(isUuid(identifier) ? { id: identifier } : { publicSlug: identifier })
       },
       include: {
         client: true,
@@ -174,12 +179,15 @@ const proposalRoutes: FastifyPluginAsync = async (app) => {
   });
 
   app.patch('/:id', async (request, reply) => {
-    const paramsSchema = z.object({ id: z.string().uuid() });
+    const paramsSchema = z.object({ id: z.string().min(1) });
     const params = paramsSchema.parse(request.params);
     const body = updateProposalSchema.parse(request.body);
 
     const proposal = await app.prisma.proposal.findFirst({
-      where: { id: params.id, accountId: request.user.accountId },
+      where: {
+        accountId: request.user.accountId,
+        ...(isUuid(params.id) ? { id: params.id } : { publicSlug: params.id })
+      },
       include: { assets: true }
     });
 
@@ -235,13 +243,13 @@ const proposalRoutes: FastifyPluginAsync = async (app) => {
   });
 
   app.post('/:id/generate', async (request, reply) => {
-    const paramsSchema = z.object({ id: z.string().uuid() });
+    const paramsSchema = z.object({ id: z.string().min(1) });
     const params = paramsSchema.parse(request.params);
 
     const proposal = await app.prisma.proposal.findFirst({
       where: {
-        id: params.id,
-        accountId: request.user.accountId
+        accountId: request.user.accountId,
+        ...(isUuid(params.id) ? { id: params.id } : { publicSlug: params.id })
       },
       include: {
         template: true,

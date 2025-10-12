@@ -41,9 +41,10 @@ export default function ProposalsPage() {
       dateStyle: 'long',
     });
 
-  const handleCopyLink = (proposalId: string) => {
+  const handleCopyLink = (proposal: ProposalSummary) => {
     if (typeof window === 'undefined' || !navigator?.clipboard) return;
-    const shareUrl = `${window.location.origin}/proposals/${proposalId}`;
+    const shareTarget = proposal.publicSlug ?? proposal.id;
+    const shareUrl = `${window.location.origin}/proposals/${shareTarget}`;
     navigator.clipboard.writeText(shareUrl).catch(() => {});
   };
 
@@ -117,13 +118,16 @@ export default function ProposalsPage() {
                       </td>
                       <td className="px-6 py-5 text-right text-sm font-medium text-primary">
                         <div className="inline-flex items-center gap-3">
-                          <Link href={`/proposals/${proposal.id}`} className="hover:underline">
+                          <Link
+                            href={`/proposals/${proposal.publicSlug ?? proposal.id}`}
+                            className="hover:underline"
+                          >
                             {t("table.view")}
                           </Link>
                           <button
                             type="button"
                             className="text-primary hover:underline"
-                            onClick={() => handleCopyLink(proposal.id)}
+                            onClick={() => handleCopyLink(proposal)}
                           >
                             {t("table.copyLink")}
                           </button>

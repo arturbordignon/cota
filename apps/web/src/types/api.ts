@@ -6,6 +6,11 @@ export interface ProposalClientSummary {
   companyName?: string | null;
 }
 
+export interface ProposalClientDetail extends ProposalClientSummary {
+  email?: string | null;
+  phone?: string | null;
+}
+
 export interface ProposalTemplateSummary {
   id: string;
   name: string;
@@ -16,12 +21,34 @@ export interface ProposalSummary {
   status: ProposalStatus;
   createdAt: string;
   sentAt?: string | null;
+  viewedAt?: string | null;
   acceptedAt?: string | null;
   declinedAt?: string | null;
   client?: ProposalClientSummary | null;
   template?: ProposalTemplateSummary | null;
   title?: string | null;
   locale?: string;
+  publicSlug?: string | null;
+}
+
+export interface ProposalAssetSummary {
+  id: string;
+  s3ObjectKey: string;
+  mimeType: string;
+  position: number;
+}
+
+export interface ProposalDetail extends ProposalSummary {
+  updatedAt?: string;
+  expiresAt?: string | null;
+  pdfObjectKey?: string | null;
+  webObjectKey?: string | null;
+  payloadJson?: Record<string, unknown> | null;
+  totalsJson?: Record<string, unknown> | null;
+  publicSlug?: string | null;
+  client?: ProposalClientDetail | null;
+  template?: TemplateSummary | ProposalTemplateSummary | null;
+  assets?: ProposalAssetSummary[];
 }
 
 export interface ProposalsResponse {
@@ -53,6 +80,20 @@ export interface TemplateDetail extends TemplateSummary {
 
 export interface TemplateDetailResponse {
   data: TemplateDetail;
+}
+
+export interface CreateProposalResponse {
+  data: ProposalDetail;
+  message?: string;
+}
+
+export interface ProposalDetailResponse {
+  data: ProposalDetail;
+}
+
+export interface GenerateProposalResponse {
+  message?: string;
+  pdfObjectKey?: string;
 }
 
 export interface BillingOverviewResponse {
