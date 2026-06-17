@@ -3,7 +3,8 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import { List, X } from "@phosphor-icons/react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useMemo } from "react";
 import { useTranslations } from "next-intl";
 
 import { useCurrentUser } from "@/components/providers/user-provider";
@@ -18,10 +19,21 @@ interface MobileNavProps {
 
 export function MobileNav({ open, onOpenChange }: MobileNavProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const t = useTranslations("navigation");
   const { isOwner } = useCurrentUser();
 
-  const availableNav = dashboardNav.filter((item) => (item.key === "activity" ? isOwner : true));
+  const availableNav = useMemo(
+    () => dashboardNav.filter((item) => (item.key === "activity" ? isOwner : true)),
+    [isOwner]
+  );
+
+  useEffect(() => {
+    if (!open) return;
+    availableNav.forEach((item) => {
+      router.prefetch(item.href);
+    });
+  }, [availableNav, open, router]);
 
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
@@ -69,6 +81,7 @@ export function MobileNav({ open, onOpenChange }: MobileNavProps) {
                   <Link
                     key={item.key}
                     href={item.href}
+                    prefetch
                     className={cn(
                       "flex items-center justify-between rounded-xl border px-4 py-3 text-sm font-semibold transition",
                       isActive

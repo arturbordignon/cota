@@ -80,7 +80,7 @@ export default function AcceptInvitePage() {
         email: preview.email,
         password,
       });
-      router.replace("/");
+      router.replace("/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Não foi possível aceitar o convite.");
       setSubmitting(false);

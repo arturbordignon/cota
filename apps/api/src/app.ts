@@ -28,6 +28,19 @@ import teamRoutes from './routes/v1/team.js';
 import auditEventRoutes from './routes/v1/audit-events.js';
 import pipelineRoutes from './routes/v1/pipeline.js';
 
+const corsOrigins = Array.from(
+  new Set(
+    [
+      'http://localhost:3000',
+      'http://127.0.0.1:3000',
+      'http://localhost:3001',
+      'http://127.0.0.1:3001',
+      env.FRONTEND_BASE_URL,
+      env.CDN_BASE_URL,
+    ].filter(Boolean)
+  )
+);
+
 export async function buildServer() {
   const app = fastify({
     logger: {
@@ -53,9 +66,8 @@ export async function buildServer() {
     },
   });
 
-  // await app.register(cors, { origin: true, credentials: true });
   await app.register(cors, {
-    origin: ['http://localhost:3000', 'http://127.0.0.1:3000'],
+    origin: corsOrigins,
     credentials: true,
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
     allowedHeaders: [

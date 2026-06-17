@@ -1,7 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { useEffect, useMemo } from 'react';
+import { useTranslations } from 'next-intl';
 import {
   House,
   Files,
@@ -16,10 +18,10 @@ import {
   UserCircle,
   List,
 } from '@phosphor-icons/react';
-import { cn } from '@/lib/utils';
-import { useTranslations } from 'next-intl';
+
 import { useCurrentUser } from '@/components/providers/user-provider';
 import { dashboardNav, type NavKey } from '@/config/navigation';
+import { cn } from '@/lib/utils';
 
 const iconMap = {
   house: House,
@@ -42,11 +44,21 @@ export function Sidebar({
   onToggle: (collapsed: boolean) => void;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const t = useTranslations('navigation');
   const tActions = useTranslations('actions');
   const { isOwner } = useCurrentUser();
 
-  const availableNav = dashboardNav.filter((item) => (item.key === 'activity' ? isOwner : true));
+  const availableNav = useMemo(
+    () => dashboardNav.filter((item) => (item.key === 'activity' ? isOwner : true)),
+    [isOwner],
+  );
+
+  useEffect(() => {
+    availableNav.forEach((item) => {
+      router.prefetch(item.href);
+    });
+  }, [availableNav, router]);
 
   const toggle = () => {
     const newState = !collapsed;
@@ -97,6 +109,9 @@ export function Sidebar({
             <Link
               key={item.key}
               href={item.href}
+              prefetch
+              onFocus={() => router.prefetch(item.href)}
+              onMouseEnter={() => router.prefetch(item.href)}
               className={cn(
                 'group flex items-center rounded-lg text-md font-medium transition-all duration-200',
                 isActive ? 'bg-primary text-white shadow-sm' : 'text-muted hover:bg-primary-soft',

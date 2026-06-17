@@ -30,7 +30,7 @@ export default function SignUpPage() {
 
     try {
       await signUp({ accountName: companyName.trim(), email: email.trim(), password, locale });
-      router.replace("/");
+      router.replace("/dashboard");
     } catch (error) {
       const message = error instanceof Error ? error.message : "Não foi possível criar a conta.";
       setErrorMessage(message);
@@ -40,7 +40,7 @@ export default function SignUpPage() {
 
   useEffect(() => {
     if (status === "authenticated") {
-      router.replace("/");
+      router.replace("/dashboard");
     }
   }, [status, router]);
 

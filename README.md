@@ -28,14 +28,19 @@ pnpm --filter @crane/db prisma:generate
 pnpm --filter @crane/db prisma:migrate
 ```
 
+You can also use the local helper scripts:
+
+```bash
+pnpm local:up    # starts local Docker services, runs Prisma setup, starts API + worker
+pnpm local:down  # stops the local Docker services
+```
+
+The helper starts Postgres on host port `5433` by default and automatically tries the next ports if that one is already in use. It keeps `DATABASE_URL` and `NEXT_PUBLIC_API_URL` in `.env` aligned with the selected ports.
+
 ## Local development
 ```bash
-# API (Fastify)
-pnpm dev:api
-# Worker (BullMQ consumers)
-pnpm dev:worker
 # Frontend (Next.js + Tailwind)
-pnpm dev:web
+pnpm --filter web exec next dev -p 3001
 ```
 
 > ℹ️ **Frontend ↔ API integration**: the web app reads the REST API base URL and development token from environment variables. Copy `.env.example` to `.env` and set, at minimum:

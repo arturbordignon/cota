@@ -23,7 +23,7 @@ export default function SignInPage() {
 
   useEffect(() => {
     if (status === "authenticated") {
-      router.replace("/");
+      router.replace("/dashboard");
     }
   }, [status, router]);
 
@@ -44,7 +44,7 @@ export default function SignInPage() {
 
     try {
       await signIn({ accountSlug: accountSlug.trim(), email: email.trim(), password });
-      router.replace("/");
+      router.replace("/dashboard");
     } catch (error) {
       const message = error instanceof Error ? error.message : "Falha ao entrar. Tente novamente.";
       setErrorMessage(message);
