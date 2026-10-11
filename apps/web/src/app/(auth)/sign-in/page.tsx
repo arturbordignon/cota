@@ -8,6 +8,7 @@ import { useCurrentUser } from "@/components/providers/user-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Notice } from "@/components/ui/notice";
 
 const ACCOUNT_SLUG_KEY = "crane.accountSlug";
 
@@ -57,9 +58,9 @@ export default function SignInPage() {
 
   return (
     <div className="space-y-8">
-      <div className="space-y-2 text-center sm:text-left">
-        <h1 className="text-3xl font-semibold text-ink">Bem-vindo de volta</h1>
-        <p className="text-sm text-muted">
+      <div className="space-y-2">
+        <h1 className="font-display text-[32px] font-semibold leading-tight text-ink">Bem-vindo de volta</h1>
+        <p className="text-[15px] leading-relaxed text-muted">
           Acesse sua conta para continuar gerando propostas e acompanhando clientes.
         </p>
       </div>
@@ -108,18 +109,16 @@ export default function SignInPage() {
           />
         </div>
         {errorMessage ? (
-          <p className="rounded-lg border border-danger/40 bg-danger-soft/20 px-3 py-2 text-xs text-danger">
-            {errorMessage}
-          </p>
+          <Notice tone="danger">{errorMessage}</Notice>
         ) : null}
-        <Button type="submit" className="w-full" disabled={isDisabled}>
+        <Button type="submit" size="lg" className="w-full" disabled={isDisabled}>
           {isSubmitting ? "Entrando..." : "Entrar"}
         </Button>
       </form>
 
-      <div className="text-center text-sm text-muted">
+      <div className="text-sm text-muted">
         Não possui conta?{' '}
-        <Link href="/sign-up" className="font-semibold text-primary hover:underline">
+        <Link href="/sign-up" className="font-semibold text-primary-strong underline-offset-4 hover:underline">
           Criar conta agora
         </Link>
       </div>

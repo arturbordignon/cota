@@ -8,6 +8,7 @@ import { useCurrentUser } from "@/components/providers/user-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Notice } from "@/components/ui/notice";
 import { Select, SelectItem } from "@/components/ui/select";
 
 export default function SignUpPage() {
@@ -49,9 +50,9 @@ export default function SignUpPage() {
 
   return (
     <div className="space-y-8">
-      <div className="space-y-2 text-center sm:text-left">
-        <h1 className="text-3xl font-semibold text-ink">Criar conta</h1>
-        <p className="text-sm text-muted">
+      <div className="space-y-2">
+        <h1 className="font-display text-[32px] font-semibold leading-tight text-ink">Criar conta</h1>
+        <p className="text-[15px] leading-relaxed text-muted">
           Monte seu ambiente, defina idioma padrão e convide a equipe para colaborar nas propostas.
         </p>
       </div>
@@ -111,18 +112,16 @@ export default function SignUpPage() {
           </Select>
         </div>
         {errorMessage ? (
-          <p className="rounded-lg border border-danger/40 bg-danger-soft/20 px-3 py-2 text-xs text-danger">
-            {errorMessage}
-          </p>
+          <Notice tone="danger">{errorMessage}</Notice>
         ) : null}
-        <Button type="submit" className="w-full" disabled={isDisabled}>
+        <Button type="submit" size="lg" className="w-full" disabled={isDisabled}>
           {isSubmitting ? "Criando conta..." : "Criar conta gratuita"}
         </Button>
       </form>
 
-      <div className="text-center text-sm text-muted">
+      <div className="text-sm text-muted">
         Já possui uma conta?{' '}
-        <Link href="/sign-in" className="font-semibold text-primary hover:underline">
+        <Link href="/sign-in" className="font-semibold text-primary-strong underline-offset-4 hover:underline">
           Entrar
         </Link>
       </div>

@@ -7,6 +7,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Notice } from "@/components/ui/notice";
 import * as authClient from "@/lib/auth-client";
 import { useCurrentUser } from "@/components/providers/user-provider";
 
@@ -89,8 +90,8 @@ export default function AcceptInvitePage() {
 
   if (loading) {
     return (
-      <div className="space-y-4 text-center">
-        <h1 className="text-2xl font-semibold text-ink">Validando convite…</h1>
+      <div className="space-y-2">
+        <h1 className="font-display text-[28px] font-semibold leading-tight text-ink">Validando convite…</h1>
         <p className="text-sm text-muted">Aguarde um instante.</p>
       </div>
     );
@@ -98,10 +99,10 @@ export default function AcceptInvitePage() {
 
   if (!preview || error) {
     return (
-      <div className="space-y-6 text-center">
-        <div>
-          <h1 className="text-2xl font-semibold text-ink">Convite inválido</h1>
-          <p className="text-sm text-muted">
+      <div className="space-y-6">
+        <div className="space-y-2">
+          <h1 className="font-display text-[28px] font-semibold leading-tight text-ink">Convite inválido</h1>
+          <p className="text-[15px] leading-relaxed text-muted">
             {error ?? "Não foi possível encontrar este convite. Solicite um novo link ao administrador."}
           </p>
         </div>
@@ -116,9 +117,9 @@ export default function AcceptInvitePage() {
 
   return (
     <div className="space-y-8">
-      <div className="space-y-2 text-center sm:text-left">
-        <h1 className="text-3xl font-semibold text-ink">Bem-vindo(a) à {preview.account.name}</h1>
-        <p className="text-sm text-muted">
+      <div className="space-y-2">
+        <h1 className="font-display text-[32px] font-semibold leading-tight text-ink">Bem-vindo(a) à {preview.account.name}</h1>
+        <p className="text-[15px] leading-relaxed text-muted">
           Conclua seu cadastro e comece a colaborar com a equipe.
         </p>
       </div>
@@ -126,7 +127,7 @@ export default function AcceptInvitePage() {
       <form className="space-y-5" onSubmit={handleSubmit}>
         <div className="space-y-2">
           <Label>E-mail</Label>
-          <Input value={preview.email} readOnly className="bg-[var(--color-surface-muted)]" />
+          <Input value={preview.email} readOnly />
         </div>
         <div className="space-y-2">
           <Label htmlFor="accept-name">Nome completo</Label>
@@ -154,18 +155,16 @@ export default function AcceptInvitePage() {
           <p className="text-xs text-muted">Use ao menos 8 caracteres, misturando letras e números.</p>
         </div>
         {error ? (
-          <p className="rounded-lg border border-danger/40 bg-danger-soft/20 px-3 py-2 text-xs text-danger">
-            {error}
-          </p>
+          <Notice tone="danger">{error}</Notice>
         ) : null}
-        <Button type="submit" className="w-full" disabled={isDisabled}>
+        <Button type="submit" size="lg" className="w-full" disabled={isDisabled}>
           {submitting ? "Concluindo convite..." : "Entrar na conta"}
         </Button>
       </form>
 
-      <div className="text-center text-sm text-muted">
+      <div className="text-sm text-muted">
         Problemas com o link?{' '}
-        <Link href="/sign-in" className="font-semibold text-primary hover:underline">
+        <Link href="/sign-in" className="font-semibold text-primary-strong underline-offset-4 hover:underline">
           Acesse com suas credenciais
         </Link>
       </div>

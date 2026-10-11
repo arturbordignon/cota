@@ -1,8 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 
+import { Logo } from "@/components/brand/logo";
+import { ProposalSheet } from "@/components/brand/proposal-sheet";
 import { useCurrentUser } from "@/components/providers/user-provider";
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
@@ -25,27 +28,27 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
     );
 
   return (
-    <div className="flex min-h-screen flex-col bg-gradient-to-br from-white via-white to-primary-soft lg:flex-row">
-      <div className="flex w-full flex-1 items-center justify-center px-6 py-12 sm:px-10 lg:px-16">
-        <div className="glass-panel w-full max-w-md bg-white/90 p-8 shadow-lg sm:p-10">
-          {content}
+    <div className="grid min-h-screen bg-white lg:grid-cols-[minmax(0,1fr)_minmax(0,0.95fr)]">
+      <div className="flex flex-col px-6 py-6 sm:px-10 lg:px-16">
+        <Link href="/" className="self-start rounded-lg">
+          <Logo />
+        </Link>
+        <div className="flex flex-1 items-center justify-center py-10">
+          <div className="w-full max-w-[400px]">{content}</div>
         </div>
       </div>
-      <aside className="hidden w-full max-w-xl flex-col justify-between gap-12 bg-surface/70 px-12 py-16 text-ink lg:flex">
-        <div>
-          <span className="rounded-full bg-primary/15 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-primary">
-            Crane Proposals
-          </span>
-          <h2 className="mt-6 text-3xl font-semibold leading-snug text-ink">
-            Transforme pedidos em propostas profissionais em minutos.
+
+      <aside className="hidden overflow-hidden bg-primary lg:flex lg:flex-col lg:justify-center lg:px-14 xl:px-20">
+        <div className="max-w-md">
+          <h2 className="text-balance font-display text-[34px] font-semibold leading-[1.1] text-ink">
+            Do pedido de içamento à proposta aceita, no mesmo fluxo.
           </h2>
-          <p className="mt-4 text-sm leading-relaxed text-muted">
-            Gere PDFs bilíngues, acompanhe status e compartilhe links seguros com seus clientes. Nosso fluxo combina templates ajustáveis com upload de fotos e totalizadores automáticos.
+          <p className="mt-4 text-[15px] leading-relaxed text-ink/75">
+            Monte a operação, gere o PDF com a sua marca e envie um link para o cliente aceitar ou recusar.
           </p>
         </div>
-        <div className="rounded-2xl border border-outline bg-white/70 p-6 shadow-sm">
-          <p className="text-sm text-muted">“Economizamos horas toda semana com o gerador de propostas. Os clientes recebem o PDF e a landing page com a nossa marca em segundos.”</p>
-          <div className="mt-4 text-sm font-semibold text-ink">Ana Ribeiro • Diretora Comercial</div>
+        <div className="mt-10">
+          <ProposalSheet className="rotate-[-1.5deg]" />
         </div>
       </aside>
     </div>
