@@ -14,25 +14,32 @@ export type NavKey =
   | "reports"
   | "account";
 
+export type NavGroup = "home" | "operations" | "sales" | "company";
+
 export type NavItem = {
   key: NavKey;
   href: Route;
   icon: string;
+  group: NavGroup;
   modulo?: PermissionModule;
   somenteDono?: boolean;
+  /** Other routes that belong to this section, e.g. departments under team. */
+  relacionados?: string[];
 };
 
+export const navGroups: NavGroup[] = ["home", "operations", "sales", "company"];
+
 export const dashboardNav: NavItem[] = [
-  { key: "dashboard", href: "/dashboard", icon: "house", modulo: "dashboard" },
-  { key: "templates", href: "/templates", icon: "files", modulo: "templates" },
-  { key: "proposals", href: "/proposals", icon: "envelope", modulo: "proposals" },
-  { key: "clients", href: "/clients", icon: "users", modulo: "clients" },
-  { key: "services", href: "/services", icon: "briefcase", modulo: "services" },
-  { key: "team", href: "/team", icon: "userList", somenteDono: true },
-  { key: "activity", href: "/activity", icon: "target", somenteDono: true },
-  { key: "crm", href: "/crm", icon: "kanban", modulo: "crm" },
-  { key: "reports", href: "/reports", icon: "chart", modulo: "reports" },
-  { key: "account", href: "/account", icon: "userCircle" },
+  { key: "dashboard", href: "/dashboard", icon: "house", group: "home", modulo: "dashboard" },
+  { key: "proposals", href: "/proposals", icon: "envelope", group: "operations", modulo: "proposals" },
+  { key: "clients", href: "/clients", icon: "users", group: "operations", modulo: "clients" },
+  { key: "services", href: "/services", icon: "briefcase", group: "operations", modulo: "services" },
+  { key: "templates", href: "/templates", icon: "files", group: "operations", modulo: "templates" },
+  { key: "crm", href: "/crm", icon: "kanban", group: "sales", modulo: "crm" },
+  { key: "reports", href: "/reports", icon: "chart", group: "sales", modulo: "reports" },
+  { key: "team", href: "/team", icon: "userList", group: "company", somenteDono: true, relacionados: ["/departments"] },
+  { key: "activity", href: "/activity", icon: "target", group: "company", somenteDono: true },
+  { key: "account", href: "/account", icon: "userCircle", group: "company", relacionados: ["/plans"] },
 ];
 
 type AcessoUsuario = {
@@ -48,4 +55,10 @@ export function itemVisivel(item: NavItem, acesso: AcessoUsuario) {
     return true;
   }
   return acesso.temPermissao(item.modulo, "view");
+}
+
+export function itemAtivo(item: NavItem, pathname: string) {
+  return [item.href, ...(item.relacionados ?? [])].some(
+    (rota) => pathname === rota || pathname.startsWith(`${rota}/`),
+  );
 }

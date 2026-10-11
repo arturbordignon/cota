@@ -1,11 +1,11 @@
 "use client";
 
 import { FormEvent, ReactNode, useEffect, useState } from "react";
-import { MagnifyingGlass } from "@phosphor-icons/react";
+import { MagnifyingGlass, X } from "@phosphor-icons/react";
 import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { Segmented } from "@/components/ui/segmented";
 
 export type OpcaoFiltro = {
   id: string;
@@ -23,13 +23,6 @@ type FilterBarProps = {
   aoLimpar?: () => void;
   rotuloLimpar?: string;
 };
-
-function classeChip(ativo: boolean) {
-  if (ativo) {
-    return "border-primary bg-primary text-ink";
-  }
-  return "border-outline bg-white text-ink hover:border-primary/60";
-}
 
 export function FilterBar({
   busca,
@@ -60,51 +53,52 @@ export function FilterBar({
   };
 
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-outline/70 bg-white px-3 py-3 sm:px-4">
-      <form className="flex flex-col gap-3 lg:flex-row lg:items-center" onSubmit={enviar}>
-        <label className="flex h-11 min-w-0 flex-1 items-center gap-2 rounded-lg border border-outline bg-white px-3">
-          <MagnifyingGlass size={16} className="shrink-0 text-muted" />
-          <input
-            value={rascunho}
-            onChange={(event) => setRascunho(event.target.value)}
-            placeholder={placeholder}
-            className="h-full w-full bg-transparent text-sm text-ink placeholder:text-muted focus:outline-none"
-          />
-        </label>
-        <Button type="submit" size="sm">
-          {tSearch("action")}
-        </Button>
-        {extra && <div className="shrink-0">{extra}</div>}
-        {mostrarLimpar && aoLimpar ? (
-          <button
-            type="button"
-            onClick={() => {
-              setRascunho("");
-              aoLimpar();
-            }}
-            className="shrink-0 text-sm font-medium text-muted hover:text-ink"
-          >
-            {rotuloLimpar}
-          </button>
-        ) : null}
-      </form>
-      {opcoes.length > 0 && (
-        <div className="flex gap-2 overflow-x-auto pb-0.5">
-          {opcoes.map((opcao) => (
-            <button
-              key={opcao.id}
-              type="button"
-              onClick={() => aoEscolher(opcao.id)}
-              className={cn(
-                "shrink-0 rounded-full border px-3 py-1.5 text-sm font-medium transition",
-                classeChip(opcao.id === opcaoAtiva),
-              )}
-            >
-              {opcao.rotulo}
-            </button>
-          ))}
+    <div className="space-y-3">
+      <form className="flex flex-col gap-2 sm:flex-row sm:items-center" onSubmit={enviar}>
+        <div className="flex min-w-0 flex-1 gap-2">
+          <label className="group flex h-10 min-w-0 flex-1 items-center gap-2 rounded-lg border border-outline bg-white px-3 shadow-card transition-[border-color,box-shadow] hover:border-ink/30 focus-within:border-primary focus-within:ring-[3px] focus-within:ring-primary/25">
+            <MagnifyingGlass size={16} className="shrink-0 text-muted" />
+            <input
+              value={rascunho}
+              onChange={(event) => setRascunho(event.target.value)}
+              placeholder={placeholder}
+              aria-label={placeholder}
+              className="h-full w-full min-w-0 bg-transparent text-sm text-ink placeholder:text-muted/80 focus:outline-none"
+            />
+          </label>
+          <Button type="submit" variant="secondary">
+            {tSearch("action")}
+          </Button>
         </div>
-      )}
+        {extra ? <div className="shrink-0 sm:w-48">{extra}</div> : null}
+      </form>
+      {opcoes.length > 0 || (mostrarLimpar && aoLimpar) ? (
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          {opcoes.length > 0 ? (
+            <Segmented
+              options={opcoes.map((opcao) => ({ value: opcao.id, label: opcao.rotulo }))}
+              value={opcaoAtiva}
+              onChange={aoEscolher}
+              size="sm"
+            />
+          ) : (
+            <span />
+          )}
+          {mostrarLimpar && aoLimpar ? (
+            <button
+              type="button"
+              onClick={() => {
+                setRascunho("");
+                aoLimpar();
+              }}
+              className="inline-flex shrink-0 items-center gap-1 rounded-md px-1.5 py-1 text-[13px] font-semibold text-muted transition-colors hover:text-ink"
+            >
+              <X size={12} weight="bold" />
+              {rotuloLimpar}
+            </button>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }

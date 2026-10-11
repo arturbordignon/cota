@@ -230,7 +230,11 @@ export const enMessages = {
       "openSearch": "Open search",
       "closeSearch": "Close search",
       "openNotifications": "View notifications",
-      "openLocale": "Change language"
+      "openLocale": "Change language",
+      "searchHint": "Search proposals, clients, templates",
+      "openUserMenu": "Open account menu",
+      "signOut": "Sign out",
+      "language": "Language"
     },
     "notifications": {
       "title": "Notifications",
@@ -438,7 +442,24 @@ export const enMessages = {
     "activity": "Audit Logs",
     "crm": "Pipeline",
     "reports": "Reports",
-    "account": "My Account"
+    "account": "My Account",
+    "groups": {
+      "home": "Home",
+      "operations": "Operations",
+      "sales": "Sales",
+      "company": "Company"
+    },
+    "usage": {
+      "title": "Proposals this cycle",
+      "of": "{used} of {total}",
+      "unlimited": "Unlimited plan",
+      "plans": "View plans"
+    },
+    "collapse": "Collapse menu",
+    "expand": "Expand menu",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
+    "language": "Interface language"
   },
   "notifications": {
     "title": "Notifications",
@@ -921,7 +942,8 @@ export const enMessages = {
         "noClient": "No client assigned",
         "noTitle": "—",
         "view": "View proposal",
-        "copyLink": "Copy link"
+        "copyLink": "Copy link",
+        "linkCopied": "Link copied"
       }
     }
   },
@@ -1051,6 +1073,7 @@ export const enMessages = {
       "resending": "Sending...",
       "resent": "Invite email sent!",
       "pendingNote": "Pending invite. Share the link or resend by email.",
+      "pendingBadge": "Invite pending",
       "linkLabel": "Current invite link",
       "generateLink": "Generate link",
       "generating": "Generating...",

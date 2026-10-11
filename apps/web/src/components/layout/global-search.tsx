@@ -2,11 +2,10 @@
 
 import { FormEvent, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
-import { MagnifyingGlass, SlidersHorizontal, ClockCounterClockwise } from "@phosphor-icons/react";
+import { MagnifyingGlass, ClockCounterClockwise } from "@phosphor-icons/react";
 
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Select, SelectItem } from "@/components/ui/select";
+import { Segmented } from "@/components/ui/segmented";
 
 export const searchScopes = ["all", "proposals", "clients", "templates"] as const;
 export type SearchScope = (typeof searchScopes)[number];
@@ -21,14 +20,11 @@ export function GlobalSearch({ onSearch, autoFocus = false }: GlobalSearchProps)
   const [scope, setScope] = useState<SearchScope>("all");
   const tSearch = useTranslations("common.search");
   const tScopes = useTranslations("common.search.scopes");
-  const tQuick = useTranslations("common.search.quick");
 
   const placeholder = useMemo(
-    () => tSearch("placeholderPrefix", { scope: tScopes(scope) }),
+    () => tSearch("placeholderPrefix", { scope: tScopes(scope).toLowerCase() }),
     [scope, tSearch, tScopes]
   );
-
-  const quickFilters = useMemo(() => searchScopes.filter((item) => item !== "all"), []);
 
   const recentSearches = useMemo(() => {
     const amostras = tSearch.raw("recentSamples");
@@ -43,67 +39,54 @@ export function GlobalSearch({ onSearch, autoFocus = false }: GlobalSearchProps)
     const trimmed = query.trim();
     if (!trimmed) return;
     onSearch?.(trimmed, scope);
-    if (process.env.NODE_ENV !== "production") {
-      console.info("Global search", { query: trimmed, scope });
-    }
   }
 
   return (
-    <div className="w-full space-y-2 rounded-2xl border border-outline/40 bg-white/95 p-3 shadow-sm">
-      <form className="flex flex-wrap items-center gap-3" onSubmit={handleSubmit}>
-        <div className="flex min-w-[220px] flex-1 items-center gap-2 rounded-xl bg-[var(--color-surface-muted)]/80 px-3 py-2">
-          <MagnifyingGlass size={18} className="text-muted" />
-          <Input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder={placeholder}
-            className="h-9 flex-1 border-none bg-transparent px-0 text-sm focus-visible:ring-0"
-            autoFocus={autoFocus}
-          />
-        </div>
-        <div className="min-w-[160px] flex-1 md:max-w-[200px]">
-          <Select value={scope} onValueChange={(next) => setScope(next as SearchScope)}>
-            {searchScopes.map((item) => (
-              <SelectItem key={item} value={item}>
-                {tScopes(item)}
-              </SelectItem>
-            ))}
-          </Select>
-        </div>
-        <Button type="submit" className="flex items-center gap-2 whitespace-nowrap">
-          <SlidersHorizontal size={16} />
+    <div className="w-full overflow-hidden rounded-2xl border border-border bg-white shadow-raised">
+      <form className="flex items-center gap-3 border-b border-border pl-4 pr-3" onSubmit={handleSubmit}>
+        <MagnifyingGlass size={20} className="shrink-0 text-muted" />
+        <input
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder={placeholder}
+          aria-label={placeholder}
+          className="h-14 min-w-0 flex-1 bg-transparent text-base text-ink placeholder:text-muted focus:outline-none"
+          autoFocus={autoFocus}
+        />
+        <Button type="submit" size="sm" disabled={!query.trim()}>
           {tSearch("action")}
         </Button>
       </form>
 
-      <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-muted">
-        <div className="flex flex-wrap items-center gap-2">
-          {quickFilters.map((filter) => (
-            <button
-              key={filter}
-              type="button"
-              onClick={() => setScope(filter)}
-              className="rounded-full border border-outline/40 bg-[var(--color-surface-muted)] px-3 py-1 font-medium text-ink transition hover:border-primary hover:text-primary"
-            >
-              {tQuick(filter)}
-            </button>
-          ))}
-        </div>
-        <div className="flex items-center gap-2">
-          <ClockCounterClockwise size={14} className="text-muted" />
-          <div className="flex flex-wrap items-center gap-1">
-            {recentSearches.map((item) => (
-              <button
-                key={item}
-                type="button"
-                onClick={() => setQuery(item)}
-                className="rounded-full bg-white/80 px-2 py-1 font-medium text-ink shadow-sm transition hover:text-primary"
-              >
-                {item}
-              </button>
-            ))}
+      <div className="space-y-4 px-4 py-4">
+        <Segmented
+          options={searchScopes.map((item) => ({ value: item, label: tScopes(item) }))}
+          value={scope}
+          onChange={setScope}
+          ariaLabel={tSearch("action")}
+          size="sm"
+        />
+
+        {recentSearches.length > 0 ? (
+          <div className="space-y-2">
+            <p className="flex items-center gap-1.5 text-xs font-semibold text-muted">
+              <ClockCounterClockwise size={14} />
+              {tSearch("recentLabel")}
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {recentSearches.map((item) => (
+                <button
+                  key={item}
+                  type="button"
+                  onClick={() => setQuery(item)}
+                  className="rounded-lg border border-border bg-surface-muted/70 px-2.5 py-1 text-[13px] font-medium text-ink-muted transition-colors hover:border-outline hover:text-ink"
+                >
+                  {item}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        ) : null}
       </div>
     </div>
   );

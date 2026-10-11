@@ -230,7 +230,11 @@ export const ptBRMessages = {
       "openSearch": "Abrir busca",
       "closeSearch": "Fechar busca",
       "openNotifications": "Ver notificações",
-      "openLocale": "Alterar idioma"
+      "openLocale": "Alterar idioma",
+      "searchHint": "Buscar propostas, clientes, modelos",
+      "openUserMenu": "Abrir menu da conta",
+      "signOut": "Sair",
+      "language": "Idioma"
     },
     "notifications": {
       "title": "Notificações",
@@ -438,7 +442,24 @@ export const ptBRMessages = {
     "activity": "Registros de Logs",
     "crm": "Pipeline",
     "reports": "Relatórios",
-    "account": "Minha Conta"
+    "account": "Minha Conta",
+    "groups": {
+      "home": "Início",
+      "operations": "Operação",
+      "sales": "Comercial",
+      "company": "Empresa"
+    },
+    "usage": {
+      "title": "Propostas no ciclo",
+      "of": "{used} de {total}",
+      "unlimited": "Plano ilimitado",
+      "plans": "Ver planos"
+    },
+    "collapse": "Recolher menu",
+    "expand": "Expandir menu",
+    "openMenu": "Abrir menu",
+    "closeMenu": "Fechar menu",
+    "language": "Idioma da interface"
   },
   "notifications": {
     "title": "Notificações",
@@ -921,7 +942,8 @@ export const ptBRMessages = {
         "noClient": "Sem cliente associado",
         "noTitle": "—",
         "view": "Ver proposta",
-        "copyLink": "Copiar link"
+        "copyLink": "Copiar link",
+        "linkCopied": "Link copiado"
       }
     }
   },
@@ -1051,6 +1073,7 @@ export const ptBRMessages = {
       "resending": "Enviando...",
       "resent": "Convite reenviado!",
       "pendingNote": "Convite pendente. Compartilhe o link ou reenvie por e-mail.",
+      "pendingBadge": "Convite pendente",
       "linkLabel": "Link atual do convite",
       "generateLink": "Gerar link",
       "generating": "Gerando...",

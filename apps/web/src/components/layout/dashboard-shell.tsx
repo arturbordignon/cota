@@ -67,23 +67,27 @@ export function DashboardShell({ children, headerActions }: DashboardShellProps)
     abrirNovaProposta = () => router.push('/proposals/new');
   }
 
+  const usage = overviewQuery.data?.data.usage;
+
   return (
     <div
       className={cn(
-        'min-h-screen bg-background transition-all duration-300',
-        sidebarCollapsed ? 'lg:pl-20' : 'lg:pl-72',
+        'min-h-screen bg-background transition-[padding] duration-200',
+        sidebarCollapsed ? 'lg:pl-[72px]' : 'lg:pl-64',
       )}
     >
-      <Sidebar collapsed={sidebarCollapsed} onToggle={handleToggleSidebar} />
+      <Sidebar collapsed={sidebarCollapsed} onToggle={handleToggleSidebar} usage={usage} />
       <div className="flex min-h-screen flex-col">
         <Topbar
           credits={montarCreditos(overviewQuery.data)}
           actions={headerActions}
           onCreateProposal={abrirNovaProposta}
-          mobileNavTrigger={<MobileNav open={mobileNavOpen} onOpenChange={setMobileNavOpen} />}
+          mobileNavTrigger={
+            <MobileNav open={mobileNavOpen} onOpenChange={setMobileNavOpen} usage={usage} />
+          }
         />
-        <main className="flex-1 px-4 py-6 sm:px-6 lg:px-10">
-          <div className="mx-auto w-full space-y-8">{children}</div>
+        <main className="flex-1 px-4 pb-16 pt-6 sm:px-6 lg:px-10 lg:pt-8">
+          <div className="max-layout-width space-y-8">{children}</div>
         </main>
       </div>
     </div>
