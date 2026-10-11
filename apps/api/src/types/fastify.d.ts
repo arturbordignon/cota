@@ -12,7 +12,10 @@ declare module 'fastify' {
     pdfQueue: Queue<PdfJobData, PdfJobResult>;
     redis: FastifyRedis;
     cache: import('../plugins/cache.js').CacheManager;
-    authenticate: import('fastify').preHandlerHookHandler;
+    authenticate: (
+      request: import('fastify').FastifyRequest,
+      reply: import('fastify').FastifyReply,
+    ) => Promise<unknown>;
   }
 
   interface FastifyRequest {

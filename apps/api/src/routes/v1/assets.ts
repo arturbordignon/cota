@@ -2,6 +2,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import { customAlphabet } from 'nanoid';
 import { createUploadUrl } from '@crane/storage';
+import { exigirPermissao } from '../../utils/permissions.js';
 
 const nanoid = customAlphabet('abcdefghijklmnopqrstuvwxyz0123456789', 12);
 
@@ -12,6 +13,7 @@ const uploadSchema = z.object({
 
 const assetRoutes: FastifyPluginAsync = async (app) => {
   app.addHook('preHandler', app.authenticate);
+  app.addHook('preHandler', exigirPermissao('proposals'));
 
   app.post('/upload-url', async (request, reply) => {
     const body = uploadSchema.parse(request.body);

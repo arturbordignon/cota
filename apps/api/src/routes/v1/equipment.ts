@@ -1,6 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { Prisma } from '@crane/db';
 import { z } from 'zod';
+import { exigirPermissao } from '../../utils/permissions.js';
 
 const createEquipmentSchema = z.object({
   name: z.string().min(2),
@@ -14,6 +15,7 @@ const updateEquipmentSchema = createEquipmentSchema.partial();
 
 const equipmentRoutes: FastifyPluginAsync = async (app) => {
   app.addHook('preHandler', app.authenticate);
+  app.addHook('preHandler', exigirPermissao('services'));
 
   app.get('/', async (request, reply) => {
     const equipment = await app.prisma.equipment.findMany({
@@ -65,10 +67,17 @@ const equipmentRoutes: FastifyPluginAsync = async (app) => {
     }
 
     if (body.description !== undefined || body.notes !== undefined) {
+      const especificacoesAtuais = (existing.specsJson || {}) as Record<string, string | undefined>;
       const specs = {
-        description: body.description?.trim(),
-        notes: body.notes?.trim(),
+        description: especificacoesAtuais.description,
+        notes: especificacoesAtuais.notes,
       };
+      if (body.description !== undefined) {
+        specs.description = body.description.trim();
+      }
+      if (body.notes !== undefined) {
+        specs.notes = body.notes.trim();
+      }
 
       const cleaned: Record<string, string> = {};
       if (specs.description) cleaned.description = specs.description;

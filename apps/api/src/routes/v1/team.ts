@@ -7,37 +7,16 @@ import type { DepartmentPreset as PrismaDepartmentPreset, PermissionModule } fro
 
 import { CACHE_RESOURCES } from '../../constants/cache.js';
 import { toDepartmentSlug } from '../../utils/slug.js';
+import {
+  PERMISSION_KEYS,
+  PERMISSION_KEY_TO_MODULE,
+  createPresetPermissionMap,
+  mapFromDb,
+} from '../../utils/permissions.js';
+import type { PermissionKey, PermissionMap } from '../../utils/permissions.js';
 import env from '@crane/config';
 
 import { sendInviteEmail } from '../../lib/mailer.js';
-
-const PERMISSION_KEYS = [
-  'dashboard',
-  'proposals',
-  'templates',
-  'crm',
-  'reports',
-  'plan',
-  'clients',
-  'services',
-] as const;
-
-type PermissionKey = (typeof PERMISSION_KEYS)[number];
-
-const PERMISSION_KEY_TO_MODULE: Record<PermissionKey, PermissionModule> = {
-  dashboard: 'DASHBOARD',
-  proposals: 'PROPOSALS',
-  templates: 'TEMPLATES',
-  crm: 'CRM',
-  reports: 'REPORTS',
-  plan: 'PLAN',
-  clients: 'CLIENTS',
-  services: 'SERVICES',
-};
-
-const MODULE_TO_KEY = Object.fromEntries(
-  Object.entries(PERMISSION_KEY_TO_MODULE).map(([key, value]) => [value, key as PermissionKey]),
-) as Partial<Record<PermissionModule, PermissionKey>>;
 
 const departmentPresetSchema = z.enum(['none', 'view', 'all', 'custom']);
 type DepartmentPresetInput = z.infer<typeof departmentPresetSchema>;
@@ -107,8 +86,6 @@ function hashInviteToken(token: string): string {
   return createHash('sha256').update(token).digest('hex');
 }
 
-type PermissionMap = Record<PermissionKey, { view: boolean; edit: boolean }>;
-
 function toDbPreset(preset: DepartmentPresetInput): PrismaDepartmentPreset {
   switch (preset) {
     case 'none':
@@ -137,19 +114,6 @@ function fromDbPreset(preset?: PrismaDepartmentPreset | null): DepartmentPresetI
   }
 }
 
-function createPresetPermissionMap(preset: Exclude<DepartmentPresetInput, 'custom'>): PermissionMap {
-  return PERMISSION_KEYS.reduce<PermissionMap>((acc, key) => {
-    if (preset === 'all') {
-      acc[key] = { view: true, edit: true };
-    } else if (preset === 'view') {
-      acc[key] = { view: true, edit: false };
-    } else {
-      acc[key] = { view: key === 'dashboard', edit: false };
-    }
-    return acc;
-  }, {} as PermissionMap);
-}
-
 function clonePermissionMap(map: PermissionMap): PermissionMap {
   return PERMISSION_KEYS.reduce<PermissionMap>((acc, key) => {
     acc[key] = { ...map[key] };
@@ -173,21 +137,6 @@ function applyPermissionOverrides(
     base[key] = { view, edit };
   }
 
-  return base;
-}
-
-function mapFromDb(
-  permissions: { module: PermissionModule; canView: boolean; canEdit: boolean }[],
-  fallback: Exclude<DepartmentPresetInput, 'custom'>,
-): PermissionMap {
-  const base = createPresetPermissionMap(fallback);
-  for (const permission of permissions) {
-    const key = MODULE_TO_KEY[permission.module];
-    if (!key) continue;
-    const view = Boolean(permission.canView);
-    const edit = view && Boolean(permission.canEdit);
-    base[key] = { view, edit };
-  }
   return base;
 }
 
@@ -239,16 +188,9 @@ async function generateDepartmentSlug(
 }
 
 const teamRoutes: FastifyPluginAsync = async (app) => {
-  const publicRoutes = new Set(['/invite/preview', '/invite/accept']);
-
   app.addHook('preHandler', async (request, reply) => {
-    const routePath = request.routerPath ?? request.routeOptions?.url ?? '';
-    const rawUrl = request.raw.url ?? '';
-    if (
-      publicRoutes.has(routePath) ||
-      publicRoutes.has(rawUrl) ||
-      [...publicRoutes].some((path) => rawUrl.startsWith(path) || routePath.includes(path))
-    ) {
+    const rotaAtual = request.routeOptions.url ?? '';
+    if (rotaAtual.endsWith('/invite/preview') || rotaAtual.endsWith('/invite/accept')) {
       return;
     }
     return app.authenticate(request, reply);
@@ -276,7 +218,6 @@ const teamRoutes: FastifyPluginAsync = async (app) => {
           departmentId: true,
           isActive: true,
           createdAt: true,
-          inviteToken: true,
           inviteTokenExpiresAt: true,
           invitedAt: true,
           department: {
@@ -302,10 +243,6 @@ const teamRoutes: FastifyPluginAsync = async (app) => {
       department: member.department,
       isActive: member.isActive,
       createdAt: member.createdAt,
-      inviteUrl:
-        !member.isActive && member.inviteToken
-          ? `${env.FRONTEND_BASE_URL.replace(/\/$/, '')}/accept-invite?token=${member.inviteToken}`
-          : null,
       inviteTokenExpiresAt: member.inviteTokenExpiresAt,
       invitedAt: member.invitedAt,
     }));
@@ -720,7 +657,6 @@ const teamRoutes: FastifyPluginAsync = async (app) => {
     await app.prisma.user.update({
       where: { id: invitee.id },
       data: {
-        inviteToken: null,
         passwordHash,
         fullName: body.fullName ?? invitee.fullName,
         isActive: true,
@@ -807,7 +743,6 @@ const teamRoutes: FastifyPluginAsync = async (app) => {
         departmentId: body.departmentId ?? null,
         isActive: false,
         invitedById: request.user.sub,
-        inviteToken,
         inviteTokenHash,
         inviteTokenExpiresAt,
         invitedAt,
@@ -912,7 +847,6 @@ const teamRoutes: FastifyPluginAsync = async (app) => {
     await app.prisma.user.update({
       where: { id: member.id },
       data: {
-        inviteToken,
         inviteTokenHash,
         inviteTokenExpiresAt,
         invitedAt,
@@ -1032,6 +966,11 @@ const teamRoutes: FastifyPluginAsync = async (app) => {
 
     if (!member) {
       return reply.status(404).send({ message: 'Usuário não encontrado.' });
+    }
+
+    const alterandoProprioAcesso = body.role === 'MEMBER' || body.isActive === false;
+    if (member.id === request.user.sub && alterandoProprioAcesso) {
+      return reply.status(400).send({ message: 'Você não pode remover o seu próprio acesso de proprietário.' });
     }
 
     const updateData: Parameters<typeof app.prisma.user.update>[0]['data'] = {};

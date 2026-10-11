@@ -2,6 +2,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 
 import { invalidateReportsOverviewCache } from '../../utils/cache.js';
+import { exigirPermissao } from '../../utils/permissions.js';
 
 const createClientSchema = z.object({
   name: z.string().min(1),
@@ -15,6 +16,7 @@ const updateClientSchema = createClientSchema.partial();
 
 const clientRoutes: FastifyPluginAsync = async (app) => {
   app.addHook('preHandler', app.authenticate);
+  app.addHook('preHandler', exigirPermissao('clients'));
 
   app.get('/', async (request, reply) => {
     const clients = await app.prisma.client.findMany({

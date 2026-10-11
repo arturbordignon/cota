@@ -6,6 +6,7 @@ import env from '@crane/config';
 import { toAccountSlug } from '../../utils/slug.js';
 import { resolveLocale } from '../../utils/locale.js';
 import { getDefaultPlanSlug } from '../../services/billing.js';
+import { carregarPermissoes } from '../../utils/permissions.js';
 
 type TokenPayload = {
   sub: string;
@@ -16,9 +17,9 @@ type TokenPayload = {
 async function generateTokens(app: FastifyInstance, payload: TokenPayload) {
   const [accessToken, refreshToken] = await Promise.all([
     app.jwt.sign(payload, { expiresIn: '15m' }),
-    (app.jwt.sign as any)(payload, {
+    app.jwt.sign({ ...payload, tipo: 'refresh' }, {
       expiresIn: '7d',
-      secret: env.JWT_REFRESH_SECRET,
+      key: env.JWT_REFRESH_SECRET,
     }),
   ]);
   return { accessToken, refreshToken };
@@ -89,6 +90,7 @@ const authRoutes: FastifyPluginAsync = async (app) => {
         slug: user.account.slug,
         locale: user.account.defaultLocale,
       },
+      permissions: await carregarPermissoes(app, payload),
     };
   });
 
@@ -255,19 +257,14 @@ const authRoutes: FastifyPluginAsync = async (app) => {
       }
 
       const verifyStart = Date.now();
-      const validPassword = await argon2.verify(user.passwordHash, body.password, {
-        type: argon2.argon2id,
-        memoryCost: 2 ** 15,
-        timeCost: 2,
-        parallelism: 1,
-      });
+      const validPassword = await argon2.verify(user.passwordHash, body.password);
       app.log.info(`Argon2 verify took ${Date.now() - verifyStart}ms`);
 
       if (!validPassword) {
         return reply.status(401).send({ message: 'Invalid credentials' });
       }
 
-      const auditMetadata: Record<string, unknown> = { at: dayjs().toISOString() };
+      const auditMetadata: Record<string, string | null> = { at: dayjs().toISOString() };
       const auditData: Parameters<typeof app.prisma.auditEvent.create>[0]['data'] = {
         accountId: user.accountId,
         userId: user.id,
@@ -339,9 +336,12 @@ const authRoutes: FastifyPluginAsync = async (app) => {
     const body = refreshBodySchema.parse(request.body);
 
     try {
-      const payload = await (app.jwt.verify as any)(body.refreshToken, {
-        secret: env.JWT_REFRESH_SECRET,
+      const payload = app.jwt.verify<TokenPayload & { tipo?: string }>(body.refreshToken, {
+        key: env.JWT_REFRESH_SECRET,
       });
+      if (payload.tipo !== 'refresh') {
+        return reply.status(401).send({ message: 'Invalid refresh token' });
+      }
 
       const user = await app.prisma.user.findUnique({ where: { id: payload.sub } });
       if (!user || !user.isActive) {

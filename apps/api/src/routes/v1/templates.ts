@@ -2,6 +2,7 @@ import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 
 import { CACHE_RESOURCES } from '../../constants/cache.js';
+import { exigirPermissao } from '../../utils/permissions.js';
 
 const templatePayloadSchema = z.object({
   name: z.string().min(2),
@@ -47,6 +48,7 @@ async function invalidateTemplateCache(app: FastifyInstance, accountId: string) 
 
 const templateRoutes: FastifyPluginAsync = async (app) => {
   app.addHook('preHandler', app.authenticate);
+  app.addHook('preHandler', exigirPermissao('templates'));
 
   app.get('/', async (request, reply) => {
     const query = listQuerySchema.parse(request.query);

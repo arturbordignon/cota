@@ -4,6 +4,7 @@ import type Stripe from 'stripe';
 import env from '@crane/config';
 import { getStripe, isStripeEnabled } from '../../lib/stripe.js';
 import { getBillingOverview } from '../../services/billing.js';
+import { exigirPermissao } from '../../utils/permissions.js';
 
 const checkoutBodySchema = z.object({
   planSlug: z.string().min(1),
@@ -28,10 +29,8 @@ const billingRoutes: FastifyPluginAsync = async (app) => {
     return reply.send({ data: plans });
   });
 
-  app.post('/checkout', async (request, reply) => {
+  app.post('/checkout', { preHandler: [app.authenticate, exigirPermissao('plan')] }, async (request, reply) => {
     const body = checkoutBodySchema.parse(request.body);
-
-    await request.jwtVerify();
 
     if (!isStripeEnabled()) {
       return reply.status(503).send({ message: 'Stripe não está configurado.' });
@@ -114,9 +113,7 @@ const billingRoutes: FastifyPluginAsync = async (app) => {
     return reply.send({ url: session.url });
   });
 
-  app.post('/portal', async (request, reply) => {
-    await request.jwtVerify();
-
+  app.post('/portal', { preHandler: [app.authenticate, exigirPermissao('plan')] }, async (request, reply) => {
     if (!isStripeEnabled()) {
       return reply.status(503).send({ message: 'Stripe não está configurado.' });
     }

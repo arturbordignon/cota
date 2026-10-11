@@ -3,6 +3,7 @@ import { z } from 'zod';
 import dayjs from 'dayjs';
 
 import { CACHE_RESOURCES } from '../../constants/cache.js';
+import { exigirPermissao } from '../../utils/permissions.js';
 
 const reportBodySchema = z.object({
   question: z.string().min(1),
@@ -22,8 +23,10 @@ function parseDate(date: string | undefined, fallback: dayjs.Dayjs) {
 }
 
 const reportsRoutes: FastifyPluginAsync = async (app) => {
+  app.addHook('preHandler', app.authenticate);
+  app.addHook('preHandler', exigirPermissao('reports', 'view'));
+
   app.get('/overview', async (request, reply) => {
-    await request.jwtVerify();
 
     const q = request.query as { start?: string; end?: string };
     const defaultEnd = dayjs();
@@ -112,8 +115,15 @@ const reportsRoutes: FastifyPluginAsync = async (app) => {
         }, {});
         const propostasPorMembro = Object.values(propostasPorMembroMap);
 
+        function buscarCidade(payloadJson: unknown) {
+          const payload = payloadJson as { job?: { siteLocation?: unknown } } | null;
+          if (typeof payload?.job?.siteLocation !== 'string') return 'Sem cidade';
+          if (payload.job.siteLocation.trim() === '') return 'Sem cidade';
+          return payload.job.siteLocation.trim();
+        }
+
         const receitaPorCidadeMap = accepted.reduce<Record<string, number>>((acc, p) => {
-          const cidade = (p.client?.city as string | undefined)?.trim() || 'Sem cidade';
+          const cidade = buscarCidade(p.payloadJson);
           acc[cidade] = (acc[cidade] ?? 0) + getNumericTotal(p.totalsJson);
           return acc;
         }, {});
@@ -157,7 +167,6 @@ const reportsRoutes: FastifyPluginAsync = async (app) => {
   });
 
   app.post('/run', async (request, reply) => {
-    await request.jwtVerify();
     const body = reportBodySchema.parse(request.body);
 
     const defaultEnd = dayjs();

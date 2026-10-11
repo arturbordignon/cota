@@ -1,5 +1,5 @@
 import nodemailer from 'nodemailer';
-import type { Logger } from 'pino';
+import type { FastifyBaseLogger } from 'fastify';
 
 import env from '@crane/config';
 
@@ -8,7 +8,7 @@ interface InviteEmailPayload {
   inviteUrl: string;
   accountName: string;
   invitedBy?: string | null;
-  logger?: Logger;
+  logger?: FastifyBaseLogger;
 }
 
 let transporterPromise: Promise<nodemailer.Transporter | null> | null = null;

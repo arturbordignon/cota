@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { Prisma } from '@crane/db';
 
 import { invalidateReportsOverviewCache } from '../../utils/cache.js';
+import { exigirPermissao } from '../../utils/permissions.js';
 
 const moveLeadSchema = z.object({
   stageId: z.string().uuid()
@@ -19,6 +20,7 @@ const reorderStagesSchema = z.object({
 
 const pipelineRoutes: FastifyPluginAsync = async (app) => {
   app.addHook('preHandler', app.authenticate);
+  app.addHook('preHandler', exigirPermissao('crm'));
 
   app.get('/stages', async (request, reply) => {
     let stages = await app.prisma.pipelineStage.findMany({
@@ -248,7 +250,6 @@ const pipelineRoutes: FastifyPluginAsync = async (app) => {
       contactPhone: body.contactPhone,
       estimatedValue: body.estimatedValue != null ? new Prisma.Decimal(body.estimatedValue) : undefined,
       notes: body.notes,
-      metadataJson: null,
       proposals: { connect: [] }
     };
 
