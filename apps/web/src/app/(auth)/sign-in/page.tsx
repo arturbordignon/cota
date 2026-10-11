@@ -106,11 +106,6 @@ export default function SignInPage() {
             disabled={isSubmitting}
             required
           />
-          <div className="flex justify-end">
-            <Link href="/forgot-password" className="text-xs font-semibold text-primary hover:underline">
-              Esqueci minha senha
-            </Link>
-          </div>
         </div>
         {errorMessage ? (
           <p className="rounded-lg border border-danger/40 bg-danger-soft/20 px-3 py-2 text-xs text-danger">

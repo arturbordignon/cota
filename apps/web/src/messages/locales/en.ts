@@ -60,7 +60,7 @@ export const enMessages = {
       "add": "Add client"
     },
     "warnings": {
-      "tokenMissing": "Set the variable NEXT_PUBLIC_API_TOKEN or authenticate to list real clients."
+      "tokenMissing": "Sign in to list clients."
     },
     "states": {
       "loading": "Loading clients...",
@@ -350,7 +350,7 @@ export const enMessages = {
       "upgradePlan": "Upgrade plan"
     },
     "warnings": {
-      "tokenMissing": "Set the variable NEXT_PUBLIC_API_TOKEN or authenticate to load live data."
+      "tokenMissing": "Sign in to load data."
     },
     "states": {
       "error": "Unable to load dashboard data."
@@ -476,7 +476,7 @@ export const enMessages = {
   "reports": {
     "page": {
       "alerts": {
-        "missingToken": "Set the `NEXT_PUBLIC_API_TOKEN` or sign in to load live data.",
+        "missingToken": "Sign in to load your data.",
         "loadError": "We couldn't load the metrics: {error}"
       },
     "header": {
@@ -794,7 +794,7 @@ export const enMessages = {
     },
     "page": {
       "alerts": {
-        "missingToken": "Set the `NEXT_PUBLIC_API_TOKEN` or sign in to load real templates.",
+        "missingToken": "Sign in to load templates.",
         "loadError": "We couldn't load the templates: {message}"
       },
       "header": {
@@ -892,7 +892,7 @@ export const enMessages = {
     },
     "page": {
       "alerts": {
-        "missingToken": "Set the `NEXT_PUBLIC_API_TOKEN` or sign in to view real proposals.",
+        "missingToken": "Sign in to view proposals.",
         "loadError": "We couldn't load the proposals: {message}"
       },
       "header": {
@@ -922,7 +922,7 @@ export const enMessages = {
   "crm": {
     "page": {
       "alerts": {
-        "missingToken": "Set the `NEXT_PUBLIC_API_TOKEN` or sign in to view the live pipeline.",
+        "missingToken": "Sign in to view the pipeline.",
         "loadError": "We couldn't load the pipeline: {message}"
       },
       "header": {
@@ -987,7 +987,7 @@ export const enMessages = {
       "addMember": "Add member"
     },
     "alerts": {
-      "missingToken": "Set the `NEXT_PUBLIC_API_TOKEN` or sign in to view real team data.",
+      "missingToken": "Sign in to view team data.",
       "loadError": "We couldn't load the team: {message}"
     },
     "memberCard": {

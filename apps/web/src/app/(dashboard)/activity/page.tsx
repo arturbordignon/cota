@@ -122,7 +122,7 @@ export default function ActivityPage() {
             {t('states.empty')}
           </Card>
         ) : null}
-        {auditEventsQuery.error && !isTokenMissing ? (
+        {auditEventsQuery.error ? (
           <Card className="border border-danger/40 bg-danger-soft/20 px-6 py-4 text-sm text-danger">
             {t('states.error')} {(auditEventsQuery.error as Error).message}
           </Card>

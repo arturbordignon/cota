@@ -751,7 +751,9 @@ export default function ClientsPage() {
         <AddClientDialog
           open={dialogOpen}
           onOpenChange={setDialogOpen}
-          onSubmit={(values) => createClient.mutateAsync(values)}
+          onSubmit={async (values) => {
+            await createClient.mutateAsync(values);
+          }}
           isLoading={createClient.isPending}
           errorMessage={createClient.error?.message}
         />

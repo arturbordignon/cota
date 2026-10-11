@@ -1,11 +1,13 @@
 'use client';
 
+import type { Route } from 'next';
 import { useMemo } from 'react';
 import Link from 'next/link';
 import { useFormatter, useTranslations } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
 
 import { PageHeader } from '@/components/layout/page-header';
+import { useCurrentUser } from '@/components/providers/user-provider';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useApi } from '@/hooks/use-api';
@@ -55,11 +57,12 @@ export default function DashboardPage() {
   const tActions = useTranslations('actions');
   const format = useFormatter();
   const api = useApi();
+  const { temPermissao } = useCurrentUser();
 
   const proposalsQuery = useQuery({
     queryKey: ['proposals', 'dashboard'],
     queryFn: () => api.get<ProposalsResponse>('/proposals'),
-    enabled: Boolean(api.token),
+    enabled: Boolean(api.token) && temPermissao('proposals', 'view'),
   });
 
   const billingQuery = useQuery({
@@ -76,7 +79,7 @@ export default function DashboardPage() {
   const plan = billingQuery.data?.data.plan;
   const loadError = (proposalsQuery.error ?? billingQuery.error) as Error | null;
 
-  const quickActions = useMemo(
+  const quickActions = useMemo<{ title: string; href: Route; description: string; cta: string }[]>(
     () => [
       {
         title: tActions('createProposal'),
@@ -162,7 +165,7 @@ export default function DashboardPage() {
         ? null
         : averageMinutes - previousAverageMinutes;
 
-    const formatNumber = (value: number, options?: Intl.NumberFormatOptions) =>
+    const formatNumber = (value: number, options?: Exclude<Parameters<typeof format.number>[1], string>) =>
       format.number(value, { maximumFractionDigits: 1, ...options });
 
     const formatSigned = (value: number, unit?: string) => {

@@ -1,3 +1,7 @@
+import type { Route } from "next";
+
+import type { PermissionModule } from "@/lib/auth-client";
+
 export type NavKey =
   | "dashboard"
   | "templates"
@@ -12,19 +16,36 @@ export type NavKey =
 
 export type NavItem = {
   key: NavKey;
-  href: string;
+  href: Route;
   icon: string;
+  modulo?: PermissionModule;
+  somenteDono?: boolean;
 };
 
 export const dashboardNav: NavItem[] = [
-  { key: "dashboard", href: "/dashboard", icon: "house" },
-  { key: "templates", href: "/templates", icon: "files" },
-  { key: "proposals", href: "/proposals", icon: "envelope" },
-  { key: "clients", href: "/clients", icon: "users" },
-  { key: "services", href: "/services", icon: "briefcase" },
-  { key: "team", href: "/team", icon: "userList" },
-  { key: "activity", href: "/activity", icon: "target" },
-  { key: "crm", href: "/crm", icon: "kanban" },
-  { key: "reports", href: "/reports", icon: "chart" },
+  { key: "dashboard", href: "/dashboard", icon: "house", modulo: "dashboard" },
+  { key: "templates", href: "/templates", icon: "files", modulo: "templates" },
+  { key: "proposals", href: "/proposals", icon: "envelope", modulo: "proposals" },
+  { key: "clients", href: "/clients", icon: "users", modulo: "clients" },
+  { key: "services", href: "/services", icon: "briefcase", modulo: "services" },
+  { key: "team", href: "/team", icon: "userList", somenteDono: true },
+  { key: "activity", href: "/activity", icon: "target", somenteDono: true },
+  { key: "crm", href: "/crm", icon: "kanban", modulo: "crm" },
+  { key: "reports", href: "/reports", icon: "chart", modulo: "reports" },
   { key: "account", href: "/account", icon: "userCircle" },
 ];
+
+type AcessoUsuario = {
+  isOwner: boolean;
+  temPermissao: (modulo: PermissionModule, acao: "view" | "edit") => boolean;
+};
+
+export function itemVisivel(item: NavItem, acesso: AcessoUsuario) {
+  if (item.somenteDono) {
+    return acesso.isOwner;
+  }
+  if (!item.modulo) {
+    return true;
+  }
+  return acesso.temPermissao(item.modulo, "view");
+}

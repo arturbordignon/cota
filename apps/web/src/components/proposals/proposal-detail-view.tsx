@@ -1,16 +1,19 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useFormatter, useTranslations } from "next-intl";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowClockwise,
   ClipboardText,
+  DownloadSimple,
   Files,
   PaperPlaneTilt,
 } from "@phosphor-icons/react/dist/ssr";
 
 import { PageHeader } from "@/components/layout/page-header";
+import { useCurrentUser } from "@/components/providers/user-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -54,15 +57,77 @@ interface ProposalDetailViewProps {
   proposalId: string;
 }
 
+function buscarMensagemErro(error: unknown, mensagemPadrao: string) {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return mensagemPadrao;
+}
+
+function copiarTexto(texto: string) {
+  if (navigator?.clipboard?.writeText) {
+    return navigator.clipboard.writeText(texto);
+  }
+  const campoTexto = document.createElement("textarea");
+  campoTexto.value = texto;
+  document.body.appendChild(campoTexto);
+  campoTexto.select();
+  document.execCommand("copy");
+  document.body.removeChild(campoTexto);
+  return Promise.resolve();
+}
+
+const TEMPO_MAXIMO_ESPERA_PDF = 90000;
+
+type DadosProposta = { job?: { projectName?: string; siteLocation?: string; schedule?: string } };
+type TotaisProposta = { total?: number; days?: number };
+
+function formatarMoeda(valor: number, locale?: string) {
+  let moeda = "BRL";
+  if (locale === "en") {
+    moeda = "USD";
+  }
+  return new Intl.NumberFormat(locale || "pt-BR", { style: "currency", currency: moeda }).format(valor);
+}
+
+function montarResumo(proposta?: ProposalDetail) {
+  if (!proposta) {
+    return [];
+  }
+  const dados = (proposta.payloadJson || {}) as DadosProposta;
+  const totais = (proposta.totalsJson || {}) as TotaisProposta;
+  const itens = [
+    { label: "Projeto", value: dados.job?.projectName },
+    { label: "Local da operação", value: dados.job?.siteLocation },
+    { label: "Período", value: dados.job?.schedule },
+  ];
+  if (typeof totais.days === "number" && totais.days > 0) {
+    itens.push({ label: "Dias de operação", value: String(totais.days) });
+  }
+  if (typeof totais.total === "number") {
+    itens.push({ label: "Valor total", value: formatarMoeda(totais.total, proposta.locale) });
+  }
+  return itens.filter((item) => item.value);
+}
+
 export function ProposalDetailView({ proposalId }: ProposalDetailViewProps) {
   const api = useApi();
   const format = useFormatter();
   const tStatus = useTranslations("proposals.status");
   const queryClient = useQueryClient();
+  const { temPermissao } = useCurrentUser();
+  const podeEditar = temPermissao("proposals", "edit");
   const [copyState, setCopyState] = useState<"idle" | "copied" | "error">("idle");
   const [banner, setBanner] = useState<{ tone: "success" | "info" | "danger"; text: string } | null>(
     null
   );
+  const searchParams = useSearchParams();
+  const [esperaPdf, setEsperaPdf] = useState<{ atualizadoEm?: string; inicio: number } | null>(() => {
+    if (searchParams.get("queued") !== "1") {
+      return null;
+    }
+    return { inicio: Date.now() };
+  });
 
   useEffect(() => {
     if (copyState === "idle") return;
@@ -80,12 +145,34 @@ export function ProposalDetailView({ proposalId }: ProposalDetailViewProps) {
     queryKey: ["proposals", proposalId],
     queryFn: () => api.get<ProposalDetailResponse>(`/proposals/${proposalId}`),
     enabled: Boolean(api.token),
+    refetchInterval: () => {
+      if (!esperaPdf) {
+        return false;
+      }
+      return 3000;
+    },
   });
 
   const proposal = proposalQuery.data?.data as ProposalDetail | undefined;
   const isTokenMissing = !api.token;
   const loadError = proposalQuery.error as Error | null;
   const isLoading = proposalQuery.isLoading;
+
+  useEffect(() => {
+    if (!esperaPdf || !proposal) {
+      return;
+    }
+    if (Date.now() - esperaPdf.inicio > TEMPO_MAXIMO_ESPERA_PDF) {
+      setEsperaPdf(null);
+      setBanner({ tone: "danger", text: "O PDF está demorando mais que o esperado. Tente novamente em instantes." });
+      return;
+    }
+    if (proposal.updatedAt === esperaPdf.atualizadoEm || !proposal.pdfObjectKey) {
+      return;
+    }
+    setEsperaPdf(null);
+    setBanner({ tone: "success", text: "PDF pronto para download." });
+  }, [esperaPdf, proposal]);
 
   const generateMutation = useMutation({
     mutationFn: async () => {
@@ -96,11 +183,10 @@ export function ProposalDetailView({ proposalId }: ProposalDetailViewProps) {
     },
     onSuccess: (response) => {
       setBanner({
-        tone: "success",
-        text: response.message ?? "Proposta reenfileirada para geração de PDF.",
+        tone: "info",
+        text: response.message ?? "PDF em geração.",
       });
-      queryClient.invalidateQueries({ queryKey: ["proposals", proposalId] });
-      queryClient.invalidateQueries({ queryKey: ["proposals", "list"] });
+      setEsperaPdf({ atualizadoEm: proposal?.updatedAt, inicio: Date.now() });
     },
     onError: (error: unknown) => {
       setBanner({
@@ -172,35 +258,61 @@ export function ProposalDetailView({ proposalId }: ProposalDetailViewProps) {
     { label: "Recusada", value: proposal?.declinedAt },
   ];
 
-  const handleCopyLink = () => {
-    if (typeof window === "undefined" || !proposal) {
-      return;
-    }
-    const shareSegment = proposal.publicSlug ?? proposal.id;
-    const shareUrl = `${window.location.origin}/proposals/${shareSegment}`;
-    if (navigator?.clipboard?.writeText) {
-      navigator.clipboard
-        .writeText(shareUrl)
-        .then(() => setCopyState("copied"))
-        .catch(() => {
-          setCopyState("error");
-          setBanner({ tone: "danger", text: "Não foi possível copiar o link." });
-        });
-    } else {
+  const enviarProposta = useMutation({
+    mutationFn: async () => {
+      if (!proposal?.publicSlug) {
+        throw new Error("Proposta sem link público.");
+      }
+      await api.post(`/proposals/${proposal.id}/send`, {});
+    },
+    onSuccess: async () => {
+      queryClient.invalidateQueries({ queryKey: ["proposals", proposalId] });
+      queryClient.invalidateQueries({ queryKey: ["proposals", "list"] });
+      let slugPublico = "";
+      if (proposal && proposal.publicSlug) {
+        slugPublico = proposal.publicSlug;
+      }
+      const linkPublico = `${window.location.origin}/p/${slugPublico}`;
       try {
-        const textArea = document.createElement("textarea");
-        textArea.value = shareUrl;
-        document.body.appendChild(textArea);
-        textArea.select();
-        document.execCommand("copy");
-        document.body.removeChild(textArea);
+        await copiarTexto(linkPublico);
         setCopyState("copied");
+        setBanner({ tone: "success", text: "Link público copiado. Envie para o cliente visualizar e responder." });
+        return;
       } catch {
         setCopyState("error");
-        setBanner({ tone: "danger", text: "Não foi possível copiar o link." });
+        setBanner({ tone: "info", text: `Proposta enviada. Copie o link: ${linkPublico}` });
       }
-    }
-  };
+    },
+    onError: (error: unknown) => {
+      setCopyState("error");
+      setBanner({ tone: "danger", text: buscarMensagemErro(error, "Não foi possível enviar a proposta.") });
+    },
+  });
+
+  const baixarPdf = useMutation({
+    mutationFn: () => api.get<{ url: string }>(`/proposals/${proposalId}/pdf`),
+    onSuccess: (resposta) => {
+      window.open(resposta.url, "_blank", "noopener");
+    },
+    onError: (error: unknown) => {
+      setBanner({ tone: "danger", text: buscarMensagemErro(error, "Não foi possível baixar o PDF.") });
+    },
+  });
+
+  let rotuloLink = "Enviar ao cliente";
+  if (copyState === "copied") {
+    rotuloLink = "Link copiado";
+  }
+  if (proposal && proposal.status !== "DRAFT" && proposal.status !== "PENDING" && copyState !== "copied") {
+    rotuloLink = "Copiar link público";
+  }
+
+  let rotuloGerarPdf = "Gerar PDF";
+  if (proposal?.pdfObjectKey) {
+    rotuloGerarPdf = "Regerar PDF";
+  }
+
+  const resumo = montarResumo(proposal);
 
   return (
     <section className="space-y-6">
@@ -208,27 +320,37 @@ export function ProposalDetailView({ proposalId }: ProposalDetailViewProps) {
         title={proposal?.title ?? proposal?.template?.name ?? "Detalhe da proposta"}
         description={headerDescription}
         action={
-          proposal ? (
+          proposal && podeEditar && (
             <div className="flex flex-wrap gap-2">
               <Button
                 onClick={() => generateMutation.mutate()}
-                loading={generateMutation.isPending}
-                loadingText="Agendando..."
+                loading={generateMutation.isPending || Boolean(esperaPdf)}
+                loadingText="Gerando PDF..."
               >
                 <ArrowClockwise size={16} weight="bold" />
-                Regerar PDF
+                {rotuloGerarPdf}
               </Button>
               <Button
                 variant="outline"
-                onClick={handleCopyLink}
-                disabled={!proposal}
+                onClick={() => baixarPdf.mutate()}
+                loading={baixarPdf.isPending}
+                disabled={!proposal.pdfObjectKey}
+                className="gap-1"
+              >
+                <DownloadSimple size={16} weight="bold" />
+                Baixar PDF
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => enviarProposta.mutate()}
+                loading={enviarProposta.isPending}
                 className="gap-1"
               >
                 <ClipboardText size={16} weight="bold" />
-                {copyState === "copied" ? "Link copiado" : "Copiar link interno"}
+                {rotuloLink}
               </Button>
             </div>
-          ) : null
+          )
         }
       />
 
@@ -303,7 +425,24 @@ export function ProposalDetailView({ proposalId }: ProposalDetailViewProps) {
               </div>
             </div>
 
-            {payloadEntries.length > 0 ? (
+            {resumo.length > 0 && (
+              <div className="space-y-3">
+                <h3 className="text-sm font-semibold text-ink">Resumo</h3>
+                <dl className="grid gap-3 sm:grid-cols-2">
+                  {resumo.map((item) => (
+                    <div
+                      key={item.label}
+                      className="rounded-lg border border-outline/40 bg-[var(--color-surface-muted)]/40 px-4 py-3"
+                    >
+                      <dt className="text-xs uppercase tracking-wide text-muted">{item.label}</dt>
+                      <dd className="mt-1 text-sm text-ink">{item.value}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
+            )}
+
+            {payloadEntries.length > 0 && (
               <div className="space-y-3">
                 <h3 className="text-sm font-semibold text-ink">Dados enviados</h3>
                 <dl className="grid gap-3 sm:grid-cols-2">
@@ -318,7 +457,9 @@ export function ProposalDetailView({ proposalId }: ProposalDetailViewProps) {
                   ))}
                 </dl>
               </div>
-            ) : (
+            )}
+
+            {payloadEntries.length === 0 && resumo.length === 0 && (
               <p className="text-sm text-muted">
                 Nenhum dado adicional foi informado para esta proposta.
               </p>
@@ -352,9 +493,18 @@ export function ProposalDetailView({ proposalId }: ProposalDetailViewProps) {
               <div className="space-y-3 text-sm">
                 <div>
                   <p className="text-xs uppercase tracking-wide text-muted">PDF gerado</p>
-                  <p className="mt-1 break-all text-ink">
-                    {proposal.pdfObjectKey ?? "Ainda não disponível. Gere a proposta para criar o PDF."}
-                  </p>
+                  {proposal.pdfObjectKey && (
+                    <button
+                      type="button"
+                      className="mt-1 border-0 bg-transparent p-0 text-left font-medium text-primary hover:underline"
+                      onClick={() => baixarPdf.mutate()}
+                    >
+                      Baixar PDF da proposta
+                    </button>
+                  )}
+                  {!proposal.pdfObjectKey && (
+                    <p className="mt-1 text-ink">Ainda não disponível. Clique em &quot;Gerar PDF&quot; para criar o arquivo.</p>
+                  )}
                 </div>
 
                 {displayAttachments.length > 0 ? (

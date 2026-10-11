@@ -60,7 +60,7 @@ export const ptBRMessages = {
       "add": "Adicionar cliente"
     },
     "warnings": {
-      "tokenMissing": "Defina a variável NEXT_PUBLIC_API_TOKEN ou autentique-se para consultar os clientes reais."
+      "tokenMissing": "Faça login para consultar os clientes."
     },
     "states": {
       "loading": "Carregando clientes...",
@@ -350,7 +350,7 @@ export const ptBRMessages = {
       "upgradePlan": "Atualizar plano"
     },
     "warnings": {
-      "tokenMissing": "Defina a variável NEXT_PUBLIC_API_TOKEN ou autentique-se para carregar os dados reais."
+      "tokenMissing": "Faça login para carregar os dados."
     },
     "states": {
       "error": "Não foi possível carregar os dados do painel."
@@ -476,7 +476,7 @@ export const ptBRMessages = {
   "reports": {
     "page": {
       "alerts": {
-        "missingToken": "Defina a variável `NEXT_PUBLIC_API_TOKEN` ou autentique-se para consultar seus dados reais.",
+        "missingToken": "Faça login para consultar seus dados.",
         "loadError": "Não foi possível carregar os indicadores: {error}"
       },
     "header": {
@@ -794,7 +794,7 @@ export const ptBRMessages = {
     },
     "page": {
       "alerts": {
-        "missingToken": "Defina a variável `NEXT_PUBLIC_API_TOKEN` ou autentique-se para carregar os modelos reais.",
+        "missingToken": "Faça login para carregar os modelos.",
         "loadError": "Não foi possível carregar os modelos: {message}"
       },
       "header": {
@@ -892,7 +892,7 @@ export const ptBRMessages = {
     },
     "page": {
       "alerts": {
-        "missingToken": "Defina a variável `NEXT_PUBLIC_API_TOKEN` ou autentique-se para visualizar as propostas reais.",
+        "missingToken": "Faça login para visualizar as propostas.",
         "loadError": "Não foi possível carregar as propostas: {message}"
       },
       "header": {
@@ -922,7 +922,7 @@ export const ptBRMessages = {
   "crm": {
     "page": {
       "alerts": {
-        "missingToken": "Defina a variável `NEXT_PUBLIC_API_TOKEN` ou autentique-se para visualizar o pipeline real.",
+        "missingToken": "Faça login para visualizar o pipeline.",
         "loadError": "Não foi possível carregar o pipeline: {message}"
       },
       "header": {
@@ -987,7 +987,7 @@ export const ptBRMessages = {
       "addMember": "Adicionar membro"
     },
     "alerts": {
-      "missingToken": "Defina a variável `NEXT_PUBLIC_API_TOKEN` ou autentique-se para visualizar a equipe real.",
+      "missingToken": "Faça login para visualizar a equipe.",
       "loadError": "Não foi possível carregar a equipe: {message}"
     },
     "memberCard": {

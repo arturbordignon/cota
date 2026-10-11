@@ -20,7 +20,7 @@ import {
 } from '@phosphor-icons/react';
 
 import { useCurrentUser } from '@/components/providers/user-provider';
-import { dashboardNav, type NavKey } from '@/config/navigation';
+import { dashboardNav, itemVisivel, type NavKey } from '@/config/navigation';
 import { cn } from '@/lib/utils';
 
 const iconMap = {
@@ -47,12 +47,13 @@ export function Sidebar({
   const router = useRouter();
   const t = useTranslations('navigation');
   const tActions = useTranslations('actions');
-  const { isOwner } = useCurrentUser();
+  const { isOwner, temPermissao } = useCurrentUser();
 
   const availableNav = useMemo(
-    () => dashboardNav.filter((item) => (item.key === 'activity' ? isOwner : true)),
-    [isOwner],
+    () => dashboardNav.filter((item) => itemVisivel(item, { isOwner, temPermissao })),
+    [isOwner, temPermissao],
   );
+  const podeCriarProposta = temPermissao('proposals', 'edit');
 
   useEffect(() => {
     availableNav.forEach((item) => {
@@ -83,7 +84,7 @@ export function Sidebar({
             collapsed && 'text-center w-full',
           )}
         >
-          {collapsed ? 'SP' : 'ServicePro'}
+          {collapsed ? 'CP' : 'Crane Proposals'}
         </Link>
 
         <button
@@ -129,7 +130,7 @@ export function Sidebar({
         })}
       </nav>
 
-      <div className="mt-6">
+      <div className={cn('mt-6', !podeCriarProposta && 'hidden')}>
         <Link
           href="/proposals/new"
           className={cn(

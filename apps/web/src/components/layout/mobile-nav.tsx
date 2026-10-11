@@ -8,7 +8,7 @@ import { useEffect, useMemo } from "react";
 import { useTranslations } from "next-intl";
 
 import { useCurrentUser } from "@/components/providers/user-provider";
-import { dashboardNav, type NavKey } from "@/config/navigation";
+import { dashboardNav, itemVisivel, type NavKey } from "@/config/navigation";
 import { LocaleSwitcher } from "@/components/layout/locale-switcher";
 import { cn } from "@/lib/utils";
 
@@ -21,11 +21,11 @@ export function MobileNav({ open, onOpenChange }: MobileNavProps) {
   const pathname = usePathname();
   const router = useRouter();
   const t = useTranslations("navigation");
-  const { isOwner } = useCurrentUser();
+  const { isOwner, temPermissao } = useCurrentUser();
 
   const availableNav = useMemo(
-    () => dashboardNav.filter((item) => (item.key === "activity" ? isOwner : true)),
-    [isOwner]
+    () => dashboardNav.filter((item) => itemVisivel(item, { isOwner, temPermissao })),
+    [isOwner, temPermissao]
   );
 
   useEffect(() => {
@@ -58,7 +58,7 @@ export function MobileNav({ open, onOpenChange }: MobileNavProps) {
           <div className="border-b border-outline/30 px-5 pb-4 pt-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-semibold text-ink">ServicePro</p>
+                <p className="text-sm font-semibold text-ink">Crane Proposals</p>
                 <p className="text-xs text-muted">Escolha onde deseja navegar</p>
               </div>
               <Dialog.Close asChild>

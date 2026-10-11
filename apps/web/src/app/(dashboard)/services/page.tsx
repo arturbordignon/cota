@@ -346,7 +346,7 @@ export default function ServicesPage() {
     <section className="space-y-6">
       {isTokenMissing ? (
         <Card className="border border-warning/40 bg-warning-soft px-6 py-4 text-sm text-warning">
-          Defina a variável `NEXT_PUBLIC_API_TOKEN` ou autentique-se para visualizar o catálogo real.
+          Faça login para visualizar o catálogo.
         </Card>
       ) : null}
 
@@ -418,7 +418,9 @@ export default function ServicesPage() {
         <ServiceDialog
           open={createDialogOpen}
           onOpenChange={setCreateDialogOpen}
-          onSubmit={(values) => createService.mutateAsync(values)}
+          onSubmit={async (values) => {
+            await createService.mutateAsync(values);
+          }}
           isSubmitting={createService.isPending}
           errorMessage={createService.error?.message}
           title="Novo serviço"
@@ -433,9 +435,9 @@ export default function ServicesPage() {
           onOpenChange={(open) => {
             if (!open) setEditingService(null);
           }}
-          onSubmit={(values) =>
-            updateService.mutateAsync({ id: editingService.id, payload: values })
-          }
+          onSubmit={async (values) => {
+            await updateService.mutateAsync({ id: editingService.id, payload: values });
+          }}
           isSubmitting={updateService.isPending}
           errorMessage={updateService.error?.message}
           title="Editar serviço"
@@ -462,7 +464,7 @@ export default function ServicesPage() {
                 <div className="space-y-1">
                   <Dialog.Title className="text-lg font-semibold text-ink">Remover serviço</Dialog.Title>
                   <Dialog.Description className="text-sm text-muted">
-                    Tem certeza que deseja remover "{deleteTarget.name}"? Essa ação não pode ser desfeita.
+                    Tem certeza que deseja remover &ldquo;{deleteTarget.name}&rdquo;? Essa ação não pode ser desfeita.
                   </Dialog.Description>
                 </div>
                 {deleteError ? (

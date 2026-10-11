@@ -1,5 +1,6 @@
 'use client';
 
+import type { Route } from 'next';
 import { ReactNode, useState } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { useTranslations } from 'next-intl';
@@ -11,21 +12,21 @@ import { LocaleSwitcher } from '@/components/layout/locale-switcher';
 import { GlobalSearch, type SearchScope } from '@/components/layout/global-search';
 
 interface TopbarProps {
-  credits?: number;
+  credits?: string;
   onCreateProposal?: () => void;
   actions?: ReactNode;
   mobileNavTrigger?: ReactNode;
 }
 
 export function Topbar({
-  credits = 100,
+  credits,
   onCreateProposal,
   actions,
   mobileNavTrigger,
 }: TopbarProps) {
   const t = useTranslations('dashboard');
   const tActions = useTranslations('actions');
-  const tTopbar = useTranslations('topbar');
+  const tTopbar = useTranslations('common.topbar');
   const [searchOpen, setSearchOpen] = useState(false);
   const router = useRouter();
 
@@ -43,7 +44,7 @@ export function Topbar({
     };
 
     setSearchOpen(false);
-    router.push(routeMap[scope]);
+    router.push(routeMap[scope] as Route);
   };
 
   return (
@@ -54,9 +55,11 @@ export function Topbar({
           <div className="min-w-0">
             <div className="flex items-baseline gap-2">
               <p className="truncate text-xl font-semibold text-ink sm:text-xl">{t('title')}</p>
-              <span className="hidden sm:inline-flex items-center gap-1 rounded-full border border-outline/50 bg-white px-2 py-0.5 text-xs font-medium text-muted">
-                {t('credits.label')}:<span className="text-primary">{credits}</span>
-              </span>
+              {credits && (
+                <span className="hidden sm:inline-flex items-center gap-1 rounded-full border border-outline/50 bg-white px-2 py-0.5 text-xs font-medium text-muted">
+                  {t('credits.label')}:<span className="text-primary">{credits}</span>
+                </span>
+              )}
             </div>
           </div>
         </div>

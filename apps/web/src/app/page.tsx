@@ -1,5 +1,5 @@
+import type { Route } from "next";
 import Link from "next/link";
-
 import {
   ArrowRight,
   CheckCircle,
@@ -10,7 +10,7 @@ import {
   UsersThree,
 } from "@phosphor-icons/react/dist/ssr";
 
-const navigation = [
+const navigation: { name: string; href: Route }[] = [
   { name: "Features", href: "#features" },
   { name: "Workflow", href: "#workflow" },
   { name: "Testimonials", href: "#testimonials" },

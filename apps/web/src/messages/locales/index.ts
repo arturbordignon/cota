@@ -1,10 +1,13 @@
+import type { AbstractIntlMessages } from 'next-intl';
+
 import { enMessages } from './en';
 import { ptBRMessages } from './pt-BR';
 
-export const locales = {
-  en: enMessages,
-  'pt-BR': ptBRMessages,
-} as const;
+export type SupportedLocale = 'en' | 'pt-BR';
 
-export type SupportedLocale = keyof typeof locales;
-export type LocaleMessages = (typeof locales)[SupportedLocale];
+export const locales: Record<SupportedLocale, AbstractIntlMessages> = {
+  en: enMessages as unknown as AbstractIntlMessages,
+  'pt-BR': ptBRMessages as unknown as AbstractIntlMessages,
+};
+
+export type LocaleMessages = AbstractIntlMessages;

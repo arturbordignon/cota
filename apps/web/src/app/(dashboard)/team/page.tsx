@@ -565,17 +565,6 @@ export default function TeamPage() {
     setBaselines((prev) => ({ ...prev, [memberId]: nextDepartmentId }));
   };
 
-  if (!isAdmin) {
-    return (
-      <section className="space-y-6">
-        <PageHeader title={t('restricted.title')} description={t('restricted.description')} />
-        <Card className="border border-outline/30 bg-white px-6 py-4 text-sm text-muted">
-          <p>{t('restricted.callout')}</p>
-        </Card>
-      </section>
-    );
-  }
-
   const isTokenMissing = !api.token;
   const loadError = teamQuery.error as Error | null;
   const rankingLoadError = rankingQuery.isError ? (rankingQuery.error as Error) : null;
@@ -622,6 +611,17 @@ export default function TeamPage() {
     },
     [tRoles],
   );
+
+  if (!isAdmin) {
+    return (
+      <section className="space-y-6">
+        <PageHeader title={t('restricted.title')} description={t('restricted.description')} />
+        <Card className="border border-outline/30 bg-white px-6 py-4 text-sm text-muted">
+          <p>{t('restricted.callout')}</p>
+        </Card>
+      </section>
+    );
+  }
 
   return (
     <section className="space-y-6">

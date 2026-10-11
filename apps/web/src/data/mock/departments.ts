@@ -44,14 +44,14 @@ export function normalizePermissionMap(
     return base;
   }
 
-  for (const module of permissionModules) {
-    const entry = map[module];
+  for (const modulo of permissionModules) {
+    const entry = map[modulo];
     if (!entry) continue;
 
     const view = Boolean(entry.view);
     const edit = view && Boolean(entry.edit);
 
-    base[module] = { view, edit };
+    base[modulo] = { view, edit };
   }
 
   return base;

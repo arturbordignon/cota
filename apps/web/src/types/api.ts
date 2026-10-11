@@ -63,6 +63,7 @@ export interface TemplateSummary {
   locale: string;
   accountId?: string | null;
   createdAt: string;
+  updatedAt: string;
 }
 
 export interface TemplatesResponse {
@@ -101,12 +102,68 @@ export interface BillingOverviewResponse {
     usage: {
       used: number;
       total: number | null;
+      periodStart: string;
+      periodEnd: string;
     };
     plan: {
+      slug: string;
+      name: string;
+      currency: string;
       isUnlimited: boolean;
       proposalsPerMonth: number | null;
     } | null;
   };
+}
+
+export interface PlanSummary {
+  id: string;
+  slug: string;
+  name: string;
+  currency: string;
+  amountCents: number;
+  isUnlimited: boolean;
+  isAnnual: boolean;
+  proposalsPerMonth: number | null;
+}
+
+export interface PlansResponse {
+  data: PlanSummary[];
+}
+
+export interface CompanyInfo {
+  name: string;
+  cnpj?: string;
+  phone?: string;
+  email?: string;
+  address?: string;
+  tagline?: string;
+}
+
+export interface AccountSettingsResponse {
+  data: {
+    id: string;
+    name: string;
+    slug: string;
+    company: CompanyInfo;
+  };
+}
+
+export interface PublicProposal {
+  title: string;
+  status: ProposalStatus;
+  locale: string;
+  expiresAt: string | null;
+  acceptedAt: string | null;
+  declinedAt: string | null;
+  companyName: string;
+  clientName: string | null;
+  total: string;
+  pdfUrl: string | null;
+  html: string;
+}
+
+export interface PublicProposalResponse {
+  data: PublicProposal;
 }
 
 export interface EquipmentSummary {
@@ -243,7 +300,7 @@ export interface AuditEventEntry {
   category: string;
   summary: string;
   summaryKey?: string | null;
-  summaryParams?: Record<string, unknown> | undefined;
+  summaryParams?: Record<string, string | number> | undefined;
   metadata?: Record<string, unknown> | PrismaJsonValue | null;
   ipAddress?: string | null;
   userAgent?: string | null;

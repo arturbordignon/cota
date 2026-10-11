@@ -1,85 +1,28 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 
 import { Card } from '@/components/ui/card';
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL;
-
-type OverviewResponse = {
-  data: {
-    plan: {
-      slug: string;
-      name: string;
-      proposalsPerMonth: number | null;
-      isUnlimited: boolean;
-      currency: string;
-    } | null;
-    usage: {
-      used: number;
-      total: number | null;
-      periodEnd: string;
-      periodStart: string;
-    };
-  };
-};
+import { useApi } from '@/hooks/use-api';
+import type { BillingOverviewResponse } from '@/types/api';
 
 export function PlanUsageSnapshot() {
-  const [data, setData] = useState<OverviewResponse['data'] | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const api = useApi();
+  const overviewQuery = useQuery({
+    queryKey: ['billing', 'overview'],
+    queryFn: () => api.get<BillingOverviewResponse>('/billing/overview'),
+    enabled: api.isAuthenticated,
+  });
 
-  useEffect(() => {
-    if (!API_BASE) {
-      return;
-    }
-
-    let isMounted = true;
-
-    fetch(`${API_BASE}/api/v1/billing/overview`, {
-      credentials: 'include',
-    })
-      .then(async (response) => {
-        if (!response.ok) {
-          throw new Error('Falha ao carregar uso do plano');
-        }
-        return response.json() as Promise<OverviewResponse>;
-      })
-      .then((json) => {
-        if (isMounted) {
-          setData(json.data);
-        }
-      })
-      .catch((err) => {
-        console.error(err);
-        if (isMounted) {
-          setError('Não foi possível carregar o uso atual.');
-        }
-      });
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
-  if (!API_BASE) {
+  if (overviewQuery.isError) {
     return (
       <Card className="rounded-3xl border border-outline/60 bg-white px-6 py-6 shadow-sm">
-        <p className="text-sm text-muted">
-          Configure `NEXT_PUBLIC_API_URL` para visualizar o consumo do plano em tempo real.
-        </p>
+        <p className="text-sm text-muted">Não foi possível carregar o uso atual.</p>
       </Card>
     );
   }
 
-  if (error) {
-    return (
-      <Card className="rounded-3xl border border-outline/60 bg-white px-6 py-6 shadow-sm">
-        <p className="text-sm text-muted">{error}</p>
-      </Card>
-    );
-  }
-
-  if (!data) {
+  if (!overviewQuery.data) {
     return (
       <Card className="rounded-3xl border border-outline/60 bg-white px-6 py-6 shadow-sm">
         <p className="text-sm text-muted">Carregando informações de uso...</p>
@@ -87,7 +30,7 @@ export function PlanUsageSnapshot() {
     );
   }
 
-  const { plan, usage } = data;
+  const { plan, usage } = overviewQuery.data.data;
   const remaining = usage.total ? Math.max(usage.total - usage.used, 0) : null;
   const progress = usage.total ? Math.min((usage.used / usage.total) * 100, 100) : 0;
 

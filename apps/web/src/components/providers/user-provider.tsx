@@ -30,6 +30,7 @@ export interface CurrentUser {
     slug: string;
     locale: string;
   };
+  permissions: authClient.PermissionMap;
 }
 
 type AuthStatus = 'loading' | 'authenticated' | 'unauthenticated';
@@ -46,6 +47,7 @@ interface UserContextValue {
   signOut: (options?: { redirect?: boolean }) => void;
   refreshSession: () => Promise<string>;
   updateUser: (updates: Partial<CurrentUser>) => void;
+  temPermissao: (modulo: authClient.PermissionModule, acao: 'view' | 'edit') => boolean;
 }
 
 const ACCESS_TOKEN_KEY = 'crane.accessToken';
@@ -84,6 +86,7 @@ function mapProfileToUser(profile: authClient.ProfileResponse): CurrentUser {
       slug: profile.account.slug,
       locale: profile.account.locale,
     },
+    permissions: profile.permissions,
   };
 }
 
@@ -208,7 +211,16 @@ export function UserProvider({ children }: PropsWithChildren) {
     setUser((prev) => (prev ? { ...prev, ...updates } : prev));
   }, []);
 
-  // Bootstrap session from storage or development token
+  const temPermissao = useCallback(
+    (modulo: authClient.PermissionModule, acao: 'view' | 'edit') => {
+      if (!user?.permissions?.[modulo]) {
+        return false;
+      }
+      return user.permissions[modulo][acao];
+    },
+    [user],
+  );
+
   useEffect(() => {
     if (typeof window === 'undefined') {
       return;
@@ -221,17 +233,13 @@ export function UserProvider({ children }: PropsWithChildren) {
       setRefreshToken(storedRefresh);
     }
 
-    const fallbackToken = process.env.NEXT_PUBLIC_API_TOKEN ?? null;
-
-    const tokenToUse = storedAccess ?? fallbackToken;
-
-    if (!tokenToUse) {
+    if (!storedAccess) {
       setStatus('unauthenticated');
       return;
     }
 
-    setAccessToken(tokenToUse);
-    loadProfile(tokenToUse).catch(async () => {
+    setAccessToken(storedAccess);
+    loadProfile(storedAccess).catch(async () => {
       if (!storedRefresh) {
         setStatus('unauthenticated');
         signOut({ redirect: false });
@@ -259,8 +267,9 @@ export function UserProvider({ children }: PropsWithChildren) {
       signOut,
       refreshSession,
       updateUser,
+      temPermissao,
     }),
-    [user, status, accessToken, signIn, signUp, signOut, refreshSession, updateUser],
+    [user, status, accessToken, signIn, signUp, signOut, refreshSession, updateUser, temPermissao],
   );
 
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>;

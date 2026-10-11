@@ -1,17 +1,20 @@
 "use client";
 
+import type { Route } from "next";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import * as Dialog from "@radix-ui/react-dialog";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import {
+
+import type {
   CreateProposalResponse,
-  GenerateProposalResponse,
-  TemplateSummary,
+  EquipmentResponse,
+  EquipmentSummary,
+  TemplateDetail,
   TemplatesResponse,
 } from "@/types/api";
-
 import { useApi } from "@/hooks/use-api";
+import { useCurrentUser } from "@/components/providers/user-provider";
 import { PageHeader } from "@/components/layout/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,236 +25,445 @@ import { Select, SelectItem } from "@/components/ui/select";
 import { Stepper } from "@/components/ui/stepper";
 import { Textarea } from "@/components/ui/textarea";
 import { UploadArea } from "@/components/ui/upload-area";
+import { cn } from "@/lib/utils";
 
-const sampleTemplates = [
-  {
-    id: "crane",
-    name: "Locação de Guindaste",
-    category: "Içamento",
-    summary: "Inclui mobilização, operador e checklist de segurança.",
-    metrics: "26 utilizações",
-  },
-  {
-    id: "earthworks",
-    name: "Terraplanagem Pesada",
-    category: "Infraestrutura",
-    summary: "Pacote de horas máquina com adicional por combustível.",
-    metrics: "Favorito da equipe",
-  },
-  {
-    id: "heavy-cargo",
-    name: "Transporte de Cargas Especiais",
-    category: "Logística",
-    summary: "Cobertura de rota, escolta e seguro integrado.",
-    metrics: "Taxa de aceitação 92%",
-  },
-];
-
-interface TemplateCard {
-  id: string;
-  name: string;
-  category?: string | null;
-  summary?: string | null;
-  metrics?: string | null;
-}
-
-// clients will be loaded from API (use fallback samples when API isn't available)
-const sampleClients = [
-  { id: "1", name: "Construtora Horizonte" },
-  { id: "2", name: "Indústria Metal Forte" },
-  { id: "3", name: "Logística Integrada" },
-];
-
-const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const MAX_ATTACHMENTS = 5;
-
-const isUuid = (value: string | null | undefined) => (value ? UUID_REGEX.test(value) : false);
+const TAMANHO_MAXIMO_FOTO = 5 * 1024 * 1024;
+const UM_DIA = 24 * 60 * 60 * 1000;
 
 const steps = [
-  { id: 1, title: "Escolher modelo", description: "Inicie com um template ou proposta em branco." },
-  { id: 2, title: "Detalhar proposta", description: "Dados do cliente, escopo e condições comerciais." },
-  { id: 3, title: "Revisar & anexar", description: "Revisão final, anexos e preparação para envio." },
+  { id: 1, title: "Escolher modelo", description: "Use um modelo ou comece do zero." },
+  { id: 2, title: "Detalhar operação", description: "Cliente, local, período, escopo e recursos." },
+  { id: 3, title: "Valores", description: "Mobilização, diária e condições comerciais." },
+  { id: 4, title: "Revisar & anexar", description: "Fotos, revisão final e geração do PDF." },
 ];
 
+type Formulario = {
+  clientId: string;
+  titulo: string;
+  localOperacao: string;
+  dataInicio: string;
+  dataFim: string;
+  escopo: string;
+  equipamentosIds: string[];
+  equipamentosExtras: string;
+  equipe: string;
+  condicoes: string;
+  mobilizacao: string;
+  diaria: string;
+  dias: string;
+  validadeDias: string;
+};
+
+const formularioVazio: Formulario = {
+  clientId: "",
+  titulo: "",
+  localOperacao: "",
+  dataInicio: "",
+  dataFim: "",
+  escopo: "",
+  equipamentosIds: [],
+  equipamentosExtras: "",
+  equipe: "",
+  condicoes: "",
+  mobilizacao: "",
+  diaria: "",
+  dias: "",
+  validadeDias: "15",
+};
+
+type DadosModelo = { job?: { scope?: unknown }; team?: unknown; terms?: unknown };
+
+type Totais = { mobilization: number; dailyRate: number; days: number };
+
+function juntarLinhas(valor: unknown) {
+  if (!Array.isArray(valor)) {
+    return "";
+  }
+  return valor.filter((item) => typeof item === "string").join("\n");
+}
+
+function separarLinhas(texto: string) {
+  return texto
+    .split("\n")
+    .map((linha) => linha.trim())
+    .filter((linha) => linha.length > 0);
+}
+
+function preencherComModelo(modelo: TemplateDetail) {
+  const dados = (modelo.defaultDataJson || {}) as DadosModelo;
+  return {
+    escopo: juntarLinhas(dados.job?.scope),
+    equipe: juntarLinhas(dados.team),
+    condicoes: juntarLinhas(dados.terms),
+  };
+}
+
+function converterNumero(valor: string) {
+  const numero = Number(valor);
+  if (!Number.isFinite(numero) || numero < 0) {
+    return 0;
+  }
+  return numero;
+}
+
+function calcularDiasEntreDatas(inicio: string, fim: string) {
+  if (!inicio || !fim) {
+    return "";
+  }
+  const diferenca = new Date(`${fim}T00:00:00`).getTime() - new Date(`${inicio}T00:00:00`).getTime();
+  if (diferenca < 0) {
+    return "";
+  }
+  return String(Math.round(diferenca / UM_DIA) + 1);
+}
+
+function formatarData(data: string) {
+  if (!data) {
+    return "";
+  }
+  return new Date(`${data}T00:00:00`).toLocaleDateString("pt-BR");
+}
+
+function montarPeriodo(formulario: Formulario) {
+  if (!formulario.dataInicio) {
+    return "";
+  }
+  if (!formulario.dataFim) {
+    return `A partir de ${formatarData(formulario.dataInicio)}`;
+  }
+  return `${formatarData(formulario.dataInicio)} a ${formatarData(formulario.dataFim)}`;
+}
+
+function formatarMoeda(valor: number) {
+  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(valor);
+}
+
+function descreverCapacidade(equipamento: EquipmentSummary) {
+  if (!equipamento.capacityTons) {
+    return "";
+  }
+  return `Capacidade ${equipamento.capacityTons} t`;
+}
+
+function montarEquipamentos(formulario: Formulario, catalogo: EquipmentSummary[]) {
+  const selecionados = catalogo
+    .filter((equipamento) => formulario.equipamentosIds.includes(equipamento.id))
+    .map((equipamento) => {
+      const especificacoes = (equipamento.specsJson || {}) as { description?: string; notes?: string };
+      return {
+        name: equipamento.name,
+        capacity: descreverCapacidade(equipamento),
+        reach: especificacoes.description || "",
+        notes: especificacoes.notes || "",
+      };
+    });
+  const extras = separarLinhas(formulario.equipamentosExtras).map((nome) => ({
+    name: nome,
+    capacity: "",
+    reach: "",
+    notes: "",
+  }));
+  return [...selecionados, ...extras];
+}
+
+function montarValidade(formulario: Formulario) {
+  const dias = converterNumero(formulario.validadeDias);
+  if (!dias) {
+    return "";
+  }
+  return `Valores válidos por ${dias} dias corridos.`;
+}
+
+function montarDataExpiracao(formulario: Formulario) {
+  const dias = converterNumero(formulario.validadeDias);
+  if (!dias) {
+    return undefined;
+  }
+  return new Date(Date.now() + dias * UM_DIA).toISOString();
+}
+
+function montarPayload(formulario: Formulario, catalogo: EquipmentSummary[]) {
+  return {
+    job: {
+      projectName: formulario.titulo.trim(),
+      siteLocation: formulario.localOperacao.trim(),
+      schedule: montarPeriodo(formulario),
+      scope: separarLinhas(formulario.escopo),
+    },
+    equipment: montarEquipamentos(formulario, catalogo),
+    team: separarLinhas(formulario.equipe),
+    terms: separarLinhas(formulario.condicoes),
+    pricing: { validity: montarValidade(formulario) },
+  };
+}
+
+function montarTotais(formulario: Formulario): Totais {
+  return {
+    mobilization: converterNumero(formulario.mobilizacao),
+    dailyRate: converterNumero(formulario.diaria),
+    days: Math.round(converterNumero(formulario.dias)),
+  };
+}
+
+function calcularTotal(totais: Totais) {
+  return totais.mobilization + totais.dailyRate * totais.days;
+}
+
+function buscarVariante(selecionado: boolean) {
+  if (selecionado) {
+    return "primary" as const;
+  }
+  return "secondary" as const;
+}
+
+function buscarRotuloModelo(selecionado: boolean) {
+  if (selecionado) {
+    return "Selecionado";
+  }
+  return "Selecionar modelo";
+}
+
+function buscarCategoriaModelo(modelo: TemplateDetail) {
+  if (modelo.accountId) {
+    return "Meu modelo";
+  }
+  return "Modelo padrão";
+}
+
+function formatarTamanhoArquivo(tamanho: number) {
+  if (tamanho >= 1024 * 1024) {
+    return `${(tamanho / (1024 * 1024)).toFixed(1)} MB`;
+  }
+  return `${Math.max(1, Math.round(tamanho / 1024))} KB`;
+}
+
+function buscarMensagemErro(error: unknown, mensagemPadrao: string) {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return mensagemPadrao;
+}
+
 export default function NewProposalPage() {
-  const [stepIndex, setStepIndex] = useState(0);
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const [submissionError, setSubmissionError] = useState<string | null>(null);
   const api = useApi();
   const router = useRouter();
-
-  const clientsQuery = useQuery<{ data: { id: string; name: string }[] }>(
-    {
-      queryKey: ["clients", "summary"],
-      queryFn: () => api.get<{ data: { id: string; name: string }[] }>("/clients"),
-      enabled: Boolean(api.token),
-    }
-  );
-
-  const clients = useMemo(() => clientsQuery.data?.data ?? sampleClients, [clientsQuery.data]);
   const queryClient = useQueryClient();
+  const { temPermissao } = useCurrentUser();
 
-  // Inline add client dialog state and mutation
+  const [stepIndex, setStepIndex] = useState(0);
+  const [modeloId, setModeloId] = useState<string | null>(null);
+  const [emBranco, setEmBranco] = useState(false);
+  const [formulario, setFormulario] = useState<Formulario>(formularioVazio);
+  const [fotos, setFotos] = useState<File[]>([]);
+  const [avisoFotos, setAvisoFotos] = useState<string | null>(null);
+  const [submissionError, setSubmissionError] = useState<string | null>(null);
   const [addClientOpen, setAddClientOpen] = useState(false);
   const [newClient, setNewClient] = useState({ name: "", companyName: "" });
+
+  const podeCriar = temPermissao("proposals", "edit");
+  const podeCadastrarCliente = temPermissao("clients", "edit");
+
+  const clientsQuery = useQuery({
+    queryKey: ["clients", "summary"],
+    queryFn: () => api.get<{ data: { id: string; name: string }[] }>("/clients"),
+    enabled: api.isAuthenticated && temPermissao("clients", "view"),
+  });
+
+  const templatesQuery = useQuery({
+    queryKey: ["templates", "all"],
+    queryFn: () => api.get<TemplatesResponse>("/templates?scope=all"),
+    enabled: api.isAuthenticated && temPermissao("templates", "view"),
+  });
+
+  const equipmentQuery = useQuery({
+    queryKey: ["equipment", "list"],
+    queryFn: () => api.get<EquipmentResponse>("/equipment"),
+    enabled: api.isAuthenticated && temPermissao("services", "view"),
+  });
+
+  const clientes = useMemo(() => clientsQuery.data?.data || [], [clientsQuery.data]);
+  const catalogo = useMemo(() => equipmentQuery.data?.data || [], [equipmentQuery.data]);
+  const modelos = useMemo(
+    () => (templatesQuery.data?.data || []) as TemplateDetail[],
+    [templatesQuery.data],
+  );
+  const modeloPadrao = modelos.find((modelo) => !modelo.accountId);
+  const modeloAtivo = modelos.find((modelo) => modelo.id === modeloId);
+  const totais = montarTotais(formulario);
+  const total = calcularTotal(totais);
+  const clienteSelecionado = clientes.find((cliente) => cliente.id === formulario.clientId);
+
+  useEffect(() => {
+    if (formulario.clientId || clientes.length === 0) {
+      return;
+    }
+    setFormulario((anterior) => ({ ...anterior, clientId: clientes[0].id }));
+  }, [clientes, formulario.clientId]);
 
   const createClient = useMutation({
     mutationFn: (payload: { name: string; companyName?: string }) =>
       api.post<{ data: { id: string; name: string } }>("/clients", payload),
     onSuccess: (res) => {
-      // refresh clients and select the newly created client
       queryClient.invalidateQueries({ queryKey: ["clients", "summary"] });
-      const created = res.data;
-      setForm((prev) => ({ ...prev, clientId: created.id }));
+      setFormulario((anterior) => ({ ...anterior, clientId: res.data.id }));
       setNewClient({ name: "", companyName: "" });
       setAddClientOpen(false);
     },
   });
 
-  const systemTemplatesQuery = useQuery<TemplatesResponse>({
-    queryKey: ["templates", "system"],
-    queryFn: () => api.get<TemplatesResponse>(`/templates?scope=system`),
-    enabled: Boolean(api.token),
-  });
+  const atualizarCampo = (campo: keyof Formulario, valor: string) => {
+    setFormulario((anterior) => ({ ...anterior, [campo]: valor }));
+  };
 
-  const customTemplatesQuery = useQuery<TemplatesResponse>({
-    queryKey: ["templates", "custom"],
-    queryFn: () => api.get<TemplatesResponse>(`/templates?scope=custom`),
-    enabled: Boolean(api.token),
-  });
+  const atualizarData = (campo: "dataInicio" | "dataFim", valor: string) => {
+    setFormulario((anterior) => {
+      const atualizado = { ...anterior, [campo]: valor };
+      const diasCalculados = calcularDiasEntreDatas(atualizado.dataInicio, atualizado.dataFim);
+      if (diasCalculados) {
+        atualizado.dias = diasCalculados;
+      }
+      return atualizado;
+    });
+  };
 
-  const fetchedTemplates = useMemo<TemplateCard[]>(() => {
-    const system: TemplateSummary[] = systemTemplatesQuery.data?.data ?? [];
-    const custom: TemplateSummary[] = customTemplatesQuery.data?.data ?? [];
-    // flatten and map to a simplified shape used below
-    return [...custom, ...system].map((t) => ({
-      id: String(t.id),
-      name: t.name,
-      category: t.category ?? null,
-      summary: t.description ?? null,
-      metrics: t.accountId ? "Meu modelo" : "Modelo padrão",
-    }));
-  }, [systemTemplatesQuery.data, customTemplatesQuery.data]);
+  const alternarEquipamento = (equipamentoId: string) => {
+    setFormulario((anterior) => {
+      if (anterior.equipamentosIds.includes(equipamentoId)) {
+        return { ...anterior, equipamentosIds: anterior.equipamentosIds.filter((id) => id !== equipamentoId) };
+      }
+      return { ...anterior, equipamentosIds: [...anterior.equipamentosIds, equipamentoId] };
+    });
+  };
 
-  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(
-    fetchedTemplates[0]?.id ?? sampleTemplates[0]?.id ?? null
-  );
-  const [form, setForm] = useState({
-    clientId: sampleClients[0]?.id ?? "",
-    jobTitle: "",
-    startDate: "",
-    endDate: "",
-    scope: "",
-    notes: "",
-  });
+  const selecionarModelo = (modelo: TemplateDetail) => {
+    setModeloId(modelo.id);
+    setEmBranco(false);
+    setFormulario((anterior) => ({ ...anterior, ...preencherComModelo(modelo) }));
+    setStepIndex(1);
+  };
 
-  useEffect(() => {
-    if (fetchedTemplates.length > 0 && (!selectedTemplate || !isUuid(selectedTemplate))) {
-      setSelectedTemplate(fetchedTemplates[0].id);
+  const selecionarEmBranco = () => {
+    if (!modeloPadrao) {
+      setSubmissionError("Nenhum modelo padrão disponível para começar do zero.");
+      return;
     }
-  }, [fetchedTemplates, selectedTemplate]);
+    setModeloId(modeloPadrao.id);
+    setEmBranco(true);
+    setFormulario((anterior) => ({ ...anterior, escopo: "", equipe: "", condicoes: "" }));
+    setStepIndex(1);
+  };
 
-  // when clients load from API, set a sensible default clientId if none chosen
-  useEffect(() => {
-    if (!form.clientId && clients.length > 0) {
-      setForm((prev) => ({ ...prev, clientId: clients[0].id }));
+  const selecionarFotos = (arquivos: FileList) => {
+    const imagens = Array.from(arquivos).filter((arquivo) => arquivo.type.startsWith("image/"));
+    const permitidas = imagens.filter((arquivo) => arquivo.size <= TAMANHO_MAXIMO_FOTO);
+    setAvisoFotos(null);
+    if (permitidas.length < imagens.length) {
+      setAvisoFotos("Algumas fotos foram ignoradas por passarem de 5MB.");
     }
-  }, [clients, form.clientId]);
+    setFotos(permitidas.slice(0, MAX_ATTACHMENTS));
+  };
 
-  const activeTemplate = useMemo(() => {
-    return (
-      fetchedTemplates.find((template: TemplateCard) => template.id === selectedTemplate) ??
-      sampleTemplates.find((template) => template.id === selectedTemplate) ??
-      null
-    );
-  }, [selectedTemplate, fetchedTemplates]);
+  const enviarFotos = async (proposalId: string) => {
+    const assets = [];
+    for (let posicao = 0; posicao < fotos.length; posicao += 1) {
+      const arquivo = fotos[posicao];
+      const destino = await api.post<{ key: string; uploadUrl: string }>("/assets/upload-url", {
+        proposalId,
+        contentType: arquivo.type,
+      });
+      const envio = await fetch(destino.uploadUrl, {
+        method: "PUT",
+        headers: { "Content-Type": arquivo.type },
+        body: arquivo,
+      });
+      if (!envio.ok) {
+        throw new Error(`Falha ao enviar a foto ${arquivo.name}.`);
+      }
+      assets.push({ s3ObjectKey: destino.key, mimeType: arquivo.type, position: posicao });
+    }
+    if (assets.length === 0) {
+      return;
+    }
+    await api.patch(`/proposals/${proposalId}`, { assets });
+  };
 
   const createProposalFlow = useMutation({
-    mutationFn: async ({ queue }: { queue: boolean }) => {
-      if (!api.isAuthenticated) {
-        throw new Error("Você precisa estar autenticado para criar uma proposta real.");
+    mutationFn: async ({ gerarPdf }: { gerarPdf: boolean }) => {
+      if (!modeloId) {
+        throw new Error("Selecione um modelo antes de continuar.");
       }
 
-      if (!selectedTemplate || !isUuid(selectedTemplate)) {
-        throw new Error("Selecione um modelo válido antes de continuar.");
+      let clientId: string | undefined;
+      if (formulario.clientId) {
+        clientId = formulario.clientId;
       }
-
-      const clientId = isUuid(form.clientId) ? form.clientId : undefined;
-      const selectedClient = clients.find((client) => client.id === form.clientId);
-      const payload = {
-        jobTitle: form.jobTitle,
-        startDate: form.startDate,
-        endDate: form.endDate,
-        scope: form.scope,
-        notes: form.notes,
-        clientName: selectedClient?.name,
-        attachments: selectedFiles.slice(0, MAX_ATTACHMENTS).map((file) => ({
-          name: file.name,
-          size: file.size,
-          type: file.type,
-        })),
-      };
-
-      const title =
-        form.jobTitle.trim().length > 0
-          ? form.jobTitle.trim()
-          : activeTemplate?.name ?? "Proposta sem título";
 
       const response = await api.post<CreateProposalResponse>("/proposals", {
-        templateId: selectedTemplate,
+        templateId: modeloId,
         clientId,
-        title,
-        payload,
-        totals: {},
+        title: formulario.titulo.trim() || modeloAtivo?.name || "Proposta sem título",
+        payload: montarPayload(formulario, catalogo),
+        totals: totais,
+        expiresAt: montarDataExpiracao(formulario),
       });
 
       const proposalId = response.data.id;
-      if (!proposalId) {
-        throw new Error("O servidor não retornou o identificador da proposta.");
+      let erroFotos: string | null = null;
+      try {
+        await enviarFotos(proposalId);
+      } catch (error) {
+        erroFotos = buscarMensagemErro(error, "Falha ao enviar as fotos.");
       }
 
-      if (queue) {
-        await api.post<GenerateProposalResponse>(`/proposals/${response.data.publicSlug ?? proposalId}/generate`, {});
+      if (gerarPdf) {
+        await api.post(`/proposals/${proposalId}/generate`, {});
       }
 
-      return {
-        proposalId,
-        queued: queue,
-        publicSlug: response.data.publicSlug ?? null,
-      };
+      return { proposalId, gerarPdf, erroFotos };
     },
     onMutate: () => {
       setSubmissionError(null);
     },
-    onSuccess: async ({ proposalId, queued, publicSlug }) => {
+    onSuccess: async ({ proposalId, gerarPdf, erroFotos }) => {
       await Promise.allSettled([
         queryClient.invalidateQueries({ queryKey: ["proposals", "list"] }),
         queryClient.invalidateQueries({ queryKey: ["proposals", "dashboard"] }),
+        queryClient.invalidateQueries({ queryKey: ["billing", "overview"] }),
       ]);
-      const target = publicSlug ?? proposalId;
-      router.push(`/proposals/${target}${queued ? "?queued=1" : ""}`);
+      if (erroFotos) {
+        window.alert(`A proposta foi criada, mas as fotos não foram anexadas: ${erroFotos}`);
+      }
+      let destino = `/proposals/${proposalId}`;
+      if (gerarPdf) {
+        destino = `${destino}?queued=1`;
+      }
+      router.push(destino as Route);
     },
     onError: (error: unknown) => {
-      setSubmissionError(
-        error instanceof Error ? error.message : "Não foi possível finalizar a proposta."
-      );
+      setSubmissionError(buscarMensagemErro(error, "Não foi possível finalizar a proposta."));
     },
   });
 
   const handleNext = () => setStepIndex((prev) => Math.min(prev + 1, steps.length - 1));
   const handlePrevious = () => setStepIndex((prev) => Math.max(prev - 1, 0));
-  const handleFilesSelected = (files: FileList) => {
-    const limited = Array.from(files).slice(0, MAX_ATTACHMENTS);
-    setSelectedFiles(limited);
-  };
-  const formatFileSize = (size: number) =>
-    size >= 1024 * 1024 ? `${(size / (1024 * 1024)).toFixed(1)} MB` : `${Math.max(1, Math.round(size / 1024))} KB`;
+
+  if (!podeCriar) {
+    return (
+      <section className="space-y-8">
+        <PageHeader title="Nova Proposta" />
+        <Card className="border border-warning/40 bg-warning-soft px-6 py-4 text-sm text-warning">
+          Seu departamento não tem permissão para criar propostas.
+        </Card>
+      </section>
+    );
+  }
 
   return (
     <section className="space-y-8">
       <PageHeader
         title="Nova Proposta"
-        description="Personalize a proposta escolhendo um modelo existente ou começando do zero. Você pode salvar rascunhos e continuar depois."
+        description="Escolha um modelo, detalhe a operação, defina os valores e gere o PDF para enviar ao cliente."
       />
 
       <Card className="space-y-6 p-6">
@@ -262,50 +474,45 @@ export default function NewProposalPage() {
             <Card className="flex flex-col justify-between gap-3 border border-outline/60 bg-[var(--color-surface-muted)] p-5 shadow-none">
               <div className="space-y-2">
                 <h3 className="text-base font-semibold text-ink">Começar do zero</h3>
-                <p className="text-sm text-muted">Crie uma proposta totalmente personalizada. Ideal para serviços únicos ou contratos complexos.</p>
+                <p className="text-sm text-muted">
+                  Usa o layout padrão com todos os campos em branco para você preencher.
+                </p>
               </div>
-              <Button
-                variant={selectedTemplate === null ? "primary" : "secondary"}
-                onClick={() => setSelectedTemplate(null)}
-              >
+              <Button variant={buscarVariante(emBranco)} onClick={selecionarEmBranco}>
                 Usar proposta em branco
               </Button>
             </Card>
 
-            {(fetchedTemplates.length > 0 ? fetchedTemplates : sampleTemplates).map((template: TemplateCard) => {
-              const isSelected = selectedTemplate === template.id;
+            {templatesQuery.isLoading && <p className="text-sm text-muted">Carregando modelos...</p>}
+
+            {modelos.map((modelo) => {
+              const selecionado = modeloId === modelo.id && !emBranco;
               return (
                 <Card
-                  key={template.id}
-                  onClick={() => {
-                    setSelectedTemplate(template.id);
-                    // auto-advance to next step for a smoother flow
-                    setStepIndex(1);
-                  }}
-                  className={`flex cursor-pointer flex-col gap-3 border p-5 transition hover:-translate-y-1 hover:shadow-lg ${
-                    isSelected
-                      ? "border-primary bg-[var(--color-surface-muted)]/60 ring-2 ring-primary/20"
-                      : "border-outline/60 bg-white"
-                  }`}
+                  key={modelo.id}
+                  onClick={() => selecionarModelo(modelo)}
+                  className={cn(
+                    "flex cursor-pointer flex-col gap-3 border border-outline/60 bg-white p-5 transition hover:-translate-y-1 hover:shadow-lg",
+                    selecionado && "border-primary bg-[var(--color-surface-muted)]/60 ring-2 ring-primary/20",
+                  )}
                 >
                   <div className="flex items-center gap-2 text-xs text-muted">
-                    <Badge tone="info">{template.category}</Badge>
-                    <span>{template.metrics}</span>
+                    {modelo.category && <Badge tone="info">{modelo.category}</Badge>}
+                    <span>{buscarCategoriaModelo(modelo)}</span>
                   </div>
                   <div className="space-y-2">
-                    <h3 className="text-base font-semibold text-ink">{template.name}</h3>
-                    <p className="text-sm text-muted">{template.summary}</p>
+                    <h3 className="text-base font-semibold text-ink">{modelo.name}</h3>
+                    <p className="text-sm text-muted">{modelo.description}</p>
                   </div>
                   <div className="mt-auto">
                     <Button
-                      variant={isSelected ? "primary" : "secondary"}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedTemplate(template.id);
-                        setStepIndex(1);
+                      variant={buscarVariante(selecionado)}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        selecionarModelo(modelo);
                       }}
                     >
-                      {isSelected ? "Selecionado" : "Selecionar modelo"}
+                      {buscarRotuloModelo(selecionado)}
                     </Button>
                   </div>
                 </Card>
@@ -321,22 +528,25 @@ export default function NewProposalPage() {
                 <Label>Cliente</Label>
                 <div className="flex items-center gap-2">
                   <div className="flex-1">
-                    <Select value={form.clientId} onValueChange={(value) => setForm((prev) => ({ ...prev, clientId: value }))}>
-                      {clients.map((client) => (
-                        <SelectItem key={client.id} value={client.id}>
-                          {client.name}
+                    <Select
+                      value={formulario.clientId}
+                      placeholder="Nenhum cliente cadastrado"
+                      onValueChange={(valor) => atualizarCampo("clientId", valor)}
+                    >
+                      {clientes.map((cliente) => (
+                        <SelectItem key={cliente.id} value={cliente.id}>
+                          {cliente.name}
                         </SelectItem>
                       ))}
                     </Select>
                   </div>
-                  <div className="flex items-center gap-2">
+                  {podeCadastrarCliente && (
                     <Button variant="ghost" size="sm" onClick={() => setAddClientOpen(true)}>
                       Adicionar
                     </Button>
-                  </div>
+                  )}
                 </div>
 
-                {/* Inline Add Client Dialog */}
                 <Dialog.Root open={addClientOpen} onOpenChange={setAddClientOpen}>
                   <Dialog.Portal>
                     <Dialog.Overlay className="fixed inset-0 z-40 bg-ink/40 backdrop-blur-sm" />
@@ -345,21 +555,25 @@ export default function NewProposalPage() {
                         onSubmit={(e) => {
                           e.preventDefault();
                           if (!newClient.name.trim()) return;
-                          createClient.mutate({ name: newClient.name.trim(), companyName: newClient.companyName.trim() || undefined });
+                          createClient.mutate({
+                            name: newClient.name.trim(),
+                            companyName: newClient.companyName.trim() || undefined,
+                          });
                         }}
                         className="w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl"
                       >
                         <div className="flex items-center justify-between border-b border-outline/20 px-6 py-4">
                           <div>
-                            <h3 className="text-lg font-semibold text-ink">Adicionar cliente</h3>
-                            <p className="text-xs text-muted">Adicione um cliente sem sair da criação de proposta</p>
+                            <Dialog.Title className="text-lg font-semibold text-ink">Adicionar cliente</Dialog.Title>
+                            <Dialog.Description className="text-xs text-muted">
+                              Cadastre um cliente sem sair da criação da proposta
+                            </Dialog.Description>
                           </div>
                           <Dialog.Close asChild>
                             <button
                               type="button"
                               className="rounded-full border border-outline bg-white p-2 text-ink shadow-sm transition hover:bg-primary-soft"
-                              aria-label="close"
-                              onClick={() => setAddClientOpen(false)}
+                              aria-label="Fechar"
                             >
                               ×
                             </button>
@@ -372,14 +586,22 @@ export default function NewProposalPage() {
                           </div>
                           <div className="space-y-2">
                             <Label>Empresa</Label>
-                            <Input value={newClient.companyName} onChange={(e) => setNewClient((s) => ({ ...s, companyName: e.target.value }))} />
+                            <Input
+                              value={newClient.companyName}
+                              onChange={(e) => setNewClient((s) => ({ ...s, companyName: e.target.value }))}
+                            />
                           </div>
+                          {createClient.isError && (
+                            <p className="text-sm text-danger">{createClient.error.message}</p>
+                          )}
                         </div>
                         <div className="flex justify-end gap-2 border-t border-outline/20 bg-[var(--color-surface-muted)]/40 px-6 py-4">
                           <Dialog.Close asChild>
                             <Button variant="ghost">Cancelar</Button>
                           </Dialog.Close>
-                          <Button type="submit" loading={createClient.isPending}>Salvar</Button>
+                          <Button type="submit" loading={createClient.isPending}>
+                            Cadastrar
+                          </Button>
                         </div>
                       </form>
                     </Dialog.Content>
@@ -389,60 +611,93 @@ export default function NewProposalPage() {
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="jobTitle">Título da proposta</Label>
+                  <Label htmlFor="titulo">Título / nome do projeto</Label>
                   <Input
-                    id="jobTitle"
-                    placeholder="Locação de guindaste telescópico - obra X"
-                    value={form.jobTitle}
-                    onChange={(event) => setForm((prev) => ({ ...prev, jobTitle: event.target.value }))}
+                    id="titulo"
+                    placeholder="Montagem de estrutura metálica - Galpão X"
+                    value={formulario.titulo}
+                    onChange={(event) => atualizarCampo("titulo", event.target.value)}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Modelo selecionado</Label>
-                  <div className="rounded-lg border border-outline bg-[var(--color-surface-muted)] px-3 py-2 text-sm text-muted">
-                    {activeTemplate ? activeTemplate.name : "Proposta em branco"}
-                  </div>
+                  <Label htmlFor="localOperacao">Local da operação</Label>
+                  <Input
+                    id="localOperacao"
+                    placeholder="Porto de Santos, SP"
+                    value={formulario.localOperacao}
+                    onChange={(event) => atualizarCampo("localOperacao", event.target.value)}
+                  />
                 </div>
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="startDate">Data de início</Label>
+                  <Label htmlFor="dataInicio">Data de início</Label>
                   <Input
-                    id="startDate"
+                    id="dataInicio"
                     type="date"
-                    value={form.startDate}
-                    onChange={(event) => setForm((prev) => ({ ...prev, startDate: event.target.value }))}
+                    value={formulario.dataInicio}
+                    onChange={(event) => atualizarData("dataInicio", event.target.value)}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="endDate">Data de término</Label>
+                  <Label htmlFor="dataFim">Data de término</Label>
                   <Input
-                    id="endDate"
+                    id="dataFim"
                     type="date"
-                    value={form.endDate}
-                    onChange={(event) => setForm((prev) => ({ ...prev, endDate: event.target.value }))}
+                    value={formulario.dataFim}
+                    onChange={(event) => atualizarData("dataFim", event.target.value)}
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="scope">Escopo do serviço</Label>
+                <Label htmlFor="escopo">Escopo do serviço (um item por linha)</Label>
                 <Textarea
-                  id="scope"
-                  placeholder="Descreva o escopo principal, equipamentos incluídos, equipe e requisitos do cliente."
-                  value={form.scope}
-                  onChange={(event) => setForm((prev) => ({ ...prev, scope: event.target.value }))}
+                  id="escopo"
+                  rows={4}
+                  placeholder={"Içamento e posicionamento de treliças\nSupervisor técnico durante o turno"}
+                  value={formulario.escopo}
+                  onChange={(event) => atualizarCampo("escopo", event.target.value)}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="notes">Observações</Label>
+                <Label>Equipamentos</Label>
+                {catalogo.length > 0 && (
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {catalogo.map((equipamento) => (
+                      <label
+                        key={equipamento.id}
+                        className="flex cursor-pointer items-center gap-3 rounded-lg border border-outline/60 bg-white px-3 py-2 text-sm text-ink"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={formulario.equipamentosIds.includes(equipamento.id)}
+                          onChange={() => alternarEquipamento(equipamento.id)}
+                        />
+                        <span>{equipamento.name}</span>
+                        <span className="ml-auto text-xs text-muted">{descreverCapacidade(equipamento)}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
                 <Textarea
-                  id="notes"
-                  placeholder="Condições comerciais, cláusulas especiais ou SLA."
-                  value={form.notes}
-                  onChange={(event) => setForm((prev) => ({ ...prev, notes: event.target.value }))}
+                  rows={2}
+                  placeholder="Outros equipamentos (um por linha)"
+                  value={formulario.equipamentosExtras}
+                  onChange={(event) => atualizarCampo("equipamentosExtras", event.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="equipe">Equipe e certificações (um item por linha)</Label>
+                <Textarea
+                  id="equipe"
+                  rows={3}
+                  placeholder={"Operador de guindaste certificado\nRigger responsável com ART"}
+                  value={formulario.equipe}
+                  onChange={(event) => atualizarCampo("equipe", event.target.value)}
                 />
               </div>
             </div>
@@ -451,22 +706,15 @@ export default function NewProposalPage() {
               <h3 className="text-sm font-semibold text-ink">Resumo rápido</h3>
               <div className="space-y-2 text-sm">
                 <p>
-                  <span className="text-muted">Cliente:</span> {clients.find((client) => client.id === form.clientId)?.name}
+                  <span className="text-muted">Cliente:</span> {clienteSelecionado?.name || "–"}
                 </p>
                 <p>
-                  <span className="text-muted">Modelo:</span> {activeTemplate ? activeTemplate.name : "Proposta em branco"}
+                  <span className="text-muted">Modelo:</span> {modeloAtivo?.name || "–"}
                 </p>
                 <p>
-                  <span className="text-muted">Período:</span> {form.startDate || "–"} até {form.endDate || "–"}
+                  <span className="text-muted">Período:</span> {montarPeriodo(formulario) || "–"}
                 </p>
               </div>
-              <button
-                type="button"
-                className="text-xs font-semibold text-primary hover:underline bg-transparent border-0 p-0"
-                onClick={() => setStepIndex(1)}
-              >
-                Gerenciar clientes
-              </button>
             </Card>
           </div>
         )}
@@ -474,34 +722,119 @@ export default function NewProposalPage() {
         {stepIndex === 2 && (
           <div className="grid gap-6 lg:grid-cols-[2fr,1fr]">
             <div className="space-y-5">
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div className="space-y-2">
+                  <Label htmlFor="mobilizacao">Mobilização / desmobilização (R$)</Label>
+                  <Input
+                    id="mobilizacao"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={formulario.mobilizacao}
+                    onChange={(event) => atualizarCampo("mobilizacao", event.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="diaria">Diária operacional (R$)</Label>
+                  <Input
+                    id="diaria"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={formulario.diaria}
+                    onChange={(event) => atualizarCampo("diaria", event.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="dias">Dias de operação</Label>
+                  <Input
+                    id="dias"
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={formulario.dias}
+                    onChange={(event) => atualizarCampo("dias", event.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2 sm:max-w-xs">
+                <Label htmlFor="validadeDias">Validade da proposta (dias)</Label>
+                <Input
+                  id="validadeDias"
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={formulario.validadeDias}
+                  onChange={(event) => atualizarCampo("validadeDias", event.target.value)}
+                />
+              </div>
+
               <div className="space-y-2">
-                <Label>Anexos visuais (máx. 5 fotos)</Label>
+                <Label htmlFor="condicoes">Condições gerais (uma por linha)</Label>
+                <Textarea
+                  id="condicoes"
+                  rows={5}
+                  placeholder={"Pagamento: 40% na confirmação + 60% após a conclusão\nOperação sujeita a condições climáticas"}
+                  value={formulario.condicoes}
+                  onChange={(event) => atualizarCampo("condicoes", event.target.value)}
+                />
+              </div>
+            </div>
+
+            <Card className="space-y-3 border border-outline/50 bg-white p-5 shadow-lg">
+              <h3 className="text-sm font-semibold text-ink">Investimento</h3>
+              <div className="space-y-2 text-sm">
+                <p className="flex justify-between gap-3">
+                  <span className="text-muted">Mobilização</span>
+                  <span className="text-ink">{formatarMoeda(totais.mobilization)}</span>
+                </p>
+                <p className="flex justify-between gap-3">
+                  <span className="text-muted">
+                    Diária × {totais.days} dia(s)
+                  </span>
+                  <span className="text-ink">{formatarMoeda(totais.dailyRate * totais.days)}</span>
+                </p>
+              </div>
+              <div className="border-t border-outline/40 pt-3">
+                <p className="text-xs uppercase tracking-wide text-muted">Total</p>
+                <p className="text-2xl font-semibold text-primary">{formatarMoeda(total)}</p>
+              </div>
+            </Card>
+          </div>
+        )}
+
+        {stepIndex === 3 && (
+          <div className="grid gap-6 lg:grid-cols-[2fr,1fr]">
+            <div className="space-y-5">
+              <div className="space-y-2">
+                <Label>Fotos da operação (máx. 5)</Label>
                 <UploadArea
-                  hint="Formatos aceitos: JPG, PNG – tamanho máximo 5MB"
-                  onFilesSelected={handleFilesSelected}
+                  hint="Formatos aceitos: JPG, PNG – tamanho máximo 5MB por foto"
+                  onFilesSelected={selecionarFotos}
                   accept="image/png,image/jpeg"
                 />
-                {selectedFiles.length > 0 ? (
+                {avisoFotos && <p className="text-xs text-warning">{avisoFotos}</p>}
+                {fotos.length > 0 && (
                   <ul className="space-y-2 rounded-lg border border-outline/40 bg-white px-4 py-3 text-sm text-muted">
-                    {selectedFiles.map((file) => (
-                      <li key={`${file.name}-${file.lastModified}`} className="flex items-center justify-between gap-3">
-                        <span className="truncate">{file.name}</span>
+                    {fotos.map((foto) => (
+                      <li key={`${foto.name}-${foto.lastModified}`} className="flex items-center justify-between gap-3">
+                        <span className="truncate">{foto.name}</span>
                         <span className="text-xs uppercase tracking-wide text-muted">
-                          {formatFileSize(file.size)}
+                          {formatarTamanhoArquivo(foto.size)}
                         </span>
                       </li>
                     ))}
                   </ul>
-                ) : (
-                  <p className="text-xs text-muted">Nenhum arquivo selecionado ainda.</p>
                 )}
+                {fotos.length === 0 && <p className="text-xs text-muted">Nenhuma foto selecionada.</p>}
               </div>
               <div className="space-y-3 rounded-xl border border-outline bg-white p-5 shadow-sm">
                 <h3 className="text-sm font-semibold text-ink">Checklist antes de gerar</h3>
                 <ul className="space-y-2 text-sm text-muted">
-                  <li>• Revisar escopo e valores totais</li>
-                  <li>• Confirmar equipamentos alocados e datas</li>
-                  <li>• Adicionar termos padrão (ex: SLA, multas, seguros)</li>
+                  <li>• Revisar escopo e valores</li>
+                  <li>• Confirmar equipamentos e datas</li>
+                  <li>• Conferir os dados da empresa em Minha Conta</li>
                 </ul>
               </div>
             </div>
@@ -510,41 +843,41 @@ export default function NewProposalPage() {
               <div className="space-y-3 text-sm">
                 <div>
                   <p className="text-muted">Cliente</p>
-                  <p className="font-medium text-ink">{clients.find((client) => client.id === form.clientId)?.name}</p>
+                  <p className="font-medium text-ink">{clienteSelecionado?.name || "Sem cliente"}</p>
                 </div>
                 <div>
-                  <p className="text-muted">Modelo</p>
-                  <p className="font-medium text-ink">{activeTemplate ? activeTemplate.name : "Proposta em branco"}</p>
+                  <p className="text-muted">Projeto</p>
+                  <p className="font-medium text-ink">{formulario.titulo || "Sem título"}</p>
                 </div>
                 <div>
-                  <p className="text-muted">Título</p>
-                  <p className="font-medium text-ink">{form.jobTitle || "Sem título"}</p>
-                </div>
-                <div>
-                  <p className="text-muted">Período</p>
-                  <p className="font-medium text-ink">{form.startDate || "–"} / {form.endDate || "–"}</p>
-                </div>
-                <div>
-                  <p className="text-muted">Anexos</p>
+                  <p className="text-muted">Local e período</p>
                   <p className="font-medium text-ink">
-                    {selectedFiles.length > 0 ? `${selectedFiles.length} arquivo(s)` : "Nenhum"}
+                    {formulario.localOperacao || "–"} · {montarPeriodo(formulario) || "–"}
                   </p>
+                </div>
+                <div>
+                  <p className="text-muted">Total</p>
+                  <p className="font-medium text-ink">{formatarMoeda(total)}</p>
+                </div>
+                <div>
+                  <p className="text-muted">Fotos</p>
+                  <p className="font-medium text-ink">{fotos.length} arquivo(s)</p>
                 </div>
               </div>
               <Button
                 className="w-full"
                 loading={createProposalFlow.isPending}
                 loadingText="Gerando..."
-                onClick={() => createProposalFlow.mutate({ queue: true })}
+                onClick={() => createProposalFlow.mutate({ gerarPdf: true })}
               >
-                Gerar proposta
+                Gerar proposta e PDF
               </Button>
               <Button
                 variant="ghost"
                 className="w-full"
                 loading={createProposalFlow.isPending}
                 loadingText="Salvando..."
-                onClick={() => createProposalFlow.mutate({ queue: false })}
+                onClick={() => createProposalFlow.mutate({ gerarPdf: false })}
               >
                 Salvar rascunho
               </Button>
@@ -552,11 +885,11 @@ export default function NewProposalPage() {
           </div>
         )}
 
-        {submissionError ? (
+        {submissionError && (
           <div className="rounded-lg border border-danger/30 bg-danger-soft/40 px-4 py-3 text-sm text-danger">
             {submissionError}
           </div>
-        ) : null}
+        )}
 
         <div className="flex justify-between border-t border-outline/60 pt-4">
           <Button
@@ -566,23 +899,11 @@ export default function NewProposalPage() {
           >
             Voltar
           </Button>
-          <div className="flex gap-2">
-            {stepIndex < steps.length - 1 && (
-              <Button onClick={handleNext} disabled={createProposalFlow.isPending}>
-                Continuar
-              </Button>
-            )}
-            {stepIndex === steps.length - 1 && (
-              <Button
-                variant="primary"
-                onClick={() => createProposalFlow.mutate({ queue: true })}
-                loading={createProposalFlow.isPending}
-                loadingText="Finalizando..."
-              >
-                Finalizar geração
-              </Button>
-            )}
-          </div>
+          {stepIndex < steps.length - 1 && (
+            <Button onClick={handleNext} disabled={!modeloId || createProposalFlow.isPending}>
+              Continuar
+            </Button>
+          )}
         </div>
       </Card>
     </section>

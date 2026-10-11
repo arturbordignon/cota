@@ -2,22 +2,42 @@
 
 import { PropsWithChildren, ReactNode, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
+
 import { cn } from '@/lib/utils';
+import { useApi } from '@/hooks/use-api';
 import { useCurrentUser } from '@/components/providers/user-provider';
 import { Sidebar } from '@/components/layout/sidebar';
 import { Topbar } from '@/components/layout/topbar';
 import { MobileNav } from '@/components/layout/mobile-nav';
+import type { BillingOverviewResponse } from '@/types/api';
 
 interface DashboardShellProps extends PropsWithChildren {
   headerActions?: ReactNode;
-  credits?: number;
 }
 
-export function DashboardShell({ children, headerActions, credits }: DashboardShellProps) {
+function montarCreditos(resposta?: BillingOverviewResponse) {
+  if (!resposta) {
+    return undefined;
+  }
+  if (!resposta.data.usage.total) {
+    return '∞';
+  }
+  return String(Math.max(resposta.data.usage.total - resposta.data.usage.used, 0));
+}
+
+export function DashboardShell({ children, headerActions }: DashboardShellProps) {
   const router = useRouter();
-  const { status } = useCurrentUser();
+  const api = useApi();
+  const { status, temPermissao } = useCurrentUser();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  const overviewQuery = useQuery({
+    queryKey: ['billing', 'overview'],
+    queryFn: () => api.get<BillingOverviewResponse>('/billing/overview'),
+    enabled: status === 'authenticated',
+  });
 
   // load from cookie
   useEffect(() => {
@@ -46,6 +66,11 @@ export function DashboardShell({ children, headerActions, credits }: DashboardSh
   }
   if (status === 'unauthenticated') return null;
 
+  let abrirNovaProposta: (() => void) | undefined;
+  if (temPermissao('proposals', 'edit')) {
+    abrirNovaProposta = () => router.push('/proposals/new');
+  }
+
   return (
     <div
       className={cn(
@@ -56,9 +81,9 @@ export function DashboardShell({ children, headerActions, credits }: DashboardSh
       <Sidebar collapsed={sidebarCollapsed} onToggle={handleToggleSidebar} />
       <div className="flex min-h-screen flex-col">
         <Topbar
-          credits={credits}
+          credits={montarCreditos(overviewQuery.data)}
           actions={headerActions}
-          onCreateProposal={() => router.push('/proposals/new')}
+          onCreateProposal={abrirNovaProposta}
           mobileNavTrigger={<MobileNav open={mobileNavOpen} onOpenChange={setMobileNavOpen} />}
         />
         <main className="flex-1 px-4 py-6 sm:px-6 lg:px-10">

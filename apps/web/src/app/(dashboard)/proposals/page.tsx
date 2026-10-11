@@ -5,6 +5,7 @@ import { useFormatter, useTranslations } from "next-intl";
 import { useQuery } from "@tanstack/react-query";
 
 import { PageHeader } from "@/components/layout/page-header";
+import { useCurrentUser } from "@/components/providers/user-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -22,6 +23,7 @@ const STATUS_TONES: Record<ProposalStatus, 'neutral' | 'success' | 'warning' | '
 
 export default function ProposalsPage() {
   const api = useApi();
+  const { temPermissao } = useCurrentUser();
   const format = useFormatter();
   const t = useTranslations("proposals.page");
   const tStatus = useTranslations("proposals.status");
@@ -43,9 +45,14 @@ export default function ProposalsPage() {
 
   const handleCopyLink = (proposal: ProposalSummary) => {
     if (typeof window === 'undefined' || !navigator?.clipboard) return;
-    const shareTarget = proposal.publicSlug ?? proposal.id;
-    const shareUrl = `${window.location.origin}/proposals/${shareTarget}`;
-    navigator.clipboard.writeText(shareUrl).catch(() => {});
+    navigator.clipboard.writeText(`${window.location.origin}/p/${proposal.publicSlug}`).catch(() => {});
+  };
+
+  const linkPublicoDisponivel = (proposal: ProposalSummary) => {
+    if (!proposal.publicSlug) {
+      return false;
+    }
+    return proposal.status !== 'DRAFT' && proposal.status !== 'PENDING';
   };
 
   return (
@@ -60,9 +67,11 @@ export default function ProposalsPage() {
         title={t("header.title")}
         description={t("header.description")}
         action={
-          <Button variant="primary" className="w-full sm:w-auto" asChild>
-            <Link href="/proposals/new">{t("actions.create")}</Link>
-          </Button>
+          temPermissao('proposals', 'edit') && (
+            <Button variant="primary" className="w-full sm:w-auto" asChild>
+              <Link href="/proposals/new">{t("actions.create")}</Link>
+            </Button>
+          )
         }
       />
 
@@ -124,13 +133,15 @@ export default function ProposalsPage() {
                           >
                             {t("table.view")}
                           </Link>
-                          <button
-                            type="button"
-                            className="text-primary hover:underline"
-                            onClick={() => handleCopyLink(proposal)}
-                          >
-                            {t("table.copyLink")}
-                          </button>
+                          {linkPublicoDisponivel(proposal) && (
+                            <button
+                              type="button"
+                              className="text-primary hover:underline"
+                              onClick={() => handleCopyLink(proposal)}
+                            >
+                              {t("table.copyLink")}
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>

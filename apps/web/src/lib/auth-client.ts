@@ -136,7 +136,20 @@ export interface ProfileResponse {
     slug: string;
     locale: string;
   };
+  permissions: PermissionMap;
 }
+
+export type PermissionModule =
+  | "dashboard"
+  | "proposals"
+  | "templates"
+  | "crm"
+  | "reports"
+  | "plan"
+  | "clients"
+  | "services";
+
+export type PermissionMap = Record<PermissionModule, { view: boolean; edit: boolean }>;
 
 export async function me(accessToken: string): Promise<ProfileResponse> {
   const response = await fetch(`${API_BASE_URL}/auth/me`, {

@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import Link from "next/link";
 import React, { memo, useCallback, useMemo, useState } from "react";
@@ -17,7 +18,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
 import { PageHeader } from "@/components/layout/page-header";
 import { Badge } from "@/components/ui/badge";
@@ -29,7 +30,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { useApi } from "@/hooks/use-api";
 import { ReportsOverviewResponse } from "@/types/api";
-
 import { StatCard } from "@/components/reports/stat-card";
 import { TeamBarChart } from "@/components/reports/team-bar-chart";
 import { DateRangePicker } from "@/components/reports/date-range-picker";
@@ -106,7 +106,7 @@ const BarChartViz = memo(function BarChartViz({
             contentStyle={{ borderRadius: 12 }}
           />
           <Bar dataKey="value" radius={[12, 12, 4, 4]}>
-            <LabelList position="top" formatter={(value: number) => formatter(value)} />
+            <LabelList position="top" formatter={(value) => formatter(Number(value))} />
             {data.map((entry, index) => (
               <Cell
                 key={entry.name}
@@ -156,7 +156,7 @@ const FunnelChartViz = memo(function FunnelChartViz({
           >
             <LabelList
               position="right"
-              formatter={(value: number) => formatter(value)}
+              formatter={(value) => formatter(Number(value))}
               fill="var(--color-muted)"
             />
           </Funnel>
@@ -247,7 +247,7 @@ export default function ReportsPage() {
     [formatter],
   );
 
-  const statusBadges = useMemo(
+  const statusBadges = useMemo<Record<string, { label: string; tone: StatusTone }>>(
     () => ({
       DRAFT: { label: tOverview("status.labels.DRAFT"), tone: STATUS_TONES.DRAFT },
       PENDING: { label: tOverview("status.labels.PENDING"), tone: STATUS_TONES.PENDING },
@@ -283,13 +283,13 @@ export default function ReportsPage() {
   const overviewQuery = useQuery({
     queryKey: ["reports", "overview", overviewParsed.start, overviewParsed.end],
     queryFn: () =>
-      api.get<ReportsOverviewResponse>(
+      api.get<{ data: ReportsOverviewResponse }>(
         `/reports/overview?start=${overviewParsed.start}&end=${overviewParsed.end}`,
       ),
     enabled: Boolean(api.token),
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
-    keepPreviousData: true,
+    placeholderData: keepPreviousData,
   });
 
   const overview = overviewQuery.data?.data;

@@ -14,7 +14,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectItem } from "@/components/ui/select";
-import { Tabs } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { useApi } from "@/hooks/use-api";
 import { TemplateSummary, TemplatesResponse } from "@/types/api";
@@ -184,7 +184,6 @@ export default function TemplatesPage() {
   const t = useTranslations("templates.page");
   const [activeTab, setActiveTab] = useState<TabValue>("catalog");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
-  const locale = useLocale();
   const api = useApi();
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -218,8 +217,8 @@ export default function TemplatesPage() {
   const shouldFetch = activeTab !== "upload" && Boolean(api.token);
 
   const templatesQuery = useQuery({
-    queryKey: ['templates', scope, locale],
-    queryFn: () => api.get<TemplatesResponse>(`/templates?scope=${scope}&locale=${locale}`),
+    queryKey: ['templates', scope],
+    queryFn: () => api.get<TemplatesResponse>(`/templates?scope=${scope}`),
     enabled: shouldFetch,
   });
 
@@ -272,8 +271,9 @@ export default function TemplatesPage() {
     },
   });
 
-  const handleCreateTemplate = (values: CreateTemplatePayload) =>
-    createTemplate.mutateAsync(values);
+  const handleCreateTemplate = async (values: CreateTemplatePayload) => {
+    await createTemplate.mutateAsync(values);
+  };
 
   return (
     <section className="space-y-8">
@@ -299,7 +299,15 @@ export default function TemplatesPage() {
       />
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <Tabs items={tabItems} defaultValue="catalog" onChange={(value) => setActiveTab(value as TabValue)} />
+        <Tabs defaultValue="catalog" onValueChange={(value) => setActiveTab(value as TabValue)}>
+          <TabsList>
+            {tabItems.map((item) => (
+              <TabsTrigger key={item.id} value={item.id} title={item.description}>
+                {item.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
         {activeTab !== "upload" ? (
           <div className="w-full max-w-xs">
             <Select value={categoryFilter} onValueChange={setCategoryFilter}>

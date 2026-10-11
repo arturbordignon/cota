@@ -4,54 +4,41 @@ import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 
 import { Button, type ButtonProps } from '@/components/ui/button';
+import { useApi } from '@/hooks/use-api';
 
 interface CheckoutButtonProps extends ButtonProps {
   planSlug: string;
   label: string;
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL;
+function buscarMensagemErro(error: unknown, mensagemPadrao: string) {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return mensagemPadrao;
+}
 
 export function CheckoutButton({ planSlug, label, onClick, ...props }: CheckoutButtonProps) {
   const t = useTranslations('common');
+  const api = useApi();
   const [isLoading, setIsLoading] = useState(false);
 
   const handleClick = async (event: React.MouseEvent<HTMLButtonElement>) => {
     if (isLoading) return;
     onClick?.(event);
-    if (!API_BASE) {
-      window.alert('API base URL não configurado.');
-      return;
-    }
 
     setIsLoading(true);
     try {
-      const response = await fetch(`${API_BASE}/api/v1/billing/checkout`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          planSlug,
-          successUrl: window.location.href,
-          cancelUrl: window.location.href,
-        }),
+      const data = await api.post<{ url?: string }>('/billing/checkout', {
+        planSlug,
+        successUrl: window.location.href,
+        cancelUrl: window.location.href,
       });
-
-      if (!response.ok) {
-        const error = await response.json().catch(() => ({ message: 'Erro ao gerar checkout.' }));
-        window.alert(error.message ?? 'Erro ao gerar checkout.');
-        return;
-      }
-
-      const data = await response.json();
       if (data.url) {
-        window.location.href = data.url as string;
+        window.location.href = data.url;
       }
     } catch (error) {
-      console.error(error);
-      window.alert('Não foi possível iniciar a cobrança agora. Tente novamente mais tarde.');
+      window.alert(buscarMensagemErro(error, 'Não foi possível iniciar a cobrança agora.'));
     } finally {
       setIsLoading(false);
     }
@@ -76,36 +63,21 @@ interface PortalButtonProps extends ButtonProps {
 
 export function PortalButton({ label, onClick, ...props }: PortalButtonProps) {
   const t = useTranslations('common');
+  const api = useApi();
   const [isLoading, setIsLoading] = useState(false);
 
   const handleClick = async (event: React.MouseEvent<HTMLButtonElement>) => {
     if (isLoading) return;
     onClick?.(event);
-    if (!API_BASE) {
-      window.alert('API base URL não configurado.');
-      return;
-    }
 
     setIsLoading(true);
     try {
-      const response = await fetch(`${API_BASE}/api/v1/billing/portal`, {
-        method: 'POST',
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        const error = await response.json().catch(() => ({ message: 'Erro ao abrir portal.' }));
-        window.alert(error.message ?? 'Erro ao abrir portal de cobrança.');
-        return;
-      }
-
-      const data = await response.json();
+      const data = await api.post<{ url?: string }>('/billing/portal', {});
       if (data.url) {
-        window.location.href = data.url as string;
+        window.location.href = data.url;
       }
     } catch (error) {
-      console.error(error);
-      window.alert('Não foi possível abrir o portal de cobrança.');
+      window.alert(buscarMensagemErro(error, 'Não foi possível abrir o portal de cobrança.'));
     } finally {
       setIsLoading(false);
     }
