@@ -1,6 +1,9 @@
 import type { Config } from "tailwindcss";
 import defaultTheme from "tailwindcss/defaultTheme";
 
+// Colors read RGB channels from globals.css so opacity modifiers work.
+const token = (name: string) => `rgb(var(--rgb-${name}) / <alpha-value>)`;
+
 const config: Config = {
   content: [
     "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
@@ -21,39 +24,43 @@ const config: Config = {
     },
     extend: {
       colors: {
-        background: "var(--color-background)",
-        surface: "var(--color-surface)",
-        muted: "var(--color-muted)",
-        border: "var(--color-border)",
-        outline: "var(--color-outline)",
-        primary: {
-          DEFAULT: "var(--color-primary)",
-          soft: "var(--color-primary-soft)",
-          foreground: "var(--color-on-primary)",
+        background: token("background"),
+        surface: {
+          DEFAULT: token("surface"),
+          muted: token("surface-muted"),
+          sunken: token("surface-sunken"),
         },
-        steel: {
-          DEFAULT: "var(--color-steel)",
-          raised: "var(--color-steel-raised)",
+        muted: token("muted"),
+        border: token("border"),
+        outline: token("outline"),
+        primary: {
+          DEFAULT: token("primary"),
+          hover: token("primary-hover"),
+          strong: token("primary-strong"),
+          soft: token("primary-soft"),
+          tint: token("primary-tint"),
+          foreground: token("on-primary"),
         },
         ink: {
-          DEFAULT: "var(--color-ink)",
-          subtle: "var(--color-ink-subtle)",
+          DEFAULT: token("ink"),
+          muted: token("ink-muted"),
+          subtle: token("muted"),
         },
         success: {
-          DEFAULT: "var(--color-success)",
-          soft: "var(--color-success-soft)",
+          DEFAULT: token("success"),
+          soft: token("success-soft"),
         },
         warning: {
-          DEFAULT: "var(--color-warning)",
-          soft: "var(--color-warning-soft)",
+          DEFAULT: token("warning"),
+          soft: token("warning-soft"),
         },
         info: {
-          DEFAULT: "var(--color-info)",
-          soft: "var(--color-info-soft)",
+          DEFAULT: token("info"),
+          soft: token("info-soft"),
         },
         danger: {
-          DEFAULT: "var(--color-danger)",
-          soft: "var(--color-danger-soft)",
+          DEFAULT: token("danger"),
+          soft: token("danger-soft"),
         },
       },
       fontFamily: {
@@ -61,19 +68,48 @@ const config: Config = {
         sans: ["var(--font-sans)", ...defaultTheme.fontFamily.sans],
       },
       borderRadius: {
-        xl: "1.25rem",
-        lg: "1rem",
-        md: "0.75rem",
-        sm: "0.5rem",
+        sm: "0.25rem",
+        DEFAULT: "0.375rem",
+        md: "0.375rem",
+        lg: "0.5rem",
+        xl: "0.75rem",
+        "2xl": "0.875rem",
+        "3xl": "1rem",
       },
       boxShadow: {
-        card: "0 18px 40px -30px rgba(33, 24, 13, 0.45)",
+        card: "0 1px 2px rgb(27 31 36 / 0.04)",
+        raised: "0 12px 32px -12px rgb(27 31 36 / 0.22), 0 2px 6px -2px rgb(27 31 36 / 0.08)",
+        press: "inset 0 -2px 0 rgb(0 0 0 / 0.12)",
       },
       spacing: {
         15: "3.75rem",
       },
       transitionDuration: {
         250: "250ms",
+      },
+      keyframes: {
+        "overlay-in": {
+          from: { opacity: "0" },
+          to: { opacity: "1" },
+        },
+        "dialog-in": {
+          from: { opacity: "0", transform: "translateY(6px) scale(0.985)" },
+          to: { opacity: "1", transform: "translateY(0) scale(1)" },
+        },
+        "pop-in": {
+          from: { opacity: "0", transform: "translateY(-4px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
+        },
+        "drawer-in": {
+          from: { transform: "translateX(-100%)" },
+          to: { transform: "translateX(0)" },
+        },
+      },
+      animation: {
+        "overlay-in": "overlay-in 160ms ease-out",
+        "dialog-in": "dialog-in 180ms cubic-bezier(0.2, 0.8, 0.2, 1)",
+        "pop-in": "pop-in 140ms ease-out",
+        "drawer-in": "drawer-in 220ms cubic-bezier(0.2, 0.8, 0.2, 1)",
       },
     },
   },

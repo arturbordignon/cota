@@ -2,36 +2,70 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Color tokens are stored as RGB channels so Tailwind opacity modifiers
+ * (bg-primary/20, ring-primary/30, border-outline/60...) actually compile.
+ * The --color-* aliases keep working for inline styles and chart props.
+ */
 :root {
-  /* Surfaces & text */
-  --color-background: #f7f9fb;
-  --color-surface: #ffffff;
-  --color-steel: #17202b;
-  --color-steel-raised: #243140;
-  --color-steel-muted: #93a2b3;
-  --color-primary-soft: #f6edd4;
-  --color-surface-muted: #f1f5f9; /* slate-100 */
-  --color-border: #e2e8f0; /* slate-200 */
-  --color-outline: rgba(100, 116, 139, 0.28); /* slate-500 @ 28% */
+  /* Surfaces */
+  --rgb-background: 255 255 255;
+  --rgb-surface: 255 255 255;
+  --rgb-surface-muted: 246 247 248; /* #F6F7F8 */
+  --rgb-surface-sunken: 237 239 242; /* #EDEFF2 */
+  --rgb-border: 228 231 235; /* #E4E7EB */
+  --rgb-outline: 208 213 220; /* #D0D5DC */
 
-  --color-ink: #0f172a; /* slate-900 */
-  --color-ink-muted: #475569; /* slate-600 */
-  --color-muted: #64748b; /* slate-500 */
+  /* Text */
+  --rgb-ink: 27 31 36; /* #1B1F24 graphite */
+  --rgb-ink-muted: 64 71 81; /* #404751 */
+  --rgb-muted: 106 114 126; /* #6A727E */
 
-  /* Brand (amber as accent; dark text on amber for contrast) */
-  --color-primary: #eaaa08; /* amber-600-ish */
-  --color-primary-strong: #b45309; /* amber-700 */
-  --color-on-primary: #111827; /* slate-900 (better than white on amber) */
+  /* Brand: crane yellow */
+  --rgb-primary: 242 169 0; /* #F2A900 */
+  --rgb-primary-hover: 224 155 0; /* #E09B00 */
+  --rgb-primary-strong: 143 95 0; /* #8F5F00, yellow-family text on white */
+  --rgb-primary-soft: 255 244 209; /* #FFF4D1 */
+  --rgb-primary-tint: 255 250 235; /* #FFFAEB */
+  --rgb-on-primary: 255 255 255;
 
   /* Semantic */
-  --color-success: #16a34a; /* green-600 */
-  --color-success-soft: #ecfdf5; /* emerald-50 */
-  --color-warning: #f59e0b; /* amber-500 (secondary alert) */
-  --color-warning-soft: #fef3c7; /* amber-100 */
-  --color-info: #2563eb; /* blue-600 */
-  --color-info-soft: #eff6ff; /* blue-50 */
-  --color-danger: #dc2626; /* red-600 */
-  --color-danger-soft: #fee2e2; /* red-100 */
+  --rgb-success: 22 128 70; /* #168046 */
+  --rgb-success-soft: 232 245 237;
+  --rgb-warning: 180 83 9; /* #B45309 */
+  --rgb-warning-soft: 254 243 199;
+  --rgb-info: 29 92 214; /* #1D5CD6 */
+  --rgb-info-soft: 235 242 254;
+  --rgb-danger: 200 40 30; /* #C8281E */
+  --rgb-danger-soft: 253 236 234;
+
+  /* Charts (validated for contrast and colour-blind separation on white) */
+  --chart-1: #c98700; /* amber */
+  --chart-2: #4a73b8; /* steel blue */
+  --chart-neutral: #9aa2ad;
+
+  --color-background: rgb(var(--rgb-background));
+  --color-surface: rgb(var(--rgb-surface));
+  --color-surface-muted: rgb(var(--rgb-surface-muted));
+  --color-surface-sunken: rgb(var(--rgb-surface-sunken));
+  --color-border: rgb(var(--rgb-border));
+  --color-outline: rgb(var(--rgb-outline));
+  --color-ink: rgb(var(--rgb-ink));
+  --color-ink-muted: rgb(var(--rgb-ink-muted));
+  --color-muted: rgb(var(--rgb-muted));
+  --color-primary: rgb(var(--rgb-primary));
+  --color-primary-hover: rgb(var(--rgb-primary-hover));
+  --color-primary-strong: rgb(var(--rgb-primary-strong));
+  --color-primary-soft: rgb(var(--rgb-primary-soft));
+  --color-on-primary: rgb(var(--rgb-on-primary));
+  --color-success: rgb(var(--rgb-success));
+  --color-success-soft: rgb(var(--rgb-success-soft));
+  --color-warning: rgb(var(--rgb-warning));
+  --color-warning-soft: rgb(var(--rgb-warning-soft));
+  --color-info: rgb(var(--rgb-info));
+  --color-info-soft: rgb(var(--rgb-info-soft));
+  --color-danger: rgb(var(--rgb-danger));
+  --color-danger-soft: rgb(var(--rgb-danger-soft));
 
   color-scheme: light;
 }
@@ -41,8 +75,13 @@
     @apply border-border;
   }
 
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+
   body {
-    @apply bg-[var(--color-background)] text-ink font-sans antialiased;
+    @apply bg-background font-sans text-[15px] text-ink antialiased;
+    font-feature-settings: "kern", "liga";
   }
 
   h1,
@@ -53,24 +92,100 @@
   h6 {
     @apply font-display text-ink;
   }
+
+  ::selection {
+    background: rgb(var(--rgb-primary-soft));
+    color: rgb(var(--rgb-ink));
+  }
+
+  a:focus-visible,
+  button:focus-visible,
+  [role="button"]:focus-visible,
+  summary:focus-visible {
+    outline: 2px solid rgb(var(--rgb-primary));
+    outline-offset: 2px;
+  }
+
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    opacity: 0.5;
+  }
+
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    opacity: 0.55;
+    cursor: pointer;
+  }
 }
 
 @layer components {
-  .surface-card {
-    @apply rounded-2xl border border-outline bg-[var(--color-surface)] shadow-[0_18px_45px_-25px_rgba(34,28,18,0.45)];
+  /* Small descriptive label above a value (sentence case, never all caps). */
+  .meta-label {
+    @apply text-[13px] font-medium leading-snug text-muted;
   }
 
-  .surface-ghost {
-    @apply rounded-2xl border border-transparent bg-[var(--color-surface-muted)] shadow-inner;
+  /* Shared table look: apply to <table>. */
+  .data-table {
+    @apply w-full border-separate border-spacing-0 text-left text-sm;
+  }
+
+  .data-table thead th {
+    @apply whitespace-nowrap border-b border-border bg-surface-muted px-4 py-2.5 text-[13px] font-medium text-muted first:pl-5 last:pr-5;
+  }
+
+  .data-table tbody td {
+    @apply border-b border-border px-4 py-3.5 align-middle text-ink-muted first:pl-5 last:pr-5;
+  }
+
+  .data-table tbody tr:last-child td {
+    @apply border-b-0;
+  }
+
+  .data-table tbody tr {
+    @apply transition-colors;
+  }
+
+  .data-table tbody tr:hover td {
+    @apply bg-surface-muted/60;
+  }
+
+  /* For a table that sits flush in a Card without a clipping wrapper. */
+  .data-table--rounded thead th:first-child {
+    border-top-left-radius: 0.6875rem;
+  }
+
+  .data-table--rounded thead th:last-child {
+    border-top-right-radius: 0.6875rem;
+  }
+
+  .data-table--compact thead th {
+    @apply py-2;
+  }
+
+  .data-table--compact tbody td {
+    @apply py-2.5;
+  }
+
+  .tabular {
+    font-variant-numeric: tabular-nums;
   }
 }
 
 @layer utilities {
   .max-layout-width {
-    @apply mx-auto w-full max-w-[1200px];
+    @apply mx-auto w-full max-w-[1280px];
   }
 
   .text-balance {
     text-wrap: balance;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
