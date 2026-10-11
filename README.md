@@ -43,14 +43,11 @@ The helper starts Postgres on host port `5433` by default and automatically trie
 pnpm --filter web exec next dev -p 3001
 ```
 
-> ℹ️ **Frontend ↔ API integration**: the web app reads the REST API base URL and development token from environment variables. Copy `.env.example` to `.env` and set, at minimum:
+> ℹ️ **Frontend ↔ API integration**: the web app reads the REST API base URL from environment variables and authenticates through the sign-in screen. Copy `.env.example` to `.env` and set, at minimum:
 >
 > ```env
 > NEXT_PUBLIC_API_URL=http://localhost:3333/api/v1
-> NEXT_PUBLIC_API_TOKEN=eyJhbGciOi...   # JWT gerado pela API de desenvolvimento
 > ```
->
-> In production this token should come from the real sign-in flow; the variable only exists to simplify local testing while authentication screens are still being wired.
 
 - API served on `http://localhost:3333` with Swagger UI at `/docs`.
 - Web app served on `http://localhost:3000` (auto locale detection via middleware).
