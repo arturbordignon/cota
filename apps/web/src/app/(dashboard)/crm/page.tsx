@@ -2,19 +2,19 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
-import * as Dialog from "@radix-ui/react-dialog";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowDown, ArrowUp, DotsSixVertical, PaintBrushBroad, Plus, X } from "@phosphor-icons/react";
+import { ArrowDown, ArrowUp, DotsSixVertical, PaintBrushBroad, Plus, Trash } from "@phosphor-icons/react";
 
 import { useCurrentUser } from "@/components/providers/user-provider";
 import { PageHeader } from "@/components/layout/page-header";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Modal, ModalBody, ModalClose, ModalFooter } from "@/components/ui/modal";
+import { Notice } from "@/components/ui/notice";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectItem } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { useApi } from "@/hooks/use-api";
 import { PipelineLeadSummary, PipelineStagesResponse } from "@/types/api";
@@ -70,11 +70,11 @@ function formatCurrency(value?: string | number | null) {
 
 const STAGE_COLORS: StageColor[] = ['info', 'warning', 'success', 'neutral'];
 
-const COLUMN_HEADER_STYLES: Record<StageColor, string> = {
-  info: 'border-[var(--color-info)]/20 bg-[var(--color-info-soft)] text-[var(--color-info)]',
-  warning: 'border-[var(--color-warning)]/20 bg-[var(--color-warning-soft)] text-[var(--color-warning)]',
-  success: 'border-[var(--color-success)]/20 bg-[var(--color-success-soft)] text-[var(--color-success)]',
-  neutral: 'border-outline/40 bg-[var(--color-surface-muted)] text-ink',
+const STAGE_DOT: Record<StageColor, string> = {
+  info: 'bg-info',
+  warning: 'bg-warning',
+  success: 'bg-success',
+  neutral: 'bg-outline',
 };
 
 export default function CrmBoardPage() {
@@ -370,287 +370,270 @@ export default function CrmBoardPage() {
 
   return (
     <section className="space-y-6">
-      {isTokenMissing ? (
-        <Card className="border border-warning/40 bg-warning-soft px-6 py-4 text-sm text-warning">
-          {t('alerts.missingToken')}
-        </Card>
-      ) : null}
-
       <PageHeader
         title={t('header.title')}
         description={t('header.description')}
         action={
-          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+          <>
             <Button
-              className="w-full sm:w-auto"
-              disabled={!isAdmin || columns.length === 0}
-              onClick={() => setCreateDialogOpen(true)}
-            >
-              <Plus size={16} className="mr-2" /> {t('actions.newLead')}
-            </Button>
-            <Button
-              variant="outline"
-              className="w-full sm:w-auto"
+              variant="secondary"
               disabled={!isAdmin}
               onClick={() => setCustomizeDialogOpen(true)}
             >
-              <PaintBrushBroad size={16} className="mr-2" /> {t('actions.customizeStages')}
+              <PaintBrushBroad size={16} /> {t('actions.customizeStages')}
             </Button>
-          </div>
+            <Button disabled={!isAdmin || columns.length === 0} onClick={() => setCreateDialogOpen(true)}>
+              <Plus size={16} weight="bold" /> {t('actions.newLead')}
+            </Button>
+          </>
         }
       />
 
+      {isTokenMissing ? <Notice tone="warning">{t('alerts.missingToken')}</Notice> : null}
+
       {loadError && !isTokenMissing ? (
-        <Card className="border border-danger/40 bg-danger-soft/20 px-6 py-4 text-sm text-danger">
-          {t('alerts.loadError', { message: loadError.message })}
-        </Card>
+        <Notice tone="danger">{t('alerts.loadError', { message: loadError.message })}</Notice>
       ) : null}
 
-      <Card className="flex flex-wrap items-center gap-4 border border-outline/50 bg-white px-6 py-4 shadow-sm">
+      <div className="flex flex-wrap items-end gap-x-10 gap-y-3">
         <div>
-          <p className="text-xs uppercase tracking-wide text-muted">{t('summary.leads')}</p>
-          <p className="text-lg font-semibold text-ink">{totals.leads}</p>
+          <p className="meta-label">{t('summary.leads')}</p>
+          <p className="tabular font-display text-[28px] font-semibold leading-tight text-ink">{totals.leads}</p>
         </div>
         <div>
-          <p className="text-xs uppercase tracking-wide text-muted">{t('summary.value')}</p>
-          <p className="text-lg font-semibold text-primary">{formatCurrency(totals.value) ?? 'R$ 0'}</p>
+          <p className="meta-label">{t('summary.value')}</p>
+          <p className="tabular font-display text-[28px] font-semibold leading-tight text-ink">
+            {formatCurrency(totals.value) ?? 'R$ 0'}
+          </p>
         </div>
-        {!isAdmin ? (
-          <p className="text-xs text-muted">
-            {t('overview.viewOnly')}
-          </p>
-        ) : (
-          <p className="text-xs text-muted">
-            {t('overview.dragHint')}
-          </p>
-        )}
-      </Card>
+        <p className="pb-1.5 text-[13px] text-muted">
+          {!isAdmin ? t('overview.viewOnly') : t('overview.dragHint')}
+        </p>
+      </div>
 
       {pipelineQuery.isLoading ? (
-        <div className="grid gap-4 lg:grid-cols-2">
-          {Array.from({ length: 2 }).map((_, index) => (
-            <Card
-              key={`pipeline-skeleton-${index}`}
-              className="h-64 animate-pulse rounded-3xl border border-outline/40 bg-white/70"
-            />
+        <div className="flex gap-4 overflow-hidden">
+          {Array.from({ length: 3 }).map((_, index) => (
+            <Skeleton key={`pipeline-skeleton-${index}`} className="h-80 w-[300px] shrink-0 rounded-xl" />
           ))}
         </div>
       ) : (
         <ScrollArea className="w-full" type="always">
-          <div className="flex gap-6 pb-6">
+          <div className="flex items-start gap-4 pb-5">
             {columns.map((column) => {
               const isDropTarget = Boolean(dragging && dragging.columnId !== column.id);
-              const headerClass = COLUMN_HEADER_STYLES[column.color];
+              const columnValue = column.leads.reduce((acc, lead) => {
+                const numeric = lead.estimatedValue ? Number(lead.estimatedValue) : 0;
+                return acc + (Number.isNaN(numeric) ? 0 : numeric);
+              }, 0);
 
               return (
-                <Card
+                <div
                   key={column.id}
                   className={cn(
-                    'flex w-80 flex-col gap-4 border border-outline/40 bg-white p-4 shadow-sm transition',
-                    isDropTarget && 'border-primary/40 bg-primary-soft/40',
+                    'flex w-[300px] shrink-0 flex-col rounded-xl border border-transparent bg-surface-muted p-2 transition-colors',
+                    isDropTarget && 'border-dashed border-primary bg-primary-tint',
                   )}
                   onDragOver={handleDragOver}
                   onDrop={() => handleDrop(column.id)}
                 >
-                  <div className={cn('rounded-xl border px-4 py-3', headerClass)}>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="text-sm font-semibold">{column.title}</h3>
-                        <p className="text-xs text-muted">{column.leads.length} {column.leads.length === 1 ? 'lead' : 'leads'}</p>
-                      </div>
-                      <Badge tone={column.color}>{column.color === 'neutral' ? 'NEUTRAL' : column.color.toUpperCase()}</Badge>
+                  <div className="flex items-center justify-between gap-2 px-2 pb-3 pt-1.5">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <span aria-hidden className={cn('h-2.5 w-2.5 shrink-0 rounded-full', STAGE_DOT[column.color])} />
+                      <h3 className="truncate font-sans text-sm font-semibold text-ink">{column.title}</h3>
+                      <span className="tabular rounded-full bg-white px-2 text-xs font-semibold text-muted ring-1 ring-border">
+                        {column.leads.length}
+                      </span>
                     </div>
+                    {columnValue > 0 ? (
+                      <span className="tabular shrink-0 text-xs font-semibold text-muted">{formatCurrency(columnValue)}</span>
+                    ) : null}
                   </div>
-                  <div className="space-y-3">
+                  <div className="space-y-2">
                     {column.leads.map((lead) => (
                       <div
                         key={lead.id}
                         draggable={isAdmin}
                         onDragStart={() => handleDragStart(column.id, lead.id)}
-                        className="group cursor-grab rounded-2xl border border-outline/60 bg-[var(--color-surface-muted)]/70 p-4 transition hover:border-primary"
+                        onClick={() => setActiveLead({ lead, stage: column.title })}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            setActiveLead({ lead, stage: column.title });
+                          }
+                        }}
+                        role="button"
+                        tabIndex={0}
+                        className={cn(
+                          'group rounded-lg border border-border bg-white p-3.5 shadow-card transition-[border-color,box-shadow] hover:border-outline hover:shadow-[0_4px_12px_-6px_rgb(27_31_36/0.18)]',
+                          isAdmin ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer',
+                        )}
                       >
-                        <div
-                          className="flex items-start justify-between gap-2"
-                          onClick={() => setActiveLead({ lead, stage: column.title })}
-                          role="button"
-                          tabIndex={0}
-                        >
-                          <div>
-                            <p className="text-sm font-semibold text-ink">{lead.companyName}</p>
-                            {lead.contactName ? <p className="text-xs text-muted">{lead.contactName}</p> : null}
-                            {lead.contactEmail ? <p className="text-xs text-muted">{lead.contactEmail}</p> : null}
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-semibold text-ink">{lead.companyName}</p>
+                            {lead.contactName ? <p className="truncate text-xs text-muted">{lead.contactName}</p> : null}
                           </div>
-                          <DotsSixVertical size={16} className="text-muted opacity-0 transition group-hover:opacity-100" />
+                          {isAdmin ? (
+                            <DotsSixVertical size={16} className="shrink-0 text-muted opacity-0 transition-opacity group-hover:opacity-100" />
+                          ) : null}
                         </div>
-                        <div className="mt-2 flex items-center justify-between text-xs text-muted">
-                          <span>{formatCurrency(lead.estimatedValue)}</span>
-                          <Button
-                            variant="link"
-                            size="sm"
-                            className="p-0 text-xs text-primary"
-                            onClick={() => setActiveLead({ lead, stage: column.title })}
-                          >
-                            Ver detalhes
-                          </Button>
-                        </div>
+                        {lead.estimatedValue ? (
+                          <p className="tabular mt-3 text-sm font-semibold text-ink">{formatCurrency(lead.estimatedValue)}</p>
+                        ) : null}
                       </div>
                     ))}
                     {column.leads.length === 0 ? (
-                      <p className="rounded-xl border border-dashed border-outline/50 bg-white/80 px-4 py-6 text-center text-xs text-muted">
+                      <p className="rounded-lg border border-dashed border-outline px-4 py-6 text-center text-xs text-muted">
                         Nenhum lead nesta etapa.
                       </p>
                     ) : null}
                   </div>
-                </Card>
+                </div>
               );
             })}
           </div>
         </ScrollArea>
       )}
 
-      <Dialog.Root open={Boolean(activeLead)} onOpenChange={(open) => !open && setActiveLead(null)}>
-        <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 z-40 bg-ink/40 backdrop-blur-sm" />
-          <Dialog.Content className="fixed inset-0 z-50 flex items-center justify-center px-4 py-10">
-            {activeLead ? (
-              <Card className="w-full max-w-xl space-y-4 border border-outline/50 bg-white p-6 shadow-2xl">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="text-lg font-semibold text-ink">{activeLead.lead.companyName}</h2>
-                    <p className="text-xs text-muted">Etapa: {activeLead.stage}</p>
+      <Modal
+        open={Boolean(activeLead)}
+        onOpenChange={(open) => !open && setActiveLead(null)}
+        title={activeLead?.lead.companyName ?? ''}
+        description={activeLead ? `Etapa: ${activeLead.stage}` : undefined}
+        size="sm"
+      >
+        {activeLead ? (
+          <ModalBody>
+            <dl className="divide-y divide-border rounded-lg border border-border text-sm">
+              {[
+                { rotulo: 'Contato', valor: activeLead.lead.contactName },
+                { rotulo: 'E-mail', valor: activeLead.lead.contactEmail },
+                { rotulo: 'Telefone', valor: activeLead.lead.contactPhone },
+                { rotulo: 'Valor estimado', valor: formatCurrency(activeLead.lead.estimatedValue) },
+              ]
+                .filter((item) => item.valor)
+                .map((item) => (
+                  <div key={item.rotulo} className="flex justify-between gap-4 px-3.5 py-2.5">
+                    <dt className="text-muted">{item.rotulo}</dt>
+                    <dd className="truncate text-right font-medium text-ink">{item.valor}</dd>
                   </div>
-                  <Dialog.Close asChild>
-                    <button
-                      type="button"
-                      aria-label="Fechar"
-                      className="rounded-full border border-outline bg-white p-2 text-ink shadow-sm transition hover:bg-primary-soft"
-                    >
-                      <X size={16} weight="bold" />
-                    </button>
-                  </Dialog.Close>
-                </div>
-                <div className="grid gap-3 text-sm text-muted">
-                  {activeLead.lead.contactName ? <p>Contato: {activeLead.lead.contactName}</p> : null}
-                  {activeLead.lead.contactEmail ? <p>E-mail: {activeLead.lead.contactEmail}</p> : null}
-                  {activeLead.lead.contactPhone ? <p>Telefone: {activeLead.lead.contactPhone}</p> : null}
-                  {activeLead.lead.estimatedValue ? (
-                    <p>Valor estimado: {formatCurrency(activeLead.lead.estimatedValue)}</p>
-                  ) : null}
-                  {activeLead.lead.notes ? <p>Notas: {activeLead.lead.notes}</p> : null}
-                </div>
-              </Card>
+                ))}
+            </dl>
+            {activeLead.lead.notes ? (
+              <div>
+                <p className="meta-label">Notas</p>
+                <p className="mt-1 whitespace-pre-wrap text-sm text-ink">{activeLead.lead.notes}</p>
+              </div>
             ) : null}
-          </Dialog.Content>
-        </Dialog.Portal>
-      </Dialog.Root>
+          </ModalBody>
+        ) : null}
+      </Modal>
 
-      <Dialog.Root open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-        <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 z-40 bg-ink/40 backdrop-blur-sm" />
-          <Dialog.Content className="fixed inset-0 z-50 flex items-center justify-center px-4 py-10">
-            <Card className="w-full max-w-xl space-y-4 border border-outline/50 bg-white p-6 shadow-2xl">
-              <div className="flex items-center justify-between">
-                <Dialog.Title className="text-lg font-semibold text-ink">Novo lead</Dialog.Title>
-                <Dialog.Close asChild>
-                  <button
-                    type="button"
-                    aria-label="Fechar"
-                    className="rounded-full border border-outline bg-white p-2 text-ink shadow-sm transition hover:bg-primary-soft"
-                  >
-                    <X size={16} weight="bold" />
-                  </button>
-                </Dialog.Close>
-              </div>
-              <div className="grid gap-3">
-                <div className="space-y-1">
-                  <Label>Empresa</Label>
-                  <Input
-                    value={draft.companyName}
-                    onChange={(event) => setDraft((prev) => ({ ...prev, companyName: event.target.value }))}
-                    placeholder="Nome da empresa"
-                  />
-                </div>
-                <div className="grid gap-3 md:grid-cols-2">
-                  <div className="space-y-1">
-                    <Label>Contato</Label>
-                    <Input
-                      value={draft.contactName}
-                      onChange={(event) => setDraft((prev) => ({ ...prev, contactName: event.target.value }))}
-                      placeholder="Nome do contato"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label>E-mail</Label>
-                    <Input
-                      value={draft.contactEmail}
-                      onChange={(event) => setDraft((prev) => ({ ...prev, contactEmail: event.target.value }))}
-                      placeholder="contato@empresa.com"
-                      type="email"
-                    />
-                  </div>
-                </div>
-                <div className="grid gap-3 md:grid-cols-2">
-                  <div className="space-y-1">
-                    <Label>Telefone</Label>
-                    <Input
-                      value={draft.contactPhone}
-                      onChange={(event) => setDraft((prev) => ({ ...prev, contactPhone: event.target.value }))}
-                      placeholder="+55 (11) 99999-0000"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label>Valor estimado (R$)</Label>
-                    <Input
-                      value={draft.estimatedValue}
-                      onChange={(event) => setDraft((prev) => ({ ...prev, estimatedValue: event.target.value }))}
-                      placeholder="120000"
-                    />
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <Label>Notas</Label>
-                  <Textarea
-                    rows={3}
-                    value={draft.notes}
-                    onChange={(event) => setDraft((prev) => ({ ...prev, notes: event.target.value }))}
-                    placeholder={t('forms.notesPlaceholder')}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label>Etapa</Label>
-                  {columns.length > 0 ? (
-                    <Select
-                      value={draft.stageId}
-                      onValueChange={(value) => setDraft((prev) => ({ ...prev, stageId: value }))}
-                    >
-                      {columns.map((column) => (
-                        <SelectItem key={column.id} value={column.id}>
-                          {column.title}
-                        </SelectItem>
-                      ))}
-                    </Select>
-                  ) : (
-                    <p className="text-sm text-muted">Crie uma etapa antes de adicionar leads.</p>
-                  )}
-                </div>
-              </div>
-              <div className="flex justify-end gap-2">
-                <Dialog.Close asChild>
-                  <Button variant="ghost">Cancelar</Button>
-                </Dialog.Close>
-                <Button
-                  onClick={() => createLeadMutation.mutate()}
-                  disabled={!draft.companyName || !draft.stageId || createLeadMutation.isPending}
-                >
-                  {createLeadMutation.isPending ? 'Salvando...' : 'Salvar lead'}
-                </Button>
-              </div>
-            </Card>
-          </Dialog.Content>
-        </Dialog.Portal>
-      </Dialog.Root>
+      <Modal
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
+        title="Novo lead"
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (!draft.companyName || !draft.stageId || createLeadMutation.isPending) return;
+          createLeadMutation.mutate();
+        }}
+      >
+        <ModalBody>
+          <Field label="Empresa" htmlFor="lead-company">
+            <Input
+              id="lead-company"
+              autoFocus
+              value={draft.companyName}
+              onChange={(event) => setDraft((prev) => ({ ...prev, companyName: event.target.value }))}
+              placeholder="Nome da empresa"
+            />
+          </Field>
+          <div className="grid gap-4 md:grid-cols-2">
+            <Field label="Contato" htmlFor="lead-contact">
+              <Input
+                id="lead-contact"
+                value={draft.contactName}
+                onChange={(event) => setDraft((prev) => ({ ...prev, contactName: event.target.value }))}
+                placeholder="Nome do contato"
+              />
+            </Field>
+            <Field label="E-mail" htmlFor="lead-email">
+              <Input
+                id="lead-email"
+                value={draft.contactEmail}
+                onChange={(event) => setDraft((prev) => ({ ...prev, contactEmail: event.target.value }))}
+                placeholder="contato@empresa.com"
+                type="email"
+              />
+            </Field>
+            <Field label="Telefone" htmlFor="lead-phone">
+              <Input
+                id="lead-phone"
+                value={draft.contactPhone}
+                onChange={(event) => setDraft((prev) => ({ ...prev, contactPhone: event.target.value }))}
+                placeholder="+55 (11) 99999-0000"
+              />
+            </Field>
+            <Field label="Valor estimado (R$)" htmlFor="lead-value">
+              <Input
+                id="lead-value"
+                inputMode="decimal"
+                value={draft.estimatedValue}
+                onChange={(event) => setDraft((prev) => ({ ...prev, estimatedValue: event.target.value }))}
+                placeholder="120000"
+              />
+            </Field>
+          </div>
+          <Field label="Etapa" htmlFor="lead-stage">
+            {columns.length > 0 ? (
+              <Select
+                id="lead-stage"
+                value={draft.stageId}
+                onValueChange={(value) => setDraft((prev) => ({ ...prev, stageId: value }))}
+              >
+                {columns.map((column) => (
+                  <SelectItem key={column.id} value={column.id}>
+                    {column.title}
+                  </SelectItem>
+                ))}
+              </Select>
+            ) : (
+              <p className="text-sm text-muted">Crie uma etapa antes de adicionar leads.</p>
+            )}
+          </Field>
+          <Field label="Notas" htmlFor="lead-notes">
+            <Textarea
+              id="lead-notes"
+              rows={3}
+              value={draft.notes}
+              onChange={(event) => setDraft((prev) => ({ ...prev, notes: event.target.value }))}
+              placeholder={t('forms.notesPlaceholder')}
+            />
+          </Field>
+          {createLeadMutation.isError ? (
+            <Notice tone="danger">{(createLeadMutation.error as Error).message}</Notice>
+          ) : null}
+        </ModalBody>
+        <ModalFooter>
+          <ModalClose asChild>
+            <Button type="button" variant="ghost">
+              Cancelar
+            </Button>
+          </ModalClose>
+          <Button
+            type="submit"
+            disabled={!draft.companyName || !draft.stageId}
+            loading={createLeadMutation.isPending}
+            loadingText="Salvando..."
+          >
+            Salvar lead
+          </Button>
+        </ModalFooter>
+      </Modal>
 
-      <Dialog.Root
+      <Modal
         open={customizeDialogOpen}
         onOpenChange={(open) => {
           if (!open) {
@@ -660,151 +643,134 @@ export default function CrmBoardPage() {
           }
           setCustomizeDialogOpen(open);
         }}
+        size="lg"
+        title="Personalizar etapas"
+        description="Renomeie, reordene ou ajuste as cores das etapas do pipeline. Remova apenas etapas sem leads."
       >
-        <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 z-40 bg-ink/40 backdrop-blur-sm" />
-          <Dialog.Content className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto px-4 py-10 md:items-center">
-            <Card className="w-full max-w-2xl max-h-[85vh] overflow-y-auto space-y-6 border border-outline/50 bg-white p-6 shadow-2xl">
-              <div className="flex items-center justify-between">
-                <div>
-                  <Dialog.Title className="text-lg font-semibold text-ink">Personalizar etapas</Dialog.Title>
-                  <Dialog.Description className="text-xs text-muted">
-                    Renomeie, reordene ou ajuste as cores das etapas do pipeline. Remova apenas etapas sem leads.
-                  </Dialog.Description>
-                </div>
-                <Dialog.Close asChild>
-                  <button
-                    type="button"
-                    aria-label="Fechar"
-                    className="rounded-full border border-outline bg-white p-2 text-ink shadow-sm transition hover:bg-primary-soft"
-                  >
-                    <X size={16} weight="bold" />
-                  </button>
-                </Dialog.Close>
-              </div>
+        <ModalBody>
+          {customizeError ? <Notice tone="danger">{customizeError}</Notice> : null}
 
-              {customizeError ? (
-                <p className="rounded-lg border border-danger/40 bg-danger-soft/20 px-3 py-2 text-sm text-danger">
-                  {customizeError}
-                </p>
-              ) : null}
-
-              <div className="space-y-3">
-                {stageEdits.length === 0 ? (
-                  <p className="rounded-lg border border-dashed border-outline/40 bg-[var(--color-surface-muted)]/30 px-4 py-8 text-center text-sm text-muted">
-                    Nenhuma etapa cadastrada ainda. Adicione uma nova etapa abaixo.
-                  </p>
-                ) : null}
-                {stageEdits.map((stage, index) => (
-                  <div key={stage.id} className="rounded-xl border border-outline/40 bg-[var(--color-surface-muted)]/40 p-4">
-                    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                      <div className="flex-1 space-y-2">
-                        <Label className="text-xs uppercase tracking-wide text-muted">Nome da etapa</Label>
-                        <Input
-                          value={stage.name}
-                          onChange={(event) => handleStageNameInput(stage.id, event.target.value)}
-                          onBlur={() => handleStageNameCommit(stage.id)}
-                          onKeyDown={(event) => {
-                            if (event.key === 'Enter') {
-                              event.preventDefault();
-                              handleStageNameCommit(stage.id);
-                            }
-                          }}
-                          disabled={updatingStageId === stage.id}
-                        />
-                      </div>
-                      <div className="flex flex-col gap-2 md:w-48">
-                        <Label className="text-xs uppercase tracking-wide text-muted">Cor</Label>
-                        <Select
-                          value={stage.color}
-                          onValueChange={(value) => handleStageColorChange(stage.id, value as StageColor)}
-                          disabled={updatingStageId === stage.id}
-                        >
-                          {stageColorOptions.map((option) => (
-                            <SelectItem key={option.value} value={option.value}>
-                              {option.label}
-                            </SelectItem>
-                          ))}
-                        </Select>
-                      </div>
-                    </div>
-
-                    <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-                      <Badge tone={stage.color}>{stage.leadCount} {stage.leadCount === 1 ? 'lead' : 'leads'}</Badge>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleReorderStage(stage.id, -1)}
-                          disabled={index === 0 || reorderingStages}
-                          aria-label="Mover para cima"
-                        >
-                          <ArrowUp size={14} />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleReorderStage(stage.id, 1)}
-                          disabled={index === stageEdits.length - 1 || reorderingStages}
-                          aria-label="Mover para baixo"
-                        >
-                          <ArrowDown size={14} />
-                        </Button>
-                        <Button
-                          variant="danger"
-                          size="sm"
-                          onClick={() => handleDeleteStage(stage)}
-                          disabled={deletingStageId === stage.id || stage.leadCount > 0}
-                          title={
-                            stage.leadCount > 0
-                              ? 'Remova os leads desta etapa antes de excluir.'
-                              : undefined
-                          }
-                        >
-                          Excluir
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="rounded-xl border border-dashed border-outline/40 bg-[var(--color-surface-muted)]/30 p-4">
-                <div className="grid gap-3 md:grid-cols-[1fr_auto]">
-                  <div className="space-y-2">
-                    <Label className="text-xs uppercase tracking-wide text-muted">Nova etapa</Label>
+          {stageEdits.length === 0 ? (
+            <p className="rounded-lg border border-dashed border-outline px-4 py-8 text-center text-sm text-muted">
+              Nenhuma etapa cadastrada ainda. Adicione uma nova etapa abaixo.
+            </p>
+          ) : (
+            <ul className="divide-y divide-border rounded-lg border border-border">
+              {stageEdits.map((stage, index) => (
+                <li key={stage.id} className="grid gap-3 p-3 sm:grid-cols-[minmax(0,1fr)_150px_auto] sm:items-center">
+                  <div className="flex items-center gap-2">
+                    <span aria-hidden className={cn('h-2.5 w-2.5 shrink-0 rounded-full', STAGE_DOT[stage.color])} />
                     <Input
-                      value={newStageName}
-                      onChange={(event) => setNewStageName(event.target.value)}
-                      placeholder="Ex.: Follow-up"
-                      disabled={createStageMutation.isPending}
+                      aria-label="Nome da etapa"
+                      value={stage.name}
+                      onChange={(event) => handleStageNameInput(stage.id, event.target.value)}
+                      onBlur={() => handleStageNameCommit(stage.id)}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter') {
+                          event.preventDefault();
+                          handleStageNameCommit(stage.id);
+                        }
+                      }}
+                      disabled={updatingStageId === stage.id}
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label className="text-xs uppercase tracking-wide text-muted">Cor</Label>
-                    <Select
-                      value={newStageColor}
-                      onValueChange={(value) => setNewStageColor(value as StageColor)}
-                      disabled={createStageMutation.isPending}
-                    >
-                      {stageColorOptions.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </Select>
+                  <Select
+                    aria-label="Cor"
+                    value={stage.color}
+                    onValueChange={(value) => handleStageColorChange(stage.id, value as StageColor)}
+                    disabled={updatingStageId === stage.id}
+                  >
+                    {stageColorOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </Select>
+                  <div className="flex items-center justify-between gap-1 sm:justify-end">
+                    <span className="tabular mr-2 text-xs text-muted">
+                      {stage.leadCount} {stage.leadCount === 1 ? 'lead' : 'leads'}
+                    </span>
+                    <div className="flex items-center gap-0.5">
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        onClick={() => handleReorderStage(stage.id, -1)}
+                        disabled={index === 0 || reorderingStages}
+                        aria-label="Mover para cima"
+                      >
+                        <ArrowUp size={14} />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        onClick={() => handleReorderStage(stage.id, 1)}
+                        disabled={index === stageEdits.length - 1 || reorderingStages}
+                        aria-label="Mover para baixo"
+                      >
+                        <ArrowDown size={14} />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        onClick={() => handleDeleteStage(stage)}
+                        disabled={deletingStageId === stage.id || stage.leadCount > 0}
+                        aria-label="Excluir etapa"
+                        title={
+                          stage.leadCount > 0
+                            ? 'Remova os leads desta etapa antes de excluir.'
+                            : 'Excluir etapa'
+                        }
+                        className="hover:bg-danger-soft hover:text-danger"
+                      >
+                        <Trash size={14} />
+                      </Button>
+                    </div>
                   </div>
-                </div>
-                <div className="mt-3 flex justify-end">
-                  <Button onClick={handleCreateStage} disabled={createStageMutation.isPending}>
-                    {createStageMutation.isPending ? 'Adicionando...' : 'Adicionar etapa'}
-                  </Button>
-                </div>
-              </div>
-            </Card>
-          </Dialog.Content>
-        </Dialog.Portal>
-      </Dialog.Root>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          <div className="rounded-lg border border-dashed border-outline p-3">
+            <p className="mb-2 text-[13px] font-semibold text-ink">Nova etapa</p>
+            <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_150px_auto]">
+              <Input
+                aria-label="Nome da nova etapa"
+                value={newStageName}
+                onChange={(event) => setNewStageName(event.target.value)}
+                placeholder="Ex.: Follow-up"
+                disabled={createStageMutation.isPending}
+              />
+              <Select
+                aria-label="Cor da nova etapa"
+                value={newStageColor}
+                onValueChange={(value) => setNewStageColor(value as StageColor)}
+                disabled={createStageMutation.isPending}
+              >
+                {stageColorOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </Select>
+              <Button
+                variant="secondary"
+                onClick={handleCreateStage}
+                loading={createStageMutation.isPending}
+                loadingText="Adicionando..."
+              >
+                <Plus size={14} weight="bold" />
+                Adicionar
+              </Button>
+            </div>
+          </div>
+        </ModalBody>
+        <ModalFooter>
+          <ModalClose asChild>
+            <Button variant="secondary">Concluir</Button>
+          </ModalClose>
+        </ModalFooter>
+      </Modal>
     </section>
   );
 }

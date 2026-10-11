@@ -5,13 +5,11 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
-  LabelList,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
   Legend,
-  Cell,
 } from "recharts";
 
 type TeamBarChartDatum = {
@@ -35,15 +33,27 @@ function numberFormatter(value: number) {
   }
 }
 
-type TooltipPayloadItem = { dataKey?: string; name?: string; value?: number };
-function TooltipContent({ active, payload }: { active?: boolean; payload?: TooltipPayloadItem[] }) {
+type TooltipPayloadItem = { dataKey?: string; name?: string; value?: number; color?: string };
+function TooltipContent({
+  active,
+  payload,
+  label,
+}: {
+  active?: boolean;
+  payload?: TooltipPayloadItem[];
+  label?: string;
+}) {
   if (!active || !payload || payload.length === 0) return null;
   return (
-    <div className="rounded-lg bg-white p-2 text-xs shadow" style={{ minWidth: 120 }}>
+    <div className="min-w-[150px] rounded-lg border border-border bg-white px-3 py-2 text-xs shadow-raised">
+      {label ? <p className="mb-1.5 font-semibold text-ink">{label}</p> : null}
       {payload.map((p) => (
-        <div key={String(p.dataKey ?? p.name)} className="flex justify-between px-1">
-          <div className="text-muted">{p.name}</div>
-          <div className="font-medium">{numberFormatter(Number(p.value ?? 0))}</div>
+        <div key={String(p.dataKey ?? p.name)} className="flex items-center justify-between gap-4 py-0.5">
+          <span className="flex items-center gap-1.5 text-muted">
+            <span aria-hidden className="h-2 w-2 rounded-sm" style={{ background: p.color }} />
+            {p.name}
+          </span>
+          <span className="tabular font-semibold text-ink">{numberFormatter(Number(p.value ?? 0))}</span>
         </div>
       ))}
     </div>
@@ -61,44 +71,44 @@ export function TeamBarChart({
   return (
     <div className={className} style={{ height }}>
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={prepared} margin={{ top: 8, right: 16, bottom: 24, left: -10 }}>
-          <defs>
-            <linearGradient id="g1" x1="0" x2="0" y1="0" y2="1">
-              <stop offset="0%" stopColor="var(--color-info)" stopOpacity={0.95} />
-              <stop offset="100%" stopColor="var(--color-info)" stopOpacity={0.75} />
-            </linearGradient>
-            <linearGradient id="g2" x1="0" x2="0" y1="0" y2="1">
-              <stop offset="0%" stopColor="var(--color-success)" stopOpacity={0.95} />
-              <stop offset="100%" stopColor="var(--color-success)" stopOpacity={0.75} />
-            </linearGradient>
-          </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="var(--color-outline)" vertical={false} />
-          <XAxis dataKey="name" stroke="var(--color-muted)" />
-          <YAxis stroke="var(--color-muted)" tickFormatter={(v) => numberFormatter(Number(v))} />
-          <Tooltip contentStyle={{ borderRadius: 12 }} content={<TooltipContent />} />
-          <Legend verticalAlign="top" align="right" wrapperStyle={{ fontSize: 12 }} />
+        <BarChart data={prepared} margin={{ top: 8, right: 8, bottom: 8, left: -12 }} barGap={2} barSize={20}>
+          <CartesianGrid stroke="var(--color-border)" vertical={false} />
+          <XAxis
+            dataKey="name"
+            tickLine={false}
+            axisLine={{ stroke: "var(--color-outline)" }}
+            tick={{ fill: "var(--color-muted)", fontSize: 12 }}
+          />
+          <YAxis
+            tickLine={false}
+            axisLine={false}
+            allowDecimals={false}
+            tick={{ fill: "var(--color-muted)", fontSize: 12 }}
+            tickFormatter={(v) => numberFormatter(Number(v))}
+          />
+          <Tooltip cursor={{ fill: "var(--color-surface-muted)" }} content={<TooltipContent />} />
+          <Legend
+            verticalAlign="top"
+            align="right"
+            iconType="square"
+            iconSize={8}
+            wrapperStyle={{ fontSize: 12, paddingBottom: 8 }}
+            formatter={(value) => <span style={{ color: "var(--color-ink-muted)" }}>{value}</span>}
+          />
 
           <Bar
             dataKey="total"
             name="Propostas"
             stackId={stacked ? "a" : undefined}
-            fill="url(#g1)"
-            radius={[12, 12, 4, 4]}
-          >
-            <LabelList
-              position="top"
-              formatter={(v: React.ReactNode) => numberFormatter(Number(String(v ?? "0")))}
-            />
-            {prepared.map((entry, index) => (
-              <Cell key={`c-${index}`} fill={index % 2 === 0 ? "url(#g1)" : "var(--color-info)"} />
-            ))}
-          </Bar>
+            fill="var(--chart-2)"
+            radius={[4, 4, 0, 0]}
+          />
           <Bar
             dataKey="aceitas"
             name="Aceitas"
             stackId={stacked ? "a" : undefined}
-            fill="url(#g2)"
-            radius={[12, 12, 4, 4]}
+            fill="var(--chart-1)"
+            radius={[4, 4, 0, 0]}
           />
         </BarChart>
       </ResponsiveContainer>

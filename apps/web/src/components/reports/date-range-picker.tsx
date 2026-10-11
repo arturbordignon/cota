@@ -2,7 +2,6 @@
 
 import * as React from 'react';
 
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
 type Range = { from?: Date; to?: Date };
@@ -100,50 +99,44 @@ export function DateRangePicker({
     onChange({ from: value?.from, to: to ?? undefined });
   };
 
+  const presetClass =
+    'h-7 rounded-md border border-border bg-white px-2.5 text-xs font-semibold text-ink-muted transition-colors hover:border-outline hover:text-ink';
+
   return (
     <div className={`grid gap-3 ${className ?? ''}`}>
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-        <div className="space-y-1">
-          <span className="text-[11px] text-muted">Início</span>
+      <div className="grid grid-cols-2 gap-2 sm:max-w-md">
+        <label className="space-y-1">
+          <span className="block text-xs font-medium text-muted">Início</span>
           <Input
             type="date"
             value={toDateInputValue(value?.from)}
             onChange={(e) => onFromChange(e.target.value)}
           />
-        </div>
-        <div className="space-y-1">
-          <span className="text-[11px] text-muted">Fim</span>
+        </label>
+        <label className="space-y-1">
+          <span className="block text-xs font-medium text-muted">Fim</span>
           <Input
             type="date"
             value={toDateInputValue(value?.to)}
             onChange={(e) => onToChange(e.target.value)}
           />
-        </div>
+        </label>
       </div>
 
       {withPresets ? (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-1.5">
           {presets.map((p) => (
-            <Button
-              key={p.label}
-              variant="ghost"
-              size="sm"
-              className="justify-start"
-              onClick={() => onChange(p.get())}
-              type="button"
-            >
+            <button key={p.label} type="button" className={presetClass} onClick={() => onChange(p.get())}>
               {p.label}
-            </Button>
+            </button>
           ))}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="justify-start text-danger"
-            onClick={() => onChange(undefined)}
+          <button
             type="button"
+            className="h-7 rounded-md px-2 text-xs font-semibold text-muted transition-colors hover:text-danger"
+            onClick={() => onChange(undefined)}
           >
             Limpar
-          </Button>
+          </button>
         </div>
       ) : null}
     </div>

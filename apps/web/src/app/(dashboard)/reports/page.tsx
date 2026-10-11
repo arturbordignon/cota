@@ -1,10 +1,9 @@
 "use client";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import Link from "next/link";
 import React, { memo, useCallback, useMemo, useState } from "react";
 import { useFormatter, useTranslations } from "next-intl";
-import { ChartLine, Table as TableIcon } from "@phosphor-icons/react";
+import { ArrowClockwise, ChartLine, Table as TableIcon, Trophy } from "@phosphor-icons/react";
 import {
   Bar,
   BarChart,
@@ -23,12 +22,17 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { PageHeader } from "@/components/layout/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Field } from "@/components/ui/field";
 import { Label } from "@/components/ui/label";
+import { Notice } from "@/components/ui/notice";
 import { Select, SelectItem } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { useApi } from "@/hooks/use-api";
+import { cn } from "@/lib/utils";
 import { ReportsOverviewResponse } from "@/types/api";
 import { StatCard } from "@/components/reports/stat-card";
 import { TeamBarChart } from "@/components/reports/team-bar-chart";
@@ -57,23 +61,40 @@ const STATUS_TONES: Record<string, StatusTone> = {
 
 const SUGGESTION_KEYS = ["revenue90", "conversionConsultant", "cycle", "segment"] as const;
 
+// Status bars use the reserved status colors; the legend above names each one.
 const TONE_COLORS: Record<"neutral" | "info" | "warning" | "success" | "danger", string> = {
-  neutral: "var(--color-outline)",
-  info: "var(--color-primary)",
+  neutral: "var(--chart-neutral)",
+  info: "var(--color-info)",
   warning: "var(--color-warning)",
   success: "var(--color-success)",
   danger: "var(--color-danger)",
 };
 
-// Palette for generic series
-const CATEGORICAL_COLORS = [
-  "var(--color-info)",
-  "hsl(20 90% 54%)",
-  "hsl(158 64% 45%)",
-  "hsl(262 83% 58%)",
-  "hsl(192 91% 36%)",
-  "hsl(340 82% 52%)",
-];
+// Funnel stages are ordinal, so they share one amber ramp (dark → light).
+const FUNNEL_RAMP = ["#7a5200", "#9a6800", "#c98700", "#e0a31a", "#edbe55", "#f4d488"];
+
+const axisTick = { fill: "var(--color-muted)", fontSize: 12 };
+
+function ChartTooltip({
+  active,
+  payload,
+  label,
+  formatter,
+}: {
+  active?: boolean;
+  payload?: Array<{ value?: number; name?: string; payload?: { name?: string } }>;
+  label?: string;
+  formatter: (value: number) => string;
+}) {
+  if (!active || !payload || payload.length === 0) return null;
+  const item = payload[0];
+  return (
+    <div className="rounded-lg border border-border bg-white px-3 py-2 text-xs shadow-raised">
+      <p className="font-semibold text-ink">{label ?? item.payload?.name ?? item.name}</p>
+      <p className="tabular mt-0.5 text-ink-muted">{formatter(Number(item.value ?? 0))}</p>
+    </div>
+  );
+}
 
 /* ----------------------- small presentational bits ---------------------- */
 
@@ -93,25 +114,29 @@ const BarChartViz = memo(function BarChartViz({
   return (
     <div className="h-64">
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data} margin={{ top: 8, right: 16, bottom: 24, left: -10 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="var(--color-outline)" vertical={false} />
-          <XAxis dataKey="name" stroke="var(--color-muted)" />
+        <BarChart data={data} margin={{ top: 20, right: 8, bottom: 4, left: 0 }}>
+          <CartesianGrid stroke="var(--color-border)" vertical={false} />
+          <XAxis dataKey="name" tickLine={false} axisLine={{ stroke: "var(--color-outline)" }} tick={axisTick} />
           <YAxis
-            stroke="var(--color-muted)"
+            tickLine={false}
+            axisLine={false}
+            tick={axisTick}
             tickFormatter={(value) => formatter(Number(value))}
-            width={70}
+            width={72}
           />
           <Tooltip
-            formatter={(value: number) => formatter(value)}
-            contentStyle={{ borderRadius: 12 }}
+            cursor={{ fill: "var(--color-surface-muted)" }}
+            content={<ChartTooltip formatter={formatter} />}
           />
-          <Bar dataKey="value" radius={[12, 12, 4, 4]}>
-            <LabelList position="top" formatter={(value) => formatter(Number(value))} />
-            {data.map((entry, index) => (
-              <Cell
-                key={entry.name}
-                fill={entry.color ?? CATEGORICAL_COLORS[index % CATEGORICAL_COLORS.length]}
-              />
+          <Bar dataKey="value" radius={[4, 4, 0, 0]} maxBarSize={24} fill="var(--chart-1)">
+            <LabelList
+              position="top"
+              fill="var(--color-ink-muted)"
+              fontSize={12}
+              formatter={(value) => formatter(Number(value))}
+            />
+            {data.map((entry) => (
+              <Cell key={entry.name} fill={entry.color ?? "var(--chart-1)"} />
             ))}
           </Bar>
         </BarChart>
@@ -134,34 +159,50 @@ const FunnelChartViz = memo(function FunnelChartViz({
   );
   const formatter = valueFormatter ?? ((value: number) => defaultFormatter.format(value));
   const first = data[0]?.value ?? 0;
+  const stages = data.map((item, index) => ({
+    ...item,
+    fill: FUNNEL_RAMP[Math.min(index, FUNNEL_RAMP.length - 1)],
+  }));
   return (
-    <div className="h-72">
-      <ResponsiveContainer width="100%" height="100%">
-        <FunnelChart>
-          <Tooltip
-            formatter={(value: number, _name, payload) => {
-              const percent = first ? Math.round((Number(value) / first) * 100) : 0;
-              return [`${formatter(Number(value))} (${percent}%)`, (payload as any)?.name];
-            }}
-            contentStyle={{ borderRadius: 12 }}
-          />
-          <Funnel
-            data={data.map((item, index) => ({
-              ...item,
-              fill: `hsl(215 ${65 - index * 6}% ${60 - index * 4}%)`,
-            }))}
-            dataKey="value"
-            nameKey="name"
-            isAnimationActive={false}
-          >
-            <LabelList
-              position="right"
-              formatter={(value) => formatter(Number(value))}
-              fill="var(--color-muted)"
+    <div className="space-y-4">
+      <div className="h-56">
+        <ResponsiveContainer width="100%" height="100%">
+          <FunnelChart margin={{ top: 4, right: 8, bottom: 4, left: 8 }}>
+            <Tooltip
+              formatter={(value: number, _name, payload) => {
+                const percent = first ? Math.round((Number(value) / first) * 100) : 0;
+                return [`${formatter(Number(value))} (${percent}%)`, (payload as any)?.name];
+              }}
+              contentStyle={{
+                borderRadius: 8,
+                border: "1px solid var(--color-border)",
+                fontSize: 12,
+                boxShadow: "0 12px 32px -12px rgb(27 31 36 / 0.22)",
+              }}
             />
-          </Funnel>
-        </FunnelChart>
-      </ResponsiveContainer>
+            <Funnel
+              data={stages}
+              dataKey="value"
+              nameKey="name"
+              stroke="var(--color-surface)"
+              strokeWidth={2}
+              isAnimationActive={false}
+            />
+          </FunnelChart>
+        </ResponsiveContainer>
+      </div>
+      {/* Stage names and counts, in funnel order, so color is never the only cue. */}
+      <ol className="grid gap-x-4 gap-y-1.5 sm:grid-cols-2">
+        {stages.map((stage) => (
+          <li key={stage.name} className="flex items-center justify-between gap-3 text-xs">
+            <span className="flex min-w-0 items-center gap-2 text-ink-muted">
+              <span aria-hidden className="h-2.5 w-2.5 shrink-0 rounded-sm" style={{ background: stage.fill }} />
+              <span className="truncate">{stage.name}</span>
+            </span>
+            <span className="tabular shrink-0 font-semibold text-ink">{formatter(Number(stage.value))}</span>
+          </li>
+        ))}
+      </ol>
     </div>
   );
 });
@@ -176,22 +217,20 @@ function SimpleTable({
   formatNumber: (value: number) => string;
 }) {
   return (
-    <div className="overflow-auto rounded-lg border border-outline/40">
-      <table className="w-full min-w-[360px] text-left text-xs">
-        <thead className="bg-[var(--color-surface-muted)]/50 text-muted">
+    <div className="overflow-auto rounded-lg border border-border">
+      <table className="data-table data-table--compact min-w-[360px]">
+        <thead>
           <tr>
             {columns.map((column) => (
-              <th key={column} className="px-4 py-3 font-semibold uppercase tracking-wide">
-                {column}
-              </th>
+              <th key={column}>{column}</th>
             ))}
           </tr>
         </thead>
         <tbody>
           {rows.map((row, index) => (
-            <tr key={index} className="even:bg-[var(--color-surface-muted)]/30">
+            <tr key={index}>
               {row.map((cell, cellIndex) => (
-                <td key={cellIndex} className="px-4 py-2 text-ink">
+                <td key={cellIndex} className={typeof cell === "number" ? "tabular text-ink" : "text-ink"}>
                   {typeof cell === "number" ? formatNumber(cell) : cell}
                 </td>
               ))}
@@ -460,26 +499,16 @@ export default function ReportsPage() {
 
   return (
     <section className="space-y-6">
-      {isTokenMissing ? (
-        <Card className="border border-warning/40 bg-warning-soft px-6 py-4 text-sm text-warning">
-          {tPage("alerts.missingToken")}
-        </Card>
-      ) : null}
-
-      {overviewError && !isTokenMissing ? (
-        <Card className="border border-danger/40 bg-danger-soft/20 px-6 py-4 text-sm text-danger">
-          {tPage("alerts.loadError", { error: overviewError.message })}
-        </Card>
-      ) : null}
-
       <PageHeader title={tPage("header.title")} description={tPage("header.description")} />
 
-      <Tabs
-        value={activeTab}
-        onValueChange={(value) => setActiveTab(value as "overview" | "custom")}
-        className="space-y-4"
-      >
-        <TabsList className="flex w-full flex-wrap gap-2">
+      {isTokenMissing ? <Notice tone="warning">{tPage("alerts.missingToken")}</Notice> : null}
+
+      {overviewError && !isTokenMissing ? (
+        <Notice tone="danger">{tPage("alerts.loadError", { error: overviewError.message })}</Notice>
+      ) : null}
+
+      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "overview" | "custom")}>
+        <TabsList>
           <TabsTrigger value="overview">{tPage("tabs.overview")}</TabsTrigger>
           <TabsTrigger value="custom">{tPage("tabs.custom")}</TabsTrigger>
         </TabsList>
@@ -487,157 +516,57 @@ export default function ReportsPage() {
         {/* ------------------------- VISÃO GERAL ------------------------- */}
         <TabsContent value="overview">
           {overviewQuery.isLoading ? (
-            <Card className="p-6 text-sm text-muted">{tOverview("loading")}</Card>
-          ) : overview ? (
             <div className="space-y-4">
               <div className="grid gap-4 md:grid-cols-3">
-                <StatCard
-                  label={tPage("stats.totalProposals")}
-                  value={
-                    <span className="inline-flex items-baseline gap-2">
-                      <span className="text-3xl font-extrabold text-ink">
-                        {formatNumber(totalProposals)}
-                      </span>
-                    </span>
-                  }
-                  hint={tPage("stats.totalHint")}
-                />
-                <StatCard
-                  label={tPage("stats.accepted")}
-                  value={
-                    <span className="text-3xl font-extrabold text-success">
-                      {formatPercent(conversionRate)}
-                    </span>
-                  }
-                  hint={tPage("stats.acceptedHint")}
-                />
-                <StatCard
-                  label={tPage("stats.pipeline")}
-                  value={
-                    <span className="text-3xl font-extrabold text-success">
-                      {formatCurrency(totalPipelineValue)}
-                    </span>
-                  }
-                  hint={tPage("stats.pipelineHint", { avg: formatCurrency(pipelineAverageValue) })}
-                />
+                {Array.from({ length: 3 }).map((_, index) => (
+                  <Skeleton key={index} className="h-28 rounded-xl" />
+                ))}
               </div>
-
-              <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
-                <Card className="space-y-4 border border-outline/0 bg-gradient-to-r from-primary/15 via-primary/10 to-primary/5 px-6 py-6 shadow-sm">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h3 className="text-base font-semibold text-ink">
-                        {tPage("quickActions.title")}
-                      </h3>
-                      <p className="text-sm text-muted">{tPage("quickActions.description")}</p>
-                    </div>
-                    <Badge tone="info">{tPage("quickActions.badge")}</Badge>
-                  </div>
-                  <div className="grid gap-3 sm:grid-cols-3">
-                    <Button
-                      variant="primary"
-                      className="justify-start gap-2 shadow"
-                      onClick={() => setActiveTab("custom")}
-                    >
-                      <ChartLine size={16} />
-                      {tPage("quickActions.generate")}
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      className="justify-start gap-2 shadow-sm"
-                      onClick={() => {
-                        setActiveTab("custom");
-                        setVisualization("bar");
-                        setQuery(suggestions[0] ?? "");
-                      }}
-                    >
-                      {tPage("quickActions.useSuggestion")}
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      className="justify-start gap-2"
-                      onClick={() => {
-                        setPendingSel(undefined);
-                        setAppliedSel(undefined);
-                        overviewQuery.refetch();
-                      }}
-                    >
-                      {tPage("quickActions.refresh")}
-                    </Button>
-                  </div>
-                </Card>
-
-                <Card className="space-y-4 border border-outline/40 bg-white px-6 py-6 shadow-sm">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-base font-semibold text-ink">
-                      {tPage("highlights.title")}
-                    </h3>
-                    <Badge tone="neutral">{tPage("highlights.badge")}</Badge>
-                  </div>
-                  {topPerformer ? (
-                    <div className="rounded-xl border border-outline/30 bg-[var(--color-surface-muted)]/60 px-4 py-3">
-                      <p className="text-xs uppercase tracking-wide text-muted">
-                        {tPage("highlights.topPerformer")}
-                      </p>
-                      <p className="text-sm font-semibold text-ink">
-                        {topPerformer.name ?? tPage("highlights.unknown")}
-                      </p>
-                      <p className="text-xs text-muted">
-                        {tPage("highlights.totalSent", {
-                          value: formatNumber(Number(topPerformer.total ?? 0)),
-                        })}
-                      </p>
-                    </div>
-                  ) : (
-                    <p className="text-sm text-muted">{tPage("highlights.noPerformer")}</p>
-                  )}
+              <Skeleton className="h-72 rounded-xl" />
+            </div>
+          ) : overview ? (
+            <div className="space-y-6">
+              <Card className="p-4 sm:p-5">
+                <div className="grid items-end gap-4 lg:grid-cols-[minmax(0,1fr)_auto]">
                   <div className="space-y-2">
-                    <p className="text-xs uppercase tracking-wide text-muted">
-                      {tPage("highlights.upcoming")}
-                    </p>
-                    {upcomingHighlights.length > 0 ? (
-                      upcomingHighlights.map((item) => (
-                        <div
-                          key={item.id}
-                          className="flex items-center justify-between rounded-lg bg-[var(--color-surface-muted)]/50 px-3 py-2 text-sm"
-                        >
-                          <span className="text-ink">
-                            {item.client ?? tPage("highlights.noClient")}
-                          </span>
-                          <span className="text-muted">{formatDate(item.createdAt)}</span>
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-xs text-muted">{tPage("highlights.noUpcoming")}</p>
-                    )}
-                  </div>
-                </Card>
-              </div>
-              {/* Range selector with Apply */}
-              <Card className="p-4">
-                <div className="grid items-end gap-3 sm:grid-cols-[1fr_auto]">
-                  <div className="space-y-1.5">
                     <Label>{tOverview("filters.label")}</Label>
                     <DateRangePicker value={pendingSel} onChange={setPendingSel} />
-                    <p className="text-[11px] text-muted">{tOverview("filters.hint")}</p>
+                    <p className="text-xs text-muted">{tOverview("filters.hint")}</p>
                   </div>
-                  <div className="flex gap-2 justify-self-start sm:justify-self-end">
-                    <Badge tone="info" className="self-center">
+                  <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+                    <Badge tone="neutral">
                       {tOverview("filters.periodBadge", {
                         start: formatDate(overviewParsed.start),
                         end: formatDate(overviewParsed.end),
                       })}
                     </Badge>
-                    <Button size="sm" onClick={() => setAppliedSel(pendingSel)} type="button">
+                    <Button onClick={() => setAppliedSel(pendingSel)} type="button">
                       {tOverview("filters.apply")}
                     </Button>
                   </div>
                 </div>
               </Card>
 
-              {/* KPIs (optional) */}
+              <div className="grid gap-4 md:grid-cols-3">
+                <StatCard
+                  label={tPage("stats.totalProposals")}
+                  value={formatNumber(totalProposals)}
+                  hint={tPage("stats.totalHint")}
+                />
+                <StatCard
+                  label={tPage("stats.accepted")}
+                  value={formatPercent(conversionRate)}
+                  hint={tPage("stats.acceptedHint")}
+                />
+                <StatCard
+                  label={tPage("stats.pipeline")}
+                  value={formatCurrency(totalPipelineValue)}
+                  hint={tPage("stats.pipelineHint", { avg: formatCurrency(pipelineAverageValue) })}
+                />
+              </div>
+
               {kpis ? (
-                <div className="grid gap-4 lg:grid-cols-4">
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                   <StatCard
                     label={tOverview("kpis.revenue.label")}
                     value={formatCurrency(Number(kpis.receitaAceita ?? 0))}
@@ -660,202 +589,254 @@ export default function ReportsPage() {
                 </div>
               ) : null}
 
-              {/* Status + Receita por cliente */}
+              <div className="grid gap-4 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+                <Card className="p-5">
+                  <CardHeader>
+                    <div>
+                      <CardTitle>{tPage("quickActions.title")}</CardTitle>
+                      <CardDescription>{tPage("quickActions.description")}</CardDescription>
+                    </div>
+                  </CardHeader>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <Button onClick={() => setActiveTab("custom")}>
+                      <ChartLine size={16} />
+                      {tPage("quickActions.generate")}
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      onClick={() => {
+                        setActiveTab("custom");
+                        setVisualization("bar");
+                        setQuery(suggestions[0] ?? "");
+                      }}
+                    >
+                      {tPage("quickActions.useSuggestion")}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      onClick={() => {
+                        setPendingSel(undefined);
+                        setAppliedSel(undefined);
+                        overviewQuery.refetch();
+                      }}
+                    >
+                      <ArrowClockwise size={16} />
+                      {tPage("quickActions.refresh")}
+                    </Button>
+                  </div>
+                </Card>
+
+                <Card className="p-5">
+                  <CardTitle>{tPage("highlights.title")}</CardTitle>
+                  <div className="mt-4 space-y-4">
+                    {topPerformer ? (
+                      <div className="flex items-center gap-3">
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary-soft text-primary-strong">
+                          <Trophy size={18} weight="bold" />
+                        </span>
+                        <div className="min-w-0">
+                          <p className="meta-label">{tPage("highlights.topPerformer")}</p>
+                          <p className="truncate text-sm font-semibold text-ink">
+                            {topPerformer.name ?? tPage("highlights.unknown")}
+                          </p>
+                          <p className="text-xs text-muted">
+                            {tPage("highlights.totalSent", {
+                              value: formatNumber(Number(topPerformer.total ?? 0)),
+                            })}
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted">{tPage("highlights.noPerformer")}</p>
+                    )}
+                    <div className="space-y-1.5">
+                      <p className="meta-label">{tPage("highlights.upcoming")}</p>
+                      {upcomingHighlights.length > 0 ? (
+                        <ul className="divide-y divide-border rounded-lg border border-border">
+                          {upcomingHighlights.map((item) => (
+                            <li key={item.id} className="flex items-center justify-between gap-3 px-3 py-2 text-sm">
+                              <span className="truncate text-ink">{item.client ?? tPage("highlights.noClient")}</span>
+                              <span className="tabular shrink-0 text-xs text-muted">{formatDate(item.createdAt)}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="text-xs text-muted">{tPage("highlights.noUpcoming")}</p>
+                      )}
+                    </div>
+                  </div>
+                </Card>
+              </div>
+
               <div className="grid gap-4 lg:grid-cols-2">
-                <Card className="space-y-4 p-6">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-semibold text-ink">{tOverview("status.title")}</h3>
+                <Card className="p-5">
+                  <CardHeader>
+                    <CardTitle>{tOverview("status.title")}</CardTitle>
                     <Badge tone="neutral">
                       {tOverview("status.badge", { count: formatNumber(totalProposals) })}
                     </Badge>
-                  </div>
+                  </CardHeader>
                   {statusChartData.length > 0 ? (
-                    <>
-                      <div className="mb-3 flex flex-wrap gap-2">
+                    <div className="mt-4 space-y-3">
+                      <ul className="flex flex-wrap gap-x-4 gap-y-1.5">
                         {statusChartData.map((s) => (
-                          <div key={s.name} className="inline-flex items-center gap-2 text-xs">
-                            <span
-                              aria-hidden
-                              style={{ background: s.color }}
-                              className="inline-block h-3 w-3 rounded-sm"
-                            />
-                            <span className="text-muted">
-                              {s.name} <span className="text-[11px] text-muted">({s.value})</span>
-                            </span>
-                          </div>
+                          <li key={s.name} className="inline-flex items-center gap-1.5 text-xs text-ink-muted">
+                            <span aria-hidden style={{ background: s.color }} className="h-2.5 w-2.5 rounded-sm" />
+                            {s.name}
+                            <span className="tabular text-muted">({s.value})</span>
+                          </li>
                         ))}
-                      </div>
+                      </ul>
                       <BarChartViz
                         data={statusChartData}
                         valueFormatter={(value) => formatNumber(Number(value))}
                       />
-                    </>
+                    </div>
                   ) : (
-                    <p className="text-xs text-muted">{tOverview("status.empty")}</p>
+                    <p className="mt-4 text-sm text-muted">{tOverview("status.empty")}</p>
                   )}
                 </Card>
 
-                <Card className="space-y-4 p-6">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-semibold text-ink">
-                      {tOverview("topClients.title")}
-                    </h3>
-                    <div className="flex items-center gap-2">
-                      <Badge tone="info">{tOverview("topClients.badge")}</Badge>
-                      {topClientsTotal > 0 ? (
-                        <Badge tone="neutral">
-                          {tOverview("topClients.total", {
-                            value: formatCurrency(topClientsTotal),
-                          })}
-                        </Badge>
-                      ) : null}
-                    </div>
-                  </div>
+                <Card className="p-5">
+                  <CardHeader>
+                    <CardTitle>{tOverview("topClients.title")}</CardTitle>
+                    {topClientsTotal > 0 ? (
+                      <Badge tone="neutral">
+                        {tOverview("topClients.total", {
+                          value: formatCurrency(topClientsTotal),
+                        })}
+                      </Badge>
+                    ) : null}
+                  </CardHeader>
                   {topClientsChartData.length > 0 ? (
-                    <BarChartViz
-                      data={topClientsChartData}
-                      valueFormatter={(value) => formatCurrency(Number(value))}
-                    />
+                    <div className="mt-4">
+                      <BarChartViz
+                        data={topClientsChartData}
+                        valueFormatter={(value) => formatCurrency(Number(value))}
+                      />
+                    </div>
                   ) : (
-                    <p className="text-xs text-muted">{tOverview("topClients.empty")}</p>
+                    <p className="mt-4 text-sm text-muted">{tOverview("topClients.empty")}</p>
                   )}
                 </Card>
               </div>
 
-              {/* Propostas por consultor */}
-              <Card className="space-y-4 p-6">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-ink">{tOverview("team.title")}</h3>
-                  <Badge tone="neutral">{tOverview("team.badge")}</Badge>
-                </div>
+              <Card className="p-5">
+                <CardHeader>
+                  <CardTitle>{tOverview("team.title")}</CardTitle>
+                </CardHeader>
                 {teamChartData.length > 0 ? (
-                  <TeamBarChart data={teamChartData} height={320} />
+                  <TeamBarChart data={teamChartData} height={320} className="mt-2" />
                 ) : (
-                  <p className="text-xs text-muted">{tOverview("team.empty")}</p>
+                  <p className="mt-4 text-sm text-muted">{tOverview("team.empty")}</p>
                 )}
               </Card>
 
-              {/* Receita por cidade (opcional) */}
               {receitaCidadeChartData.length > 0 ? (
-                <Card className="space-y-4 p-6">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-semibold text-ink">
-                      {tOverview("cityRevenue.title")}
-                    </h3>
-                    <Badge tone="info">{tOverview("cityRevenue.badge")}</Badge>
+                <Card className="p-5">
+                  <CardHeader>
+                    <CardTitle>{tOverview("cityRevenue.title")}</CardTitle>
+                  </CardHeader>
+                  <div className="mt-4">
+                    <BarChartViz
+                      data={receitaCidadeChartData}
+                      valueFormatter={(v) => formatCurrency(Number(v))}
+                    />
                   </div>
-                  <BarChartViz
-                    data={receitaCidadeChartData}
-                    valueFormatter={(v) => formatCurrency(Number(v))}
-                  />
                 </Card>
               ) : null}
 
-              {/* Pipeline resumo + funil */}
               <div className="grid gap-4 lg:grid-cols-2">
-                <Card className="space-y-4 p-6">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-semibold text-ink">
-                      {tOverview("pipelineSummary.title")}
-                    </h3>
-                    <Badge tone="info">
+                <Card className="p-5">
+                  <CardHeader>
+                    <CardTitle>{tOverview("pipelineSummary.title")}</CardTitle>
+                    <Badge tone="neutral">
                       {tOverview("pipelineSummary.badge", {
                         leads: formatNumber(totalPipelineLeads),
                         value: formatCurrency(totalPipelineValue),
                       })}
                     </Badge>
+                  </CardHeader>
+                  <div className="mt-4">
+                    {pipelineTableRows.length > 0 ? (
+                      <SimpleTable
+                        columns={[
+                          tOverview("pipelineSummary.columns.stage"),
+                          tOverview("pipelineSummary.columns.leads"),
+                          tOverview("pipelineSummary.columns.value"),
+                        ]}
+                        rows={pipelineTableRows}
+                        formatNumber={formatNumber}
+                      />
+                    ) : (
+                      <p className="text-sm text-muted">{tOverview("pipelineSummary.empty")}</p>
+                    )}
                   </div>
-                  {pipelineTableRows.length > 0 ? (
-                    <SimpleTable
-                      columns={[
-                        tOverview("pipelineSummary.columns.stage"),
-                        tOverview("pipelineSummary.columns.leads"),
-                        tOverview("pipelineSummary.columns.value"),
-                      ]}
-                      rows={pipelineTableRows}
-                      formatNumber={formatNumber}
-                    />
-                  ) : (
-                    <p className="text-xs text-muted">{tOverview("pipelineSummary.empty")}</p>
-                  )}
                 </Card>
 
-                <Card className="space-y-4 p-6">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-semibold text-ink">
-                      {tOverview("pipelineDistribution.title")}
-                    </h3>
-                    <Badge tone="neutral">{tOverview("pipelineDistribution.badge")}</Badge>
+                <Card className="p-5">
+                  <CardHeader>
+                    <CardTitle>{tOverview("pipelineDistribution.title")}</CardTitle>
+                  </CardHeader>
+                  <div className="mt-4">
+                    {pipelineChartData.length > 0 ? (
+                      <FunnelChartViz
+                        data={pipelineChartData}
+                        valueFormatter={(value) =>
+                          tOverview("pipelineDistribution.formatLead", {
+                            value: formatNumber(Number(value)),
+                          })
+                        }
+                      />
+                    ) : (
+                      <p className="text-sm text-muted">{tOverview("pipelineDistribution.empty")}</p>
+                    )}
                   </div>
-                  {pipelineChartData.length > 0 ? (
-                    <FunnelChartViz
-                      data={pipelineChartData}
-                      valueFormatter={(value) =>
-                        tOverview("pipelineDistribution.formatLead", {
-                          value: formatNumber(Number(value)),
-                        })
-                      }
-                    />
-                  ) : (
-                    <p className="text-xs text-muted">{tOverview("pipelineDistribution.empty")}</p>
-                  )}
                 </Card>
               </div>
 
-              {/* Propostas recentes */}
-              <Card className="space-y-4 p-6">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-ink">
-                    {tOverview("recentProposals.title")}
-                  </h3>
-                  <Badge tone="neutral">
+              <Card className="overflow-hidden">
+                <CardHeader className="px-5 py-4">
+                  <CardTitle>{tOverview("recentProposals.title")}</CardTitle>
+                  <span className="text-xs text-muted">
                     {tOverview("recentProposals.badge", {
                       start: recentRangeStart,
                       end: recentRangeEnd,
                     })}
-                  </Badge>
-                </div>
-                <div className="overflow-auto rounded-lg border border-outline/40">
-                  <table className="w-full min-w-[520px] text-left text-xs">
-                    <thead className="bg-[var(--color-surface-muted)]/50 text-muted">
+                  </span>
+                </CardHeader>
+                <div className="overflow-auto border-t border-border">
+                  <table className="data-table min-w-[560px]">
+                    <thead>
                       <tr>
-                        <th className="px-4 py-3 font-semibold uppercase tracking-wide">
-                          {tOverview("recentProposals.columns.title")}
-                        </th>
-                        <th className="px-4 py-3 font-semibold uppercase tracking-wide">
-                          {tOverview("recentProposals.columns.client")}
-                        </th>
-                        <th className="px-4 py-3 font-semibold uppercase tracking-wide">
-                          {tOverview("recentProposals.columns.status")}
-                        </th>
-                        <th className="px-4 py-3 font-semibold uppercase tracking-wide">
-                          {tOverview("recentProposals.columns.createdAt")}
-                        </th>
+                        <th>{tOverview("recentProposals.columns.title")}</th>
+                        <th>{tOverview("recentProposals.columns.client")}</th>
+                        <th>{tOverview("recentProposals.columns.status")}</th>
+                        <th>{tOverview("recentProposals.columns.createdAt")}</th>
                       </tr>
                     </thead>
                     <tbody>
                       {recentProposals.length > 0 ? (
                         recentProposals.map((item) => (
-                          <tr key={item.id} className="even:bg-[var(--color-surface-muted)]/30">
-                            <td className="px-4 py-2 text-ink">
+                          <tr key={item.id}>
+                            <td className="font-semibold text-ink">
                               {item.title ?? tOverview("recentProposals.fallbacks.title")}
                             </td>
-                            <td className="px-4 py-2 text-ink">
-                              {item.client ?? tOverview("recentProposals.fallbacks.client")}
-                            </td>
-                            <td className="px-4 py-2 text-ink">
+                            <td>{item.client ?? tOverview("recentProposals.fallbacks.client")}</td>
+                            <td>
                               <Badge
+                                dot
                                 tone={statusBadges[item.status]?.tone ?? statusBadges.default.tone}
                               >
                                 {statusBadges[item.status]?.label ?? statusBadges.default.label}
                               </Badge>
                             </td>
-                            <td className="px-4 py-2 text-ink">{formatDate(item.createdAt)}</td>
+                            <td className="tabular whitespace-nowrap">{formatDate(item.createdAt)}</td>
                           </tr>
                         ))
                       ) : (
                         <tr>
-                          <td colSpan={4} className="px-4 py-4 text-center text-muted">
+                          <td colSpan={4} className="py-8 text-center text-muted">
                             {tOverview("recentProposals.fallbacks.empty")}
                           </td>
                         </tr>
@@ -866,52 +847,37 @@ export default function ReportsPage() {
               </Card>
             </div>
           ) : (
-            <Card className="p-6 text-sm text-muted">{tOverview("empty")}</Card>
+            <EmptyState icon={<ChartLine size={24} weight="bold" />} title={tOverview("empty")} />
           )}
         </TabsContent>
 
         {/* ------------------------- GERADOR PERSONALIZADO ------------------------- */}
         <TabsContent value="custom">
-          <div className="space-y-4">
-            <Card className="space-y-4 p-6">
-              <div className="space-y-2">
-                <Label htmlFor="report-intent">{tCustom("intent.label")}</Label>
+          <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+            <Card className="space-y-5 p-5 sm:p-6">
+              <Field label={tCustom("intent.label")} htmlFor="report-intent" hint={tCustom("helper")}>
                 <Textarea
                   id="report-intent"
                   placeholder={tCustom("intent.placeholder")}
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
                 />
-                <p className="text-xs text-muted">{tCustom("helper")}</p>
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label>{tCustom("visualization")}</Label>
-                  <Select
-                    value={visualization}
-                    onValueChange={(value) => setVisualization(value as typeof visualization)}
-                  >
-                    <SelectItem value="table">{tCustom("visualizationOptions.table")}</SelectItem>
-                    <SelectItem value="bar">{tCustom("visualizationOptions.bar")}</SelectItem>
-                    <SelectItem value="line">{tCustom("visualizationOptions.line")}</SelectItem>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>{tCustom("dateRange")}</Label>
-                  <DateRangePicker value={customSel} onChange={setCustomSel} />
-                </div>
-              </div>
+              </Field>
 
               <div className="space-y-2">
                 <Label>{tCustom("suggestions")}</Label>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-1.5">
                   {suggestions.map((item) => (
                     <button
                       key={item}
                       type="button"
                       onClick={() => setQuery(item)}
-                      className="rounded-full border border-outline bg-[var(--color-surface-muted)] px-4 py-1.5 text-xs font-semibold text-muted transition hover:border-primary hover:text-ink"
+                      className={cn(
+                        "rounded-lg border px-3 py-1.5 text-left text-[13px] font-medium transition-colors",
+                        query === item
+                          ? "border-primary bg-primary-tint text-ink"
+                          : "border-border bg-white text-ink-muted hover:border-outline hover:text-ink",
+                      )}
                     >
                       {item}
                     </button>
@@ -919,125 +885,114 @@ export default function ReportsPage() {
                 </div>
               </div>
 
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="inline-flex items-center gap-2 text-xs text-muted" />
-                <div className="flex gap-2">
-                  <Button variant="ghost" onClick={handleClear}>
-                    {tCustom("clear")}
-                  </Button>
-                  <Button
-                    onClick={handleGenerate}
-                    loading={isLoading}
-                    loadingText={
-                      <span className="inline-flex items-center gap-2">
-                        {visualization === "table" ? (
-                          <TableIcon size={16} className="mr-1" />
-                        ) : (
-                          <ChartLine size={16} className="mr-1" />
-                        )}
-                        {tCustom("generating")}
-                      </span>
-                    }
+              <div className="grid gap-4 sm:grid-cols-[200px_minmax(0,1fr)]">
+                <Field label={tCustom("visualization")} htmlFor="report-visualization">
+                  <Select
+                    id="report-visualization"
+                    value={visualization}
+                    onValueChange={(value) => setVisualization(value as typeof visualization)}
                   >
-                    {visualization === "table" ? (
-                      <TableIcon size={16} className="mr-2" />
-                    ) : (
-                      <ChartLine size={16} className="mr-2" />
-                    )}
-                    {tCustom("generate")}
-                  </Button>
+                    <SelectItem value="table">{tCustom("visualizationOptions.table")}</SelectItem>
+                    <SelectItem value="bar">{tCustom("visualizationOptions.bar")}</SelectItem>
+                    <SelectItem value="line">{tCustom("visualizationOptions.line")}</SelectItem>
+                  </Select>
+                </Field>
+                <div className="space-y-2">
+                  <Label>{tCustom("dateRange")}</Label>
+                  <DateRangePicker value={customSel} onChange={setCustomSel} />
                 </div>
+              </div>
+
+              <div className="flex justify-end gap-2 border-t border-border pt-5">
+                <Button variant="ghost" onClick={handleClear}>
+                  {tCustom("clear")}
+                </Button>
+                <Button onClick={handleGenerate} loading={isLoading} loadingText={tCustom("generating")}>
+                  {visualization === "table" ? <TableIcon size={16} /> : <ChartLine size={16} />}
+                  {tCustom("generate")}
+                </Button>
               </div>
             </Card>
 
-            <div className="grid gap-4 lg:grid-cols-2">
-              <Card className="flex flex-col gap-4 border border-dashed border-outline px-6 py-6 text-sm text-muted lg:col-span-2">
-                {error ? (
-                  <p>{error}</p>
-                ) : report ? (
-                  Array.isArray(report.result) ? (
-                    (() => {
-                      const arr = report.result as Record<string, unknown>[];
-                      // If the generator already returned a name/value series, render a bar chart
-                      const looksLikeSeries =
-                        arr.length > 0 &&
-                        typeof arr[0].name === "string" &&
-                        (typeof arr[0].value === "number" || !Number.isNaN(Number(arr[0].value)));
-                      if (report.visualization === "bar" && looksLikeSeries) {
-                        const barData = arr.map((r) => ({
-                          name: String(r.name ?? "—"),
-                          value: Number(r.value ?? 0),
-                        }));
-                        return (
-                          <div className="space-y-3">
-                            <p className="text-sm font-semibold text-ink">
-                              {tCustomResult("title")}
-                            </p>
-                            <BarChartViz
-                              data={barData}
-                              valueFormatter={(v) => v.toLocaleString("pt-BR")}
-                            />
-                          </div>
-                        );
-                      }
-
-                      // Fallback to table
+            <Card className="min-h-[320px] p-5 sm:p-6">
+              {error ? (
+                <Notice tone="danger">{error}</Notice>
+              ) : report ? (
+                Array.isArray(report.result) ? (
+                  (() => {
+                    const arr = report.result as Record<string, unknown>[];
+                    // If the generator already returned a name/value series, render a bar chart
+                    const looksLikeSeries =
+                      arr.length > 0 &&
+                      typeof arr[0].name === "string" &&
+                      (typeof arr[0].value === "number" || !Number.isNaN(Number(arr[0].value)));
+                    if (report.visualization === "bar" && looksLikeSeries) {
+                      const barData = arr.map((r) => ({
+                        name: String(r.name ?? "—"),
+                        value: Number(r.value ?? 0),
+                      }));
                       return (
-                        <div className="space-y-2">
-                          <p className="text-sm font-semibold text-ink">{tCustomResult("title")}</p>
-                          <div className="overflow-auto rounded-lg border border-outline/40">
-                            <table className="w-full min-w-[360px] text-left text-xs">
-                              <thead className="bg-[var(--color-surface-muted)]/50 text-muted">
-                                <tr>
-                                  {Object.keys(arr[0] ?? {}).map((key) => (
-                                    <th
-                                      key={key}
-                                      className="px-4 py-3 font-semibold uppercase tracking-wide"
-                                    >
-                                      {key}
-                                    </th>
-                                  ))}
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {arr.map((row, rowIndex) => (
-                                  <tr
-                                    key={rowIndex}
-                                    className="even:bg-[var(--color-surface-muted)]/30"
-                                  >
-                                    {Object.values(row).map((value, cellIndex) => (
-                                      <td key={cellIndex} className="px-4 py-2 text-ink">
-                                        {typeof value === "number"
-                                          ? value.toLocaleString("pt-BR")
-                                          : String(value ?? "—")}
-                                      </td>
-                                    ))}
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
+                        <div className="space-y-3">
+                          <CardTitle>{tCustomResult("title")}</CardTitle>
+                          <BarChartViz
+                            data={barData}
+                            valueFormatter={(v) => v.toLocaleString("pt-BR")}
+                          />
                         </div>
                       );
-                    })()
-                  ) : (
-                    <div className="space-y-2">
-                      <p className="text-sm font-semibold text-ink">{tCustomResult("rawTitle")}</p>
-                      <pre className="max-h-60 overflow-auto rounded-lg bg-[var(--color-surface-muted)]/60 p-4 text-xs text-muted">
-                        {JSON.stringify(report.result, null, 2)}
-                      </pre>
-                    </div>
-                  )
+                    }
+
+                    // Fallback to table
+                    return (
+                      <div className="space-y-3">
+                        <CardTitle>{tCustomResult("title")}</CardTitle>
+                        <div className="overflow-auto rounded-lg border border-border">
+                          <table className="data-table data-table--compact min-w-[360px]">
+                            <thead>
+                              <tr>
+                                {Object.keys(arr[0] ?? {}).map((key) => (
+                                  <th key={key}>{key}</th>
+                                ))}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {arr.map((row, rowIndex) => (
+                                <tr key={rowIndex}>
+                                  {Object.values(row).map((value, cellIndex) => (
+                                    <td
+                                      key={cellIndex}
+                                      className={typeof value === "number" ? "tabular text-ink" : "text-ink"}
+                                    >
+                                      {typeof value === "number"
+                                        ? value.toLocaleString("pt-BR")
+                                        : String(value ?? "—")}
+                                    </td>
+                                  ))}
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    );
+                  })()
                 ) : (
-                  <div className="space-y-2">
-                    <p className="text-sm font-semibold text-ink">
-                      {tCustomResult("waitingTitle")}
-                    </p>
-                    <p>{tCustomResult("placeholder")}</p>
+                  <div className="space-y-3">
+                    <CardTitle>{tCustomResult("rawTitle")}</CardTitle>
+                    <pre className="max-h-72 overflow-auto rounded-lg bg-surface-muted p-4 text-xs text-ink-muted">
+                      {JSON.stringify(report.result, null, 2)}
+                    </pre>
                   </div>
-                )}
-              </Card>
-            </div>
+                )
+              ) : (
+                <EmptyState
+                  className="h-full border-none py-10"
+                  icon={<ChartLine size={24} weight="bold" />}
+                  title={tCustomResult("waitingTitle")}
+                  description={tCustomResult("placeholder")}
+                />
+              )}
+            </Card>
           </div>
         </TabsContent>
       </Tabs>
