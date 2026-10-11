@@ -7,6 +7,8 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { X } from "@phosphor-icons/react";
 
+import type { Route } from "next";
+import Link from "next/link";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -253,7 +255,6 @@ export default function ServicesPage() {
   const api = useApi();
   const format = useFormatter();
   const queryClient = useQueryClient();
-  const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editingService, setEditingService] = useState<EquipmentSummary | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<EquipmentSummary | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -271,21 +272,6 @@ export default function ServicesPage() {
   const isTokenMissing = !api.token;
   const loadError = equipmentQuery.error as Error | null;
   const canCreate = Boolean(api.token);
-
-  const createService = useMutation({
-    mutationFn: (payload: ServicePayload) =>
-      api.post<{ data: EquipmentSummary }>('/equipment', {
-        name: payload.name,
-        capacityTons: payload.capacityTons ?? undefined,
-        dailyRate: payload.dailyRate ?? undefined,
-        description: payload.description ?? undefined,
-        notes: payload.notes ?? undefined,
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['equipment'] });
-      setCreateDialogOpen(false);
-    },
-  });
 
   const updateService = useMutation({
     mutationFn: ({ id, payload }: { id: string; payload: ServicePayload }) =>
@@ -354,13 +340,11 @@ export default function ServicesPage() {
         title="Catálogo de serviços"
         description="Organize equipamentos, pacotes e valores para montar propostas consistentes."
         action={
-          <Button
-            className="w-full sm:w-auto"
-            onClick={() => setCreateDialogOpen(true)}
-            disabled={!canCreate}
-          >
-            Novo serviço
-          </Button>
+          canCreate && (
+            <Button className="w-full sm:w-auto" asChild>
+              <Link href={"/services/new" as Route}>Novo serviço</Link>
+            </Button>
+          )
         }
       />
 
@@ -407,27 +391,14 @@ export default function ServicesPage() {
             <p className="text-sm">
               Adicione seus equipamentos e pacotes principais para reutilizar os valores nas propostas.
             </p>
-            <Button onClick={() => setCreateDialogOpen(true)} disabled={!canCreate}>
-              Novo serviço
-            </Button>
+            {canCreate && (
+              <Button asChild>
+                <Link href={"/services/new" as Route}>Novo serviço</Link>
+              </Button>
+            )}
           </Card>
         )}
       </div>
-
-      {canCreate ? (
-        <ServiceDialog
-          open={createDialogOpen}
-          onOpenChange={setCreateDialogOpen}
-          onSubmit={async (values) => {
-            await createService.mutateAsync(values);
-          }}
-          isSubmitting={createService.isPending}
-          errorMessage={createService.error?.message}
-          title="Novo serviço"
-          description="Cadastre um equipamento ou pacote para reutilizar nas propostas."
-          submitLabel="Salvar serviço"
-        />
-      ) : null}
 
       {editingService ? (
         <ServiceDialog
