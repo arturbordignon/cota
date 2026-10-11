@@ -3,6 +3,8 @@
 import { useQuery } from '@tanstack/react-query';
 
 import { Card } from '@/components/ui/card';
+import { Notice } from '@/components/ui/notice';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useApi } from '@/hooks/use-api';
 import type { BillingOverviewResponse } from '@/types/api';
 
@@ -15,19 +17,11 @@ export function PlanUsageSnapshot() {
   });
 
   if (overviewQuery.isError) {
-    return (
-      <Card className="rounded-3xl border border-outline/60 bg-white px-6 py-6 shadow-sm">
-        <p className="text-sm text-muted">Não foi possível carregar o uso atual.</p>
-      </Card>
-    );
+    return <Notice tone="danger">Não foi possível carregar o uso atual.</Notice>;
   }
 
   if (!overviewQuery.data) {
-    return (
-      <Card className="rounded-3xl border border-outline/60 bg-white px-6 py-6 shadow-sm">
-        <p className="text-sm text-muted">Carregando informações de uso...</p>
-      </Card>
-    );
+    return <Skeleton className="h-40 rounded-xl" />;
   }
 
   const { plan, usage } = overviewQuery.data.data;
@@ -35,36 +29,34 @@ export function PlanUsageSnapshot() {
   const progress = usage.total ? Math.min((usage.used / usage.total) * 100, 100) : 0;
 
   return (
-    <Card className="space-y-4 rounded-3xl border border-outline/60 bg-white px-6 py-6 shadow-sm">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <p className="text-sm text-muted">Plano atual</p>
-          <p className="text-xl font-semibold text-ink">{plan ? plan.name : 'Plano básico'}</p>
-        </div>
-        <div className="text-right">
-          <p className="text-sm text-muted">Propostas geradas neste ciclo</p>
-          <p className="text-xl font-semibold text-ink">
-            {usage.used}
-            {usage.total ? ` / ${usage.total}` : ''}
-          </p>
-          {remaining !== null ? (
-            <p className="text-xs text-muted">
-              Restam {remaining} propostas até {new Date(usage.periodEnd).toLocaleDateString()}
-            </p>
-          ) : (
-            <p className="text-xs text-muted">Propostas ilimitadas</p>
-          )}
-        </div>
+    <Card className="p-5">
+      <p className="meta-label">Plano atual</p>
+      <p className="mt-0.5 font-display text-2xl font-semibold text-ink">{plan ? plan.name : 'Plano básico'}</p>
+
+      <div className="mt-5 flex items-baseline justify-between gap-3">
+        <p className="text-sm text-muted">Propostas geradas neste ciclo</p>
+        <p className="tabular text-sm font-bold text-ink">
+          {usage.used}
+          {usage.total ? ` / ${usage.total}` : ''}
+        </p>
       </div>
 
       {usage.total ? (
-        <div className="h-2 rounded-full bg-[var(--color-surface-muted)]">
+        <div className="mt-2 h-2 overflow-hidden rounded-full bg-surface-sunken">
           <div
-            className="h-2 rounded-full bg-primary transition-all"
+            className={progress >= 90 ? 'h-full rounded-full bg-danger' : 'h-full rounded-full bg-primary'}
             style={{ width: `${progress}%` }}
           />
         </div>
       ) : null}
+
+      {remaining !== null ? (
+        <p className="mt-2 text-xs text-muted">
+          Restam {remaining} propostas até {new Date(usage.periodEnd).toLocaleDateString()}
+        </p>
+      ) : (
+        <p className="mt-2 text-xs text-muted">Propostas ilimitadas</p>
+      )}
     </Card>
   );
 }

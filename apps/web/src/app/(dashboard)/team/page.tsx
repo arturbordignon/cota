@@ -3,18 +3,22 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
-import * as Dialog from "@radix-ui/react-dialog";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Trash, UserPlus, X } from "@phosphor-icons/react";
+import { Check, Copy, EnvelopeSimple, LinkSimple, SquaresFour, Trash, UserPlus } from "@phosphor-icons/react";
 
 import { useCurrentUser } from "@/components/providers/user-provider";
 import { PageHeader } from "@/components/layout/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Modal, ModalBody, ModalClose, ModalFooter } from "@/components/ui/modal";
+import { Notice } from "@/components/ui/notice";
+import { Segmented } from "@/components/ui/segmented";
 import { Select, SelectItem } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import { permissionModules, type PermissionModuleKey } from "@/config/permission-modules";
 import { useApi } from "@/hooks/use-api";
 import {
@@ -37,7 +41,7 @@ function DepartmentPermissionList({ department }: DepartmentPermissionListProps)
   const tPermissions = useTranslations("common.permissions");
 
   return (
-    <div className="grid gap-2">
+    <ul className="divide-y divide-border rounded-lg border border-border">
       {permissionModules.map((module) => {
         const key = module as PermissionModuleKey;
         const ability = department.permissions[key] ?? { view: false, edit: false };
@@ -45,30 +49,27 @@ function DepartmentPermissionList({ department }: DepartmentPermissionListProps)
         const description = tModules(`${module}.description`);
 
         return (
-          <div
-            key={module}
-            className="grid gap-2 rounded-xl border border-outline/40 bg-[var(--color-surface-muted)]/60 px-4 py-3 md:grid-cols-[1fr_auto]"
-          >
-            <div>
+          <li key={module} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-3.5 py-2.5">
+            <div className="min-w-0">
               <p className="text-sm font-semibold text-ink">{label}</p>
               <p className="text-xs text-muted">{description}</p>
             </div>
-            <div className="flex items-center gap-2">
-              <Badge tone={ability.view ? "success" : "warning"}>
+            <div className="flex items-center gap-1.5">
+              <Badge tone={ability.view ? "success" : "neutral"}>
                 {ability.view
                   ? tPermissions("badges.view.enabled")
                   : tPermissions("badges.view.disabled")}
               </Badge>
-              <Badge tone={ability.edit ? "info" : "warning"}>
+              <Badge tone={ability.edit ? "info" : "neutral"}>
                 {ability.edit
                   ? tPermissions("badges.edit.enabled")
                   : tPermissions("badges.edit.disabled")}
               </Badge>
             </div>
-          </div>
+          </li>
         );
       })}
-    </div>
+    </ul>
   );
 }
 
@@ -118,131 +119,111 @@ function AddMemberDialog({
   const isValid = draft.email.includes("@") && hasValidDepartment;
 
   return (
-    <Dialog.Root open={open} onOpenChange={onOpenChange}>
-      <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-40 bg-ink/40 backdrop-blur-sm" />
-        <Dialog.Content className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4 md:items-center">
-          <form
-            onSubmit={(event) => {
-              event.preventDefault();
-              if (isValid && !isSubmitting) onSubmit();
-            }}
-            className="flex w-full max-w-xl max-h-[90vh] md:max-h-[640px] flex-col overflow-hidden rounded-2xl bg-white shadow-2xl"
-          >
-            <header className="flex items-center justify-between border-b border-outline/30 bg-[var(--color-surface-muted)]/50 px-6 py-4">
-              <div>
-                <Dialog.Title className="text-lg font-semibold text-ink">{t('title')}</Dialog.Title>
-                <Dialog.Description className="text-xs text-muted">{t('description')}</Dialog.Description>
-              </div>
-              <Dialog.Close asChild>
-                <button
-                  type="button"
-                  aria-label={t('close')}
-                  className="rounded-full border border-outline bg-white p-2 text-ink shadow-sm transition hover:bg-primary-soft"
-                >
-                  <X size={16} weight="bold" />
-                </button>
-              </Dialog.Close>
-            </header>
-
-            <div className="grid flex-1 gap-4 overflow-y-auto px-6 py-6">
-              <div className="space-y-2">
-                <Label htmlFor="member-name">
-                  {t('fields.name')} <span className="text-muted">({t('placeholders.optional')})</span>
-                </Label>
-                <Input
-                  id="member-name"
-                  value={draft.fullName}
-                  onChange={(event) => onDraftChange('fullName', event.target.value)}
-                  placeholder={t('placeholders.name')}
-                  autoFocus
-                  disabled={isSubmitting}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="member-email">{t('fields.email')}</Label>
-                <Input
-                  id="member-email"
-                  type="email"
-                  value={draft.email}
-                  onChange={(event) => onDraftChange('email', event.target.value)}
-                  placeholder={t('placeholders.email')}
-                  disabled={isSubmitting}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="member-role">{t('fields.role')}</Label>
-                <Input
-                  id="member-role"
-                  value={draft.jobTitle}
-                  onChange={(event) => onDraftChange('jobTitle', event.target.value)}
-                  placeholder={t('placeholders.role')}
-                  disabled={isSubmitting}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>{t('fields.department')}</Label>
-                <Select
-                  value={draft.departmentId || UNASSIGNED_DEPARTMENT_VALUE}
-                  onValueChange={(value) => onDraftChange('departmentId', value)}
-                  disabled={isSubmitting}
-                >
-                  <SelectItem value={UNASSIGNED_DEPARTMENT_VALUE}>
-                    {tTeam('memberCard.badge.noDepartment')}
-                  </SelectItem>
-                  {departments.map((department) => (
-                    <SelectItem key={department.id} value={department.id}>
-                      {department.name}
-                    </SelectItem>
-                  ))}
-                </Select>
-              </div>
-              {errorMessage ? <p className="text-sm text-danger">{errorMessage}</p> : null}
-              {inviteLink ? (
-                <div className="space-y-2 rounded-xl border border-success/40 bg-success-soft/20 px-4 py-3 text-sm">
-                  <p className="font-semibold text-ink">{tInvite('successTitle')}</p>
-                  <p className="text-xs text-muted">{tInvite('successDescription')}</p>
-                  <Button
-                    type="button"
-                    variant="primary"
-                    onClick={async () => {
-                      await onCopyInvite(inviteLink);
-                    }}
-                  >
-                    {tInvite('copy')}
-                  </Button>
-                  {copySuccess ? (
-                    <p className="text-xs font-medium text-success">{tInvite('copied')}</p>
-                  ) : null}
-                  {inviteEmailSent === true ? (
-                    <p className="text-xs font-medium text-success">{tInvite('emailSent')}</p>
-                  ) : inviteEmailSent === false ? (
-                    <p className="text-xs text-warning">{tInvite('emailNotSent')}</p>
-                  ) : null}
-                </div>
-              ) : null}
-            </div>
-
-            <footer className="flex justify-end gap-2 border-t border-outline/20 bg-[var(--color-surface-muted)]/40 px-6 py-4">
-              <Dialog.Close asChild>
-                <Button type="button" variant="ghost">
-                  {t('dialog.actions.cancel')}
-                </Button>
-              </Dialog.Close>
+    <Modal
+      open={open}
+      onOpenChange={onOpenChange}
+      title={t('title')}
+      description={t('description')}
+      closeLabel={t('close')}
+      onSubmit={(event) => {
+        event.preventDefault();
+        if (isValid && !isSubmitting) onSubmit();
+      }}
+    >
+      <ModalBody>
+        <Field label={t('fields.name')} htmlFor="member-name" optional={t('placeholders.optional')}>
+          <Input
+            id="member-name"
+            value={draft.fullName}
+            onChange={(event) => onDraftChange('fullName', event.target.value)}
+            placeholder={t('placeholders.name')}
+            autoFocus
+            disabled={isSubmitting}
+          />
+        </Field>
+        <Field label={t('fields.email')} htmlFor="member-email">
+          <Input
+            id="member-email"
+            type="email"
+            value={draft.email}
+            onChange={(event) => onDraftChange('email', event.target.value)}
+            placeholder={t('placeholders.email')}
+            disabled={isSubmitting}
+            required
+          />
+        </Field>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label={t('fields.role')} htmlFor="member-role">
+            <Input
+              id="member-role"
+              value={draft.jobTitle}
+              onChange={(event) => onDraftChange('jobTitle', event.target.value)}
+              placeholder={t('placeholders.role')}
+              disabled={isSubmitting}
+            />
+          </Field>
+          <Field label={t('fields.department')} htmlFor="member-department">
+            <Select
+              id="member-department"
+              value={draft.departmentId || UNASSIGNED_DEPARTMENT_VALUE}
+              onValueChange={(value) => onDraftChange('departmentId', value)}
+              disabled={isSubmitting}
+            >
+              <SelectItem value={UNASSIGNED_DEPARTMENT_VALUE}>
+                {tTeam('memberCard.badge.noDepartment')}
+              </SelectItem>
+              {departments.map((department) => (
+                <SelectItem key={department.id} value={department.id}>
+                  {department.name}
+                </SelectItem>
+              ))}
+            </Select>
+          </Field>
+        </div>
+        {errorMessage ? <Notice tone="danger">{errorMessage}</Notice> : null}
+        {inviteLink ? (
+          <Notice
+            tone="success"
+            title={tInvite('successTitle')}
+            action={
               <Button
-                type="submit"
-                disabled={!isValid}
-                loading={isSubmitting}
-                loadingText={t('actions.saving')}
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={async () => {
+                  await onCopyInvite(inviteLink);
+                }}
               >
-                {t('actions.submit')}
+                {copySuccess ? <Check size={14} weight="bold" className="text-success" /> : <Copy size={14} />}
+                {copySuccess ? tInvite('copied') : tInvite('copy')}
               </Button>
-            </footer>
-          </form>
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
+            }
+          >
+            <p>{tInvite('successDescription')}</p>
+            {inviteEmailSent === true ? (
+              <p className="mt-1 font-medium text-success">{tInvite('emailSent')}</p>
+            ) : inviteEmailSent === false ? (
+              <p className="mt-1 font-medium text-warning">{tInvite('emailNotSent')}</p>
+            ) : null}
+          </Notice>
+        ) : null}
+      </ModalBody>
+      <ModalFooter>
+        <ModalClose asChild>
+          <Button type="button" variant="ghost">
+            {t('dialog.actions.cancel')}
+          </Button>
+        </ModalClose>
+        <Button
+          type="submit"
+          disabled={!isValid}
+          loading={isSubmitting}
+          loadingText={t('actions.saving')}
+        >
+          {t('actions.submit')}
+        </Button>
+      </ModalFooter>
+    </Modal>
   );
 }
 
@@ -616,298 +597,259 @@ export default function TeamPage() {
     return (
       <section className="space-y-6">
         <PageHeader title={t('restricted.title')} description={t('restricted.description')} />
-        <Card className="border border-outline/30 bg-white px-6 py-4 text-sm text-muted">
-          <p>{t('restricted.callout')}</p>
-        </Card>
+        <Notice tone="neutral">{t('restricted.callout')}</Notice>
       </section>
     );
   }
 
   return (
     <section className="space-y-6">
-      {isTokenMissing ? (
-        <Card className="border border-warning/40 bg-warning-soft px-6 py-4 text-sm text-warning">
-          {t('alerts.missingToken')}
-        </Card>
-      ) : null}
-
       <PageHeader
         title={t('title')}
         description={t('description')}
         action={
-          <div className="flex items-center gap-2">
-            <Button asChild variant="ghost">
-              <Link href="/departments">{t('actions.manageDepartments')}</Link>
+          <>
+            <Button asChild variant="secondary">
+              <Link href="/departments">
+                <SquaresFour size={16} weight="bold" />
+                {t('actions.manageDepartments')}
+              </Link>
             </Button>
-            <Button onClick={() => handleDialogOpenChange(true)} className="gap-2">
-              <UserPlus size={18} weight="bold" />
+            <Button onClick={() => handleDialogOpenChange(true)}>
+              <UserPlus size={16} weight="bold" />
               {t('actions.addMember')}
             </Button>
-          </div>
+          </>
         }
       />
 
+      {isTokenMissing ? <Notice tone="warning">{t('alerts.missingToken')}</Notice> : null}
+
       {loadError && !isTokenMissing ? (
-        <Card className="border border-danger/40 bg-danger-soft/20 px-6 py-4 text-sm text-danger">
-          {t('alerts.loadError', { message: loadError.message })}
-        </Card>
+        <Notice tone="danger">{t('alerts.loadError', { message: loadError.message })}</Notice>
       ) : null}
 
-      <Card className="border border-outline/40 bg-white px-6 py-4 text-sm text-muted">
-        <p>{t('infoCard')}</p>
-      </Card>
+      <Notice tone="neutral">{t('infoCard')}</Notice>
 
-      <Card className="space-y-4 border border-outline/50 bg-white p-6 shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+      <Card className="p-5 sm:p-6">
+        <CardHeader>
           <div>
-            <h3 className="text-base font-semibold text-ink">{t('ranking.title')}</h3>
-            <p className="text-xs text-muted">{t('ranking.description')}</p>
+            <CardTitle>{t('ranking.title')}</CardTitle>
+            <CardDescription>{t('ranking.description')}</CardDescription>
           </div>
-          <div className="flex items-center gap-2">
-            {rankingPeriodOptions.map((option) => (
-              <Button
-                key={option.value}
-                type="button"
-                size="sm"
-                variant={rankingPeriod === option.value ? 'primary' : 'ghost'}
-                onClick={() => setRankingPeriod(option.value)}
-                disabled={!isAdmin || isTokenMissing}
-              >
-                {option.label}
-              </Button>
-            ))}
-          </div>
-        </div>
+          <Segmented
+            options={rankingPeriodOptions}
+            value={rankingPeriod}
+            onChange={setRankingPeriod}
+            disabled={!isAdmin || isTokenMissing}
+            ariaLabel={t('ranking.title')}
+            size="sm"
+          />
+        </CardHeader>
 
-        {rankingLoadError && !isTokenMissing ? (
-          <div className="rounded-xl border border-danger/40 bg-danger-soft/20 px-4 py-3 text-sm text-danger">
-            {t('ranking.error', { message: rankingLoadError.message })}
-          </div>
-        ) : rankingQuery.isLoading ? (
-          <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-5">
-            {Array.from({ length: 3 }).map((_, index) => (
-              <Card
-                key={`ranking-skeleton-${index}`}
-                className="h-24 animate-pulse rounded-2xl border border-outline/40 bg-white/70"
-              />
-            ))}
-          </div>
-        ) : rankingEntries.length === 0 ? (
-          <Card className="border border-outline/30 bg-white px-4 py-6 text-center text-sm text-muted">
-            {t('ranking.empty')}
-          </Card>
-        ) : (
-          <>
-            <div className="space-y-3 md:hidden">
+        <div className="mt-5">
+          {rankingLoadError && !isTokenMissing ? (
+            <Notice tone="danger">{t('ranking.error', { message: rankingLoadError.message })}</Notice>
+          ) : rankingQuery.isLoading ? (
+            <div className="space-y-2">
+              {Array.from({ length: 3 }).map((_, index) => (
+                <Skeleton key={`ranking-skeleton-${index}`} className="h-12 rounded-lg" />
+              ))}
+            </div>
+          ) : rankingEntries.length === 0 ? (
+            <p className="rounded-lg bg-surface-muted px-4 py-6 text-center text-sm text-muted">
+              {t('ranking.empty')}
+            </p>
+          ) : (
+            <ol className="divide-y divide-border rounded-lg border border-border">
               {rankingEntries.slice(0, 5).map((entry, index) => (
-                <Card
-                  key={entry.memberId}
-                  className="flex items-center justify-between gap-4 border border-outline/40 bg-white px-4 py-3"
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-soft text-sm font-semibold text-primary">
-                      {index + 1}
-                    </span>
-                    <div>
-                      <p className="text-sm font-semibold text-ink">{entry.name}</p>
-                      <p className="text-xs text-muted">
-                        {entry.department ?? t('memberCard.badge.noDepartment')}
-                      </p>
-                    </div>
+                <li key={entry.memberId} className="flex items-center gap-4 px-4 py-3">
+                  <span
+                    className={cn(
+                      'tabular flex h-8 w-8 shrink-0 items-center justify-center rounded-full font-display text-sm font-semibold',
+                      index === 0
+                        ? 'bg-primary text-white shadow-press [text-shadow:0_1px_1px_rgb(110_66_0/0.45)]'
+                        : 'bg-surface-sunken text-ink-muted',
+                    )}
+                  >
+                    {index + 1}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-ink">{entry.name}</p>
+                    <p className="truncate text-xs text-muted">
+                      {entry.department ?? t('memberCard.badge.noDepartment')}
+                    </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-semibold text-ink">{formatCurrency(entry.totalValue)}</p>
+                    <p className="tabular text-sm font-semibold text-ink">{formatCurrency(entry.totalValue)}</p>
                     <p className="text-xs text-muted">
                       {t('ranking.metrics.accepted', { count: entry.acceptedProposals })}
                     </p>
                   </div>
-                </Card>
+                </li>
               ))}
-            </div>
-
-            <div className="hidden gap-3 md:grid md:grid-cols-3 xl:grid-cols-5">
-              {rankingEntries.slice(0, 5).map((entry, index) => (
-                <Card
-                  key={`${entry.memberId}-desktop`}
-                  className={cn(
-                    'flex flex-col gap-3 border border-outline/40 bg-white p-4',
-                    index >= 3 ? 'hidden xl:flex' : 'flex'
-                  )}
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-soft text-base font-semibold text-primary">
-                      {index + 1}
-                    </span>
-                    <div>
-                      <p className="text-sm font-semibold text-ink">{entry.name}</p>
-                      <p className="text-xs text-muted">
-                        {entry.department ?? t('memberCard.badge.noDepartment')}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex flex-col gap-1 text-sm">
-                    <p className="font-semibold text-ink">{formatCurrency(entry.totalValue)}</p>
-                    <p className="text-xs text-muted">
-                      {t('ranking.metrics.accepted', { count: entry.acceptedProposals })}
-                    </p>
-                  </div>
-                </Card>
-              ))}
-            </div>
-          </>
-        )}
+            </ol>
+          )}
+        </div>
       </Card>
 
       {teamQuery.isLoading ? (
         <div className="grid gap-4 lg:grid-cols-2">
           {Array.from({ length: 2 }).map((_, index) => (
-            <Card
-              key={`team-skeleton-${index}`}
-              className="h-48 animate-pulse rounded-3xl border border-outline/40 bg-white/70"
-            />
+            <Skeleton key={`team-skeleton-${index}`} className="h-56 rounded-xl" />
           ))}
         </div>
       ) : members.length === 0 ? (
-        <Card className="border border-outline/30 bg-white px-6 py-10 text-center text-sm text-muted">
-          {t('states.empty')}
-        </Card>
+        <EmptyState
+          icon={<UserPlus size={24} weight="bold" />}
+          title={t('states.empty')}
+          action={
+            <Button onClick={() => handleDialogOpenChange(true)}>
+              <UserPlus size={16} weight="bold" />
+              {t('actions.addMember')}
+            </Button>
+          }
+        />
       ) : (
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div className="grid items-start gap-4 lg:grid-cols-2">
           {members.map((member) => {
             const department = member.departmentId ? departmentMap[member.departmentId] : null;
             const baseline = baselines[member.id];
             const hasChanges = (baseline ?? null) !== (member.departmentId ?? null);
 
             return (
-              <Card key={member.id} className="space-y-4 border border-outline/60 bg-white p-6 shadow-sm">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <h3 className="text-base font-semibold text-ink">{member.displayName}</h3>
-                    <p className="text-sm text-muted">
-                      {resolveRoleLabel(member.role, member.jobTitle)}
+              <Card key={member.id} className="flex flex-col">
+                <div className="flex items-start gap-3 p-5 pb-4">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-ink text-sm font-bold text-white">
+                    {member.displayName.trim().charAt(0).toUpperCase()}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="truncate font-sans text-[15px] font-semibold text-ink">{member.displayName}</h3>
+                      {!member.isActive ? <Badge tone="warning">{tInvite('pendingBadge')}</Badge> : null}
+                    </div>
+                    <p className="truncate text-sm text-muted">
+                      {resolveRoleLabel(member.role, member.jobTitle)} · {member.email}
                     </p>
-                    <p className="text-xs text-muted">{member.email}</p>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Badge tone="info">{department?.name ?? t('memberCard.badge.noDepartment')}</Badge>
-                    {!member.isActive ? (
-                      <Button
-                        size="sm"
-                        variant="danger"
-                        onClick={() => handleDeleteMember(member)}
-                        loading={deletingMemberId === member.id}
-                        loadingText={tInvite('deleting')}
-                      >
-                        <Trash size={14} weight="bold" />
-                        {tInvite('delete')}
-                      </Button>
-                    ) : null}
-                  </div>
+                  {!member.isActive ? (
+                    <Button
+                      size="icon-sm"
+                      variant="ghost"
+                      onClick={() => handleDeleteMember(member)}
+                      loading={deletingMemberId === member.id}
+                      loadingText=""
+                      aria-label={tInvite('delete')}
+                      title={tInvite('delete')}
+                      className="hover:bg-danger-soft hover:text-danger"
+                    >
+                      <Trash size={16} />
+                    </Button>
+                  ) : null}
                 </div>
 
-                <div className="space-y-2">
-                  <Label>{t('memberCard.fields.department')}</Label>
-                 <Select
-                    value={member.departmentId ?? UNASSIGNED_DEPARTMENT_VALUE}
-                    onValueChange={(value) => updateDepartment(member.id, value)}
-                    disabled={savingMemberId === member.id}
-                  >
-                    <SelectItem value={UNASSIGNED_DEPARTMENT_VALUE}>
-                      {t('memberCard.badge.noDepartment')}
-                    </SelectItem>
-                    {departmentOptions.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
+                <div className="space-y-4 border-t border-border p-5">
+                  <Field label={t('memberCard.fields.department')} htmlFor={`department-${member.id}`}>
+                    <Select
+                      id={`department-${member.id}`}
+                      value={member.departmentId ?? UNASSIGNED_DEPARTMENT_VALUE}
+                      onValueChange={(value) => updateDepartment(member.id, value)}
+                      disabled={savingMemberId === member.id}
+                    >
+                      <SelectItem value={UNASSIGNED_DEPARTMENT_VALUE}>
+                        {t('memberCard.badge.noDepartment')}
                       </SelectItem>
-                    ))}
-                  </Select>
-                </div>
+                      {departmentOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </Select>
+                  </Field>
 
-                {department ? (
-                  <div className="space-y-3">
-                    <p className="text-sm font-semibold text-ink">{t('memberCard.sections.permissions')}</p>
-                    <DepartmentPermissionList department={department} />
-                  </div>
-                ) : null}
+                  {department ? (
+                    <div className="space-y-2">
+                      <p className="meta-label">{t('memberCard.sections.permissions')}</p>
+                      <DepartmentPermissionList department={department} />
+                    </div>
+                  ) : null}
 
-                {!member.isActive ? (
-                  <div className="rounded-lg border border-outline/30 bg-[var(--color-surface-muted)]/50 px-3 py-3 text-xs text-muted">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <span>{tInvite('pendingNote')}</span>
+                  {!member.isActive ? (
+                    <div className="space-y-3 rounded-lg bg-surface-muted px-4 py-3 text-sm">
+                      <p className="text-ink-muted">{tInvite('pendingNote')}</p>
                       <div className="flex flex-wrap gap-2">
                         <Button
                           size="sm"
-                          variant="ghost"
+                          variant="secondary"
                           onClick={() => handleResendInvite(member.id)}
                           loading={pendingInviteMemberId === member.id && pendingInviteAction === 'email'}
                           loadingText={tInvite('resending')}
                         >
+                          <EnvelopeSimple size={14} />
                           {tInvite('resend')}
                         </Button>
+                        {member.inviteUrl ? (
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={async () => {
+                              try {
+                                await handleCopyInvite(member.inviteUrl!);
+                                setCopiedMemberId(member.id);
+                                setTimeout(() => {
+                                  setCopiedMemberId((prev) => (prev === member.id ? null : prev));
+                                }, 4000);
+                              } catch (error) {
+                                console.error('Failed to copy invite link', error);
+                              }
+                            }}
+                          >
+                            <Copy size={14} />
+                            {tInvite('copyExisting')}
+                          </Button>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => handleCopyMemberInvite(member.id)}
+                            loading={pendingInviteMemberId === member.id && pendingInviteAction === 'copy'}
+                            loadingText={tInvite('generating')}
+                          >
+                            <LinkSimple size={14} />
+                            {tInvite('generateLink')}
+                          </Button>
+                        )}
                       </div>
+                      {copiedMemberId === member.id ? (
+                        <p className="text-xs font-semibold text-success">{tInvite('copiedExisting')}</p>
+                      ) : null}
+                      {resentMemberId === member.id ? (
+                        <p className="text-xs font-semibold text-success">{tInvite('resent')}</p>
+                      ) : null}
                     </div>
-                    {member.inviteUrl ? (
-                      <div className="mt-3 space-y-2 text-left">
-                        <p className="text-xs font-medium text-ink">{tInvite('linkLabel')}</p>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={async () => {
-                            try {
-                              await handleCopyInvite(member.inviteUrl!);
-                              setCopiedMemberId(member.id);
-                              setTimeout(() => {
-                                setCopiedMemberId((prev) => (prev === member.id ? null : prev));
-                              }, 4000);
-                            } catch (error) {
-                              console.error('Failed to copy invite link', error);
-                            }
-                          }}
-                        >
-                          {tInvite('copyExisting')}
-                        </Button>
-                      </div>
-                    ) : (
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleCopyMemberInvite(member.id)}
-                          loading={pendingInviteMemberId === member.id && pendingInviteAction === 'copy'}
-                          loadingText={tInvite('generating')}
-                        >
-                          {tInvite('generateLink')}
-                        </Button>
-                      </div>
-                    )}
-                    {copiedMemberId === member.id ? (
-                      <p className="mt-2 font-medium text-success">{tInvite('copiedExisting')}</p>
-                    ) : null}
-                    {resentMemberId === member.id ? (
-                      <p className="mt-2 font-medium text-success">{tInvite('resent')}</p>
-                    ) : null}
+                  ) : null}
+                </div>
+
+                {hasChanges ? (
+                  <div className="flex items-center justify-end gap-2 border-t border-border bg-primary-tint px-5 py-3">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => revertChanges(member.id)}
+                      disabled={savingMemberId === member.id}
+                    >
+                      {t('memberCard.buttons.revert')}
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => persistChanges(member.id)}
+                      loading={savingMemberId === member.id}
+                      loadingText={t('memberCard.buttons.saving')}
+                    >
+                      {t('memberCard.buttons.save')}
+                    </Button>
                   </div>
                 ) : null}
-
-                <div className="flex justify-end gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => revertChanges(member.id)}
-                    disabled={!hasChanges || savingMemberId === member.id}
-                  >
-                    {t('memberCard.buttons.revert')}
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={() => persistChanges(member.id)}
-                    disabled={!hasChanges}
-                    loading={savingMemberId === member.id}
-                    loadingText={t('memberCard.buttons.saving')}
-                  >
-                    {t('memberCard.buttons.save')}
-                  </Button>
-                </div>
               </Card>
             );
           })}
@@ -929,7 +871,7 @@ export default function TeamPage() {
         inviteEmailSent={inviteEmailSent}
       />
 
-      <Dialog.Root
+      <Modal
         open={Boolean(deleteTarget)}
         onOpenChange={(open) => {
           if (!open) {
@@ -940,52 +882,44 @@ export default function TeamPage() {
             setDeleteError(null);
           }
         }}
+        size="sm"
+        title={tInvite('deleteTitle')}
+        description={tInvite('deleteConfirm')}
       >
-        <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 z-40 bg-ink/40 backdrop-blur-sm" />
-          <Dialog.Content className="fixed inset-0 z-50 flex items-center justify-center px-4 py-6">
-            <div className="w-full max-w-sm rounded-2xl border border-outline/40 bg-white p-6 shadow-2xl">
-              <Dialog.Title className="text-lg font-semibold text-ink">
-                {tInvite('deleteTitle')}
-              </Dialog.Title>
-              <Dialog.Description className="mt-2 text-sm text-muted">
-                {tInvite('deleteConfirm')}
-              </Dialog.Description>
-              {deleteTarget ? (
-                <p className="mt-3 text-xs font-medium text-ink">
-                  {deleteTarget.displayName} · {deleteTarget.email}
-                </p>
-              ) : null}
-              {deleteError ? <p className="mt-4 text-sm text-danger">{deleteError}</p> : null}
-              <div className="mt-6 flex justify-end gap-2">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={() => {
-                    if (deleteTarget && deletingMemberId === deleteTarget.id) {
-                      return;
-                    }
-                    setDeleteTarget(null);
-                    setDeleteError(null);
-                  }}
-                  disabled={Boolean(deleteTarget && deletingMemberId === deleteTarget.id)}
-                >
-                  {t('dialog.actions.cancel')}
-                </Button>
-                <Button
-                  type="button"
-                  variant="danger"
-                  onClick={confirmDeleteMember}
-                  loading={Boolean(deleteTarget && deletingMemberId === deleteTarget.id)}
-                  loadingText={tInvite('deleting')}
-                >
-                  {tInvite('deleteConfirmButton')}
-                </Button>
-              </div>
-            </div>
-          </Dialog.Content>
-        </Dialog.Portal>
-      </Dialog.Root>
+        <ModalBody>
+          {deleteTarget ? (
+            <p className="rounded-lg bg-surface-muted px-3 py-2 text-sm font-medium text-ink">
+              {deleteTarget.displayName} · {deleteTarget.email}
+            </p>
+          ) : null}
+          {deleteError ? <Notice tone="danger">{deleteError}</Notice> : null}
+        </ModalBody>
+        <ModalFooter>
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => {
+              if (deleteTarget && deletingMemberId === deleteTarget.id) {
+                return;
+              }
+              setDeleteTarget(null);
+              setDeleteError(null);
+            }}
+            disabled={Boolean(deleteTarget && deletingMemberId === deleteTarget.id)}
+          >
+            {t('dialog.actions.cancel')}
+          </Button>
+          <Button
+            type="button"
+            variant="danger"
+            onClick={confirmDeleteMember}
+            loading={Boolean(deleteTarget && deletingMemberId === deleteTarget.id)}
+            loadingText={tInvite('deleting')}
+          >
+            {tInvite('deleteConfirmButton')}
+          </Button>
+        </ModalFooter>
+      </Modal>
     </section>
   );
 }

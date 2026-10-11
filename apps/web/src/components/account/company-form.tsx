@@ -5,9 +5,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { useCurrentUser } from "@/components/providers/user-provider";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardDescription, CardTitle } from "@/components/ui/card";
+import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useApi } from "@/hooks/use-api";
 import type { AccountSettingsResponse, CompanyInfo } from "@/types/api";
 
@@ -60,30 +60,36 @@ export function CompanyForm() {
   });
 
   return (
-    <Card className="space-y-5 rounded-3xl border border-outline/60 bg-white px-6 py-6 shadow-sm">
-      <div className="space-y-1">
-        <h2 className="text-lg font-semibold text-ink">Dados da empresa</h2>
-        <p className="text-sm text-muted">
+    <Card>
+      <div className="space-y-1 border-b border-border p-5 sm:px-6">
+        <CardTitle>Dados da empresa</CardTitle>
+        <CardDescription>
           Estas informações aparecem no cabeçalho e no rodapé de todas as propostas.
-        </p>
+        </CardDescription>
         {contaQuery.data && (
-          <p className="text-sm text-muted">
+          <p className="pt-2 text-sm text-muted">
             Identificador da conta (usado no login):{" "}
-            <span className="font-semibold text-ink">{contaQuery.data.data.slug}</span>
+            <span className="rounded-md bg-surface-muted px-1.5 py-0.5 font-semibold text-ink">
+              {contaQuery.data.data.slug}
+            </span>
           </p>
         )}
       </div>
 
       <form
-        className="grid gap-4 sm:grid-cols-2"
+        className="grid gap-5 p-5 sm:grid-cols-2 sm:px-6"
         onSubmit={(event) => {
           event.preventDefault();
           salvarEmpresa.mutate();
         }}
       >
         {campos.map((campo) => (
-          <div key={campo.chave} className="space-y-2">
-            <Label htmlFor={`company-${campo.chave}`}>{campo.rotulo}</Label>
+          <Field
+            key={campo.chave}
+            label={campo.rotulo}
+            htmlFor={`company-${campo.chave}`}
+            className={campo.chave === "address" || campo.chave === "tagline" ? "sm:col-span-2" : undefined}
+          >
             <Input
               id={`company-${campo.chave}`}
               value={empresa[campo.chave]}
@@ -92,10 +98,11 @@ export function CompanyForm() {
               required={campo.chave === "name"}
               onChange={(event) => setEmpresa((anterior) => ({ ...anterior, [campo.chave]: event.target.value }))}
             />
-          </div>
+          </Field>
         ))}
 
-        <div className="flex flex-wrap items-center gap-3 sm:col-span-2">
+        <div className="flex flex-wrap items-center justify-end gap-3 border-t border-border pt-5 sm:col-span-2">
+          {mensagem && <p className="mr-auto text-sm text-muted">{mensagem}</p>}
           {isOwner && (
             <Button type="submit" loading={salvarEmpresa.isPending} loadingText="Salvando...">
               Salvar dados da empresa
@@ -104,7 +111,6 @@ export function CompanyForm() {
           {!isOwner && (
             <p className="text-xs text-muted">Somente o proprietário da conta pode alterar estes dados.</p>
           )}
-          {mensagem && <p className="text-sm text-muted">{mensagem}</p>}
         </div>
       </form>
     </Card>

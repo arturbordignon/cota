@@ -1,12 +1,16 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { Check } from "@phosphor-icons/react";
 
 import { CheckoutButton } from "@/components/billing/checkout-button";
 import { PageHeader } from "@/components/layout/page-header";
 import { useCurrentUser } from "@/components/providers/user-provider";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { Notice } from "@/components/ui/notice";
+import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 import { useApi } from "@/hooks/use-api";
 import type { BillingOverviewResponse, PlanSummary, PlansResponse } from "@/types/api";
 
@@ -65,31 +69,50 @@ export default function PlansPage() {
         description="Escolha o plano ideal para o volume de propostas da sua empresa."
       />
 
-      {plansQuery.isError && (
-        <Card className="rounded-3xl border border-danger/30 bg-danger-soft/40 px-6 py-6 text-sm text-danger">
-          Não foi possível carregar os planos.
-        </Card>
-      )}
+      {plansQuery.isError && <Notice tone="danger">Não foi possível carregar os planos.</Notice>}
+
+      {plansQuery.isLoading ? (
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, indice) => (
+            <Skeleton key={indice} className="h-60 rounded-xl" />
+          ))}
+        </div>
+      ) : null}
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {planos.map((plano) => (
-          <Card key={plano.id} className="flex flex-col gap-4 rounded-3xl border border-outline/60 bg-white p-6 shadow-sm">
-            <div className="space-y-2">
-              {plano.slug === planoAtual && <Badge tone="success">Plano atual</Badge>}
-              <h2 className="text-lg font-semibold text-ink">{plano.name}</h2>
-              <p className="text-2xl font-semibold text-primary">{formatarPreco(plano)}</p>
-              <p className="text-sm text-muted">{descreverLimite(plano)}</p>
-            </div>
-            <div className="mt-auto">
-              <CheckoutButton
-                planSlug={plano.slug}
-                label="Contratar"
-                className="w-full"
-                disabled={!podeContratar || plano.slug === planoAtual}
-              />
-            </div>
-          </Card>
-        ))}
+        {planos.map((plano) => {
+          const atual = plano.slug === planoAtual;
+          return (
+            <Card
+              key={plano.id}
+              className={cn(
+                "relative flex flex-col p-6",
+                atual && "border-primary ring-[3px] ring-primary/20",
+              )}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <h2 className="font-sans text-[15px] font-semibold text-ink">{plano.name}</h2>
+                {atual && <Badge tone="brand">Plano atual</Badge>}
+              </div>
+              <p className="tabular mt-4 font-display text-[30px] font-semibold leading-none text-ink">
+                {formatarPreco(plano)}
+              </p>
+              <p className="mt-3 flex items-center gap-2 text-sm text-ink-muted">
+                <Check size={14} weight="bold" className="shrink-0 text-success" />
+                {descreverLimite(plano)}
+              </p>
+              <div className="mt-auto pt-6">
+                <CheckoutButton
+                  planSlug={plano.slug}
+                  label={atual ? "Plano atual" : "Contratar"}
+                  variant={atual ? "secondary" : "primary"}
+                  className="w-full"
+                  disabled={!podeContratar || atual}
+                />
+              </div>
+            </Card>
+          );
+        })}
       </div>
     </section>
   );
