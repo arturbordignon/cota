@@ -2,17 +2,14 @@
 
 import { useEffect, useState } from 'react';
 import { useFormatter, useTranslations } from 'next-intl';
-import { FunnelSimple, MagnifyingGlass } from '@phosphor-icons/react';
 import { useQuery } from '@tanstack/react-query';
 
 import { useCurrentUser } from '@/components/providers/user-provider';
+import { FilterBar } from '@/components/layout/filter-bar';
 import { PageHeader } from '@/components/layout/page-header';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectItem } from '@/components/ui/select';
 import { useApi } from '@/hooks/use-api';
 import { AuditEventsResponse } from '@/types/api';
 
@@ -86,31 +83,22 @@ export default function ActivityPage() {
     <section className="space-y-6">
       <PageHeader title={t('title')} description={t('description')} />
 
-      <Card className="flex flex-col gap-4 border border-outline/40 bg-white p-4 shadow-sm md:flex-row md:items-center md:justify-between">
-        <div className="flex flex-1 items-center gap-2 rounded-xl border border-outline bg-white px-3 py-2">
-          <MagnifyingGlass size={18} className="text-muted" />
-          <Input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder={t('filters.searchPlaceholder')}
-            className="h-9 flex-1 border-none bg-transparent px-0 text-sm focus-visible:ring-0"
-          />
-        </div>
-        <div className="flex items-center gap-2">
-          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-            <SelectItem value="all">{t('filters.allModules')}</SelectItem>
-            {categoryKeys.map((category) => (
-              <SelectItem key={category} value={category}>
-                {tCategories(category)}
-              </SelectItem>
-            ))}
-          </Select>
-          <Button variant="ghost" size="sm" onClick={() => setCategoryFilter('all')}>
-            <FunnelSimple size={16} />
-            {t('filters.clear')}
-          </Button>
-        </div>
-      </Card>
+      <FilterBar
+        busca={query}
+        placeholder={t('filters.searchPlaceholder')}
+        aoBuscar={setQuery}
+        opcoes={[
+          { id: 'all', rotulo: t('filters.allModules') },
+          ...categoryKeys.map((category) => ({ id: category, rotulo: tCategories(category) })),
+        ]}
+        opcaoAtiva={categoryFilter}
+        aoEscolher={setCategoryFilter}
+        aoLimpar={() => {
+          setQuery('');
+          setCategoryFilter('all');
+        }}
+        rotuloLimpar={t('filters.clear')}
+      />
 
       <div className="space-y-3">
         {auditEventsQuery.isLoading ? (

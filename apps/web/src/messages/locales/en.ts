@@ -902,6 +902,12 @@ export const enMessages = {
       "actions": {
         "create": "Create proposal"
       },
+      "filters": {
+        "search": "Search client or title",
+        "all": "All",
+        "empty": "No proposals match this filter.",
+        "clear": "Clear"
+      },
       "table": {
         "headers": {
           "client": "Client",

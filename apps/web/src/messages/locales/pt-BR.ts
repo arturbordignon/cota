@@ -902,6 +902,12 @@ export const ptBRMessages = {
       "actions": {
         "create": "Criar proposta"
       },
+      "filters": {
+        "search": "Buscar cliente ou título",
+        "all": "Todas",
+        "empty": "Nenhuma proposta com esse filtro.",
+        "clear": "Limpar"
+      },
       "table": {
         "headers": {
           "client": "Cliente",

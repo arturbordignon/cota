@@ -1,9 +1,11 @@
 'use client';
 
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useFormatter, useTranslations } from "next-intl";
 import { useQuery } from "@tanstack/react-query";
 
+import { FilterBar } from "@/components/layout/filter-bar";
 import { PageHeader } from "@/components/layout/page-header";
 import { useCurrentUser } from "@/components/providers/user-provider";
 import { Badge } from "@/components/ui/badge";
@@ -35,7 +37,46 @@ export default function ProposalsPage() {
   });
 
   const proposals = proposalsQuery.data?.data ?? [];
+  const [busca, setBusca] = useState("");
+  const [statusFiltro, setStatusFiltro] = useState("all");
   const isTokenMissing = !api.token;
+
+  useEffect(() => {
+    const termo = new URLSearchParams(window.location.search).get("search");
+    if (termo) {
+      setBusca(termo);
+    }
+  }, []);
+
+  const propostasVisiveis = useMemo(() => {
+    const termo = busca.trim().toLowerCase();
+    return proposals.filter((proposal) => {
+      if (statusFiltro !== "all" && proposal.status !== statusFiltro) {
+        return false;
+      }
+      if (!termo) {
+        return true;
+      }
+      const cliente = proposal.client?.name ?? "";
+      const titulo = proposal.title ?? "";
+      const texto = `${cliente} ${titulo}`.toLowerCase();
+      return texto.includes(termo);
+    });
+  }, [busca, proposals, statusFiltro]);
+
+  let mensagemVazia = t("filters.empty");
+  if (proposals.length === 0) {
+    mensagemVazia = t("table.empty");
+  }
+
+  const opcoesStatus = [
+    { id: "all", rotulo: t("filters.all") },
+    { id: "DRAFT", rotulo: tStatus("DRAFT") },
+    { id: "SENT", rotulo: tStatus("SENT") },
+    { id: "ACCEPTED", rotulo: tStatus("ACCEPTED") },
+    { id: "DECLINED", rotulo: tStatus("DECLINED") },
+    { id: "EXPIRED", rotulo: tStatus("EXPIRED") },
+  ];
   const loadError = proposalsQuery.error as Error | null;
 
   const formatDate = (proposal: ProposalSummary) =>
@@ -81,7 +122,21 @@ export default function ProposalsPage() {
         </Card>
       ) : null}
 
-      <Card className="rounded-3xl border-outline bg-white/90 p-0">
+      <FilterBar
+        busca={busca}
+        placeholder={t("filters.search")}
+        aoBuscar={setBusca}
+        opcoes={opcoesStatus}
+        opcaoAtiva={statusFiltro}
+        aoEscolher={setStatusFiltro}
+        aoLimpar={() => {
+          setBusca("");
+          setStatusFiltro("all");
+        }}
+        rotuloLimpar={t("filters.clear")}
+      />
+
+      <Card className="overflow-hidden rounded-xl border-outline bg-white p-0">
         <div className="w-full overflow-x-auto">
           <table className="w-full min-w-[640px] table-auto text-sm">
             <thead className="bg-surface text-muted">
@@ -100,14 +155,14 @@ export default function ProposalsPage() {
                     {t("table.loading")}
                   </td>
                 </tr>
-              ) : proposals.length === 0 ? (
+              ) : propostasVisiveis.length === 0 ? (
                 <tr className="border-t border-outline/60">
                   <td colSpan={5} className="px-6 py-10 text-center text-muted">
-                    {t("table.empty")}
+                    {mensagemVazia}
                   </td>
                 </tr>
               ) : (
-                proposals.map((proposal) => {
+                propostasVisiveis.map((proposal) => {
                   const tone = STATUS_TONES[proposal.status] ?? 'neutral';
                   const statusLabel = tStatus(proposal.status);
                   return (

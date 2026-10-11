@@ -10,6 +10,7 @@ import { useForm } from "react-hook-form";
 import { DotsThreeVertical, PaperPlaneTilt, UserCircle, X } from "@phosphor-icons/react";
 import { z } from "zod";
 
+import { FilterBar } from "@/components/layout/filter-bar";
 import { PageHeader } from "@/components/layout/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -338,7 +339,6 @@ export default function ClientsPage() {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const menuContainerRef = useRef<HTMLDivElement | null>(null);
   const [copiedClientId, setCopiedClientId] = useState<string | null>(null);
-  const [filtersOpen, setFiltersOpen] = useState(false);
 
   useEffect(() => {
     setOpenMenuId(null);
@@ -502,92 +502,31 @@ export default function ClientsPage() {
         </div>
       ) : null}
 
-      <Card className="border border-outline/40 bg-white/95 p-4 shadow-sm">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="w-full sm:max-w-xl">
-            <Label htmlFor="client-search" className="text-xs uppercase tracking-wide text-muted">
-              {t("filters.search.label")}
-            </Label>
-            <div className="mt-1 flex items-center gap-2">
-              <Input
-                id="client-search"
-                value={searchTerm}
-                onChange={(event) => setSearchTerm(event.target.value)}
-                placeholder={t("filters.search.placeholder")}
-                className="w-full"
-              />
-              {searchTerm ? (
-                <Button variant="ghost" size="sm" onClick={() => setSearchTerm("")}>
-                  {t("filters.clearSearch")}
-                </Button>
-              ) : null}
-            </div>
-          </div>
-          <div className="flex w-full flex-col gap-2 sm:w-auto sm:items-end">
-            <p className="text-xs text-muted">
-              {searchTerm || contactFilter !== "all" || sortOption !== "recent"
-                ? t("filters.summaryFiltered", {
-                    count: filteredClients.length,
-                    total: clients.length,
-                  })
-                : t("filters.summaryAll", { total: clients.length })}
-            </p>
-            <Button variant="ghost" size="sm" onClick={() => setFiltersOpen((prev) => !prev)}>
-              {filtersOpen ? t("filters.hide") : t("filters.show")}
-            </Button>
-          </div>
-        </div>
-
-        <div
-          className={`grid gap-4 overflow-hidden transition-[grid-template-rows,opacity] duration-200 ${
-            filtersOpen ? "mt-4 opacity-100 grid-rows-[1fr]" : "grid-rows-[0fr] opacity-0"
-          }`}
-        >
-          <div className="grid gap-4 sm:grid-cols-3">
-            <div>
-              <Label className="text-xs uppercase tracking-wide text-muted">
-                {t("filters.sort.label")}
-              </Label>
-              <Select
-                value={sortOption}
-                onValueChange={(value) => setSortOption(value as typeof sortOption)}
-              >
-                <SelectItem value="recent">{t("filters.sort.recent")}</SelectItem>
-                <SelectItem value="oldest">{t("filters.sort.oldest")}</SelectItem>
-                <SelectItem value="name">{t("filters.sort.name")}</SelectItem>
-              </Select>
-            </div>
-
-            <div>
-              <Label className="text-xs uppercase tracking-wide text-muted">
-                {t("filters.contact.label")}
-              </Label>
-              <Select
-                value={contactFilter}
-                onValueChange={(value) => setContactFilter(value as typeof contactFilter)}
-              >
-                <SelectItem value="all">{t("filters.contact.all")}</SelectItem>
-                <SelectItem value="withEmail">{t("filters.contact.withEmail")}</SelectItem>
-                <SelectItem value="withPhone">{t("filters.contact.withPhone")}</SelectItem>
-              </Select>
-            </div>
-
-            <div className="flex items-end justify-end">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  setSearchTerm("");
-                  setContactFilter("all");
-                  setSortOption("recent");
-                }}
-              >
-                {t("filters.clear")}
-              </Button>
-            </div>
-          </div>
-        </div>
-      </Card>
+      <FilterBar
+        busca={searchTerm}
+        placeholder={t("filters.search.placeholder")}
+        aoBuscar={setSearchTerm}
+        opcoes={[
+          { id: "all", rotulo: t("filters.contact.all") },
+          { id: "withEmail", rotulo: t("filters.contact.withEmail") },
+          { id: "withPhone", rotulo: t("filters.contact.withPhone") },
+        ]}
+        opcaoAtiva={contactFilter}
+        aoEscolher={(valor) => setContactFilter(valor as typeof contactFilter)}
+        aoLimpar={() => {
+          setSearchTerm("");
+          setContactFilter("all");
+          setSortOption("recent");
+        }}
+        rotuloLimpar={t("filters.clear")}
+        extra={
+          <Select value={sortOption} onValueChange={(value) => setSortOption(value as typeof sortOption)}>
+            <SelectItem value="recent">{t("filters.sort.recent")}</SelectItem>
+            <SelectItem value="oldest">{t("filters.sort.oldest")}</SelectItem>
+            <SelectItem value="name">{t("filters.sort.name")}</SelectItem>
+          </Select>
+        }
+      />
 
       {isLoading ? (
         <Card className="border border-outline/30 bg-white px-6 py-10 text-center text-sm text-muted">

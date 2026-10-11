@@ -19,9 +19,9 @@ interface GlobalSearchProps {
 export function GlobalSearch({ onSearch, autoFocus = false }: GlobalSearchProps) {
   const [query, setQuery] = useState("");
   const [scope, setScope] = useState<SearchScope>("all");
-  const tSearch = useTranslations("search");
-  const tScopes = useTranslations("search.scopes");
-  const tQuick = useTranslations("search.quick");
+  const tSearch = useTranslations("common.search");
+  const tScopes = useTranslations("common.search.scopes");
+  const tQuick = useTranslations("common.search.quick");
 
   const placeholder = useMemo(
     () => tSearch("placeholderPrefix", { scope: tScopes(scope) }),
@@ -30,7 +30,13 @@ export function GlobalSearch({ onSearch, autoFocus = false }: GlobalSearchProps)
 
   const quickFilters = useMemo(() => searchScopes.filter((item) => item !== "all"), []);
 
-  const recentSearches = useMemo(() => tSearch.raw("recentSamples") as string[], [tSearch]);
+  const recentSearches = useMemo(() => {
+    const amostras = tSearch.raw("recentSamples");
+    if (!Array.isArray(amostras)) {
+      return [] as string[];
+    }
+    return amostras.filter((item) => typeof item === "string");
+  }, [tSearch]);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -90,10 +96,7 @@ export function GlobalSearch({ onSearch, autoFocus = false }: GlobalSearchProps)
               <button
                 key={item}
                 type="button"
-                onClick={() => {
-                  setQuery(item);
-                  onSearch?.(item, scope);
-                }}
+                onClick={() => setQuery(item)}
                 className="rounded-full bg-white/80 px-2 py-1 font-medium text-ink shadow-sm transition hover:text-primary"
               >
                 {item}
