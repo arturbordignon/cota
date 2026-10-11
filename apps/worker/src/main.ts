@@ -24,23 +24,13 @@ pdfWorker.on('completed', async (job, result) => {
   if (result?.pdfObjectKey) {
     await prisma.proposal.update({
       where: { id: job.data.proposalId },
-      data: {
-        status: 'SENT',
-        pdfObjectKey: result.pdfObjectKey,
-        sentAt: new Date(),
-      },
+      data: { pdfObjectKey: result.pdfObjectKey },
     });
   }
 });
 
 pdfWorker.on('failed', async (job, err) => {
   logger.error({ jobId: job?.id, err }, 'PDF job failed');
-  if (job?.data?.proposalId) {
-    await prisma.proposal.update({
-      where: { id: job.data.proposalId },
-      data: { status: 'DRAFT' },
-    });
-  }
 });
 
 const pdfQueue = new Queue(pdfQueueName, { connection });

@@ -46,6 +46,24 @@ export async function createDownloadUrl({ key, expiresIn = 900 }: DownloadUrlInp
   return url;
 }
 
+interface UploadObjectInput {
+  key: string;
+  body: Uint8Array;
+  contentType: string;
+}
+
+export async function uploadObject({ key, body, contentType }: UploadObjectInput) {
+  const command = new PutObjectCommand({
+    Bucket: env.S3_BUCKET,
+    Key: key,
+    Body: body,
+    ContentType: contentType
+  });
+
+  await s3Client.send(command);
+  return key;
+}
+
 export function getS3Client() {
   return s3Client;
 }

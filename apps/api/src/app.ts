@@ -8,6 +8,7 @@ import swaggerUi from '@fastify/swagger-ui';
 import rateLimit from '@fastify/rate-limit';
 import jwt from '@fastify/jwt';
 import redis from '@fastify/redis';
+import { ZodError } from 'zod';
 
 import env from '@crane/config';
 import i18nPlugin from './plugins/i18n.js';
@@ -27,6 +28,16 @@ import equipmentRoutes from './routes/v1/equipment.js';
 import teamRoutes from './routes/v1/team.js';
 import auditEventRoutes from './routes/v1/audit-events.js';
 import pipelineRoutes from './routes/v1/pipeline.js';
+import accountRoutes from './routes/v1/account.js';
+import publicRoutes from './routes/v1/public.js';
+
+function formatarErroValidacao(erro: ZodError) {
+  const mensagens = erro.issues.map((issue) => {
+    if (issue.path.length === 0) return issue.message;
+    return `${issue.path.join('.')}: ${issue.message}`;
+  });
+  return mensagens.join('; ');
+}
 
 const corsOrigins = Array.from(
   new Set(
@@ -111,6 +122,10 @@ export async function buildServer() {
   await app.register(i18nPlugin);
   await app.register(queuesPlugin);
 
+  if (env.JWT_ACCESS_SECRET === env.JWT_REFRESH_SECRET) {
+    throw new Error('JWT_ACCESS_SECRET e JWT_REFRESH_SECRET precisam ser diferentes');
+  }
+
   await app.register(jwt, {
     secret: env.JWT_ACCESS_SECRET,
     sign: {
@@ -124,6 +139,20 @@ export async function buildServer() {
     } catch (err) {
       return reply.status(401).send({ message: 'Unauthorized' });
     }
+  });
+
+  app.setErrorHandler((erro, request, reply) => {
+    if (erro instanceof ZodError) {
+      return reply.status(400).send({
+        message: formatarErroValidacao(erro),
+        issues: erro.issues,
+      });
+    }
+    if (erro.statusCode && erro.statusCode < 500) {
+      return reply.status(erro.statusCode).send({ message: erro.message });
+    }
+    request.log.error({ err: erro }, 'Unhandled error');
+    return reply.status(500).send({ message: 'Internal server error' });
   });
 
   app.get('/health', async () => ({ status: 'ok' }));
@@ -145,6 +174,8 @@ export async function buildServer() {
   app.register(equipmentRoutes, { prefix: '/api/v1/equipment' });
   app.register(teamRoutes, { prefix: '/api/v1/team' });
   app.register(auditEventRoutes, { prefix: '/api/v1/audit-events' });
+  app.register(accountRoutes, { prefix: '/api/v1/account' });
+  app.register(publicRoutes, { prefix: '/api/v1/public' });
 
   return app;
 }

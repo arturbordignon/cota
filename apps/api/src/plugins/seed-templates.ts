@@ -117,6 +117,8 @@ const craneTemplate = {
       .highlight { font-size: 28px; font-weight: 700; color: #c0860a; }
       .muted { color: #6f6052; font-size: 13px; }
       .terms p { margin-bottom: 10px; }
+      .photos { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+      .photos img { width: 100%; height: 220px; object-fit: cover; border-radius: 12px; border: 1px solid #f0e4cf; }
     </style>
   </head>
   <body>
@@ -207,6 +209,7 @@ const craneTemplate = {
             <div>
               <p class="muted">Diária operacional</p>
               <p><strong>{{pricing.dailyRate}}</strong></p>
+              {{#pricing.days}}<p class="muted">{{pricing.days}} dia(s) de operação</p>{{/pricing.days}}
             </div>
           </div>
           <p class="muted" style="margin-top: 20px;">Investimento total estimado</p>
@@ -214,6 +217,17 @@ const craneTemplate = {
           <p class="muted">{{pricing.validity}}</p>
         </div>
       </section>
+
+      {{#hasPhotos}}
+      <section>
+        <h2>Registro fotográfico</h2>
+        <div class="photos">
+          {{#photos}}
+          <img src="{{url}}" alt="Foto da operação" />
+          {{/photos}}
+        </div>
+      </section>
+      {{/hasPhotos}}
 
       <section class="terms">
         <h2>Condições gerais</h2>
@@ -224,8 +238,8 @@ const craneTemplate = {
 
       <footer class="footer" style="margin-top: 48px;">
         <div>
-          <p class="muted">CNPJ {{company.cnpj}}</p>
-          <p class="muted">Rua do Operador, 123 • São Paulo, SP</p>
+          {{#company.cnpj}}<p class="muted">CNPJ {{company.cnpj}}</p>{{/company.cnpj}}
+          {{#company.address}}<p class="muted">{{company.address}}</p>{{/company.address}}
         </div>
         <div>
           <p class="muted">Documento gerado por Crane Proposals</p>

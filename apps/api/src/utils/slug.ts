@@ -12,7 +12,7 @@ type SlugifyOptions = {
 
 const slugify = slugifyLib as unknown as (str: string, options?: SlugifyOptions) => string;
 
-const nanoid = customAlphabet('abcdefghijklmnopqrstuvwxyz0123456789', 6);
+const nanoid = customAlphabet('abcdefghijklmnopqrstuvwxyz0123456789', 12);
 
 export function toAccountSlug(name: string) {
   return slugify(name, {

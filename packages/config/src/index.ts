@@ -45,6 +45,7 @@ const envSchema = z.object({
   CDN_BASE_URL: z.string().default('http://localhost:3000'),
   QUEUE_PREFIX: z.string().default('crane'),
   PDF_RENDER_TIMEOUT_MS: z.coerce.number().default(120000),
+  CHROMIUM_EXECUTABLE_PATH: z.string().default(''),
   AUDIT_LOG_STORE_IP: z
     .union([z.literal('true'), z.literal('false')])
     .default('true')
