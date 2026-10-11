@@ -10,7 +10,8 @@ import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Field } from "@/components/ui/field";
+import { Notice } from "@/components/ui/notice";
 import { Textarea } from "@/components/ui/textarea";
 import { useApi } from "@/hooks/use-api";
 
@@ -74,10 +75,9 @@ export default function NovoServicoPage() {
         title="Novo serviço"
         description="Cadastre um equipamento ou pacote para reutilizar nas propostas."
       />
-      <Card className="p-6">
-        <form className="space-y-4" onSubmit={salvar}>
-          <div className="space-y-2">
-            <Label htmlFor="service-name">Nome</Label>
+      <Card className="max-w-3xl p-5 sm:p-6">
+        <form className="space-y-5" onSubmit={salvar}>
+          <Field label="Nome" htmlFor="service-name">
             <Input
               id="service-name"
               value={nome}
@@ -86,10 +86,9 @@ export default function NovoServicoPage() {
               required
               disabled={registrar.isPending}
             />
-          </div>
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="service-capacity">Capacidade (t)</Label>
+          </Field>
+          <div className="grid gap-5 md:grid-cols-2">
+            <Field label="Capacidade (t)" htmlFor="service-capacity">
               <Input
                 id="service-capacity"
                 inputMode="decimal"
@@ -98,9 +97,8 @@ export default function NovoServicoPage() {
                 placeholder="Ex.: 50"
                 disabled={registrar.isPending}
               />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="service-rate">Valor diário (BRL)</Label>
+            </Field>
+            <Field label="Valor diário (BRL)" htmlFor="service-rate">
               <Input
                 id="service-rate"
                 inputMode="decimal"
@@ -109,10 +107,9 @@ export default function NovoServicoPage() {
                 placeholder="Ex.: 2500"
                 disabled={registrar.isPending}
               />
-            </div>
+            </Field>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="service-description">Descrição</Label>
+          <Field label="Descrição" htmlFor="service-description">
             <Textarea
               id="service-description"
               rows={3}
@@ -121,9 +118,8 @@ export default function NovoServicoPage() {
               placeholder="Resumo do serviço ou equipamento"
               disabled={registrar.isPending}
             />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="service-notes">Observações internas</Label>
+          </Field>
+          <Field label="Observações internas" htmlFor="service-notes">
             <Textarea
               id="service-notes"
               rows={2}
@@ -132,18 +128,14 @@ export default function NovoServicoPage() {
               placeholder="Links, restrições ou observações"
               disabled={registrar.isPending}
             />
-          </div>
-          {erro ? (
-            <p className="rounded-lg border border-danger/40 bg-danger-soft/20 px-3 py-2 text-sm text-danger">
-              {erro}
-            </p>
-          ) : null}
-          <div className="flex gap-2">
-            <Button type="submit" disabled={registrar.isPending || !nome.trim()}>
-              {registrar.isPending ? "Salvando..." : "Salvar serviço"}
-            </Button>
+          </Field>
+          {erro ? <Notice tone="danger">{erro}</Notice> : null}
+          <div className="flex flex-col-reverse gap-2 border-t border-border pt-5 sm:flex-row sm:justify-end">
             <Button type="button" variant="ghost" asChild>
               <Link href={"/services" as Route}>Cancelar</Link>
+            </Button>
+            <Button type="submit" disabled={registrar.isPending || !nome.trim()} loading={registrar.isPending} loadingText="Salvando...">
+              Salvar serviço
             </Button>
           </div>
         </form>

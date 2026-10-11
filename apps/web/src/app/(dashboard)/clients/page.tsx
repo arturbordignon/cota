@@ -3,21 +3,23 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useFormatter, useTranslations } from "next-intl";
-import * as Dialog from "@radix-ui/react-dialog";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
-import { DotsThreeVertical, PaperPlaneTilt, UserCircle, X } from "@phosphor-icons/react";
+import { Check, Copy, DotsThreeVertical, PaperPlaneTilt, Plus, UserCircle, UsersThree } from "@phosphor-icons/react";
 import { z } from "zod";
 
 import { FilterBar } from "@/components/layout/filter-bar";
 import { PageHeader } from "@/components/layout/page-header";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Modal, ModalBody, ModalClose, ModalFooter } from "@/components/ui/modal";
+import { Notice } from "@/components/ui/notice";
 import { Select, SelectItem } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { useApi } from "@/hooks/use-api";
 import { StatCard } from "@/components/reports/stat-card";
@@ -51,6 +53,9 @@ interface ClientDetailsView {
   createdAt: string;
   updatedAt: string;
 }
+
+const menuItemClass =
+  "flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm font-medium text-ink-muted transition-colors hover:bg-surface-muted hover:text-ink";
 
 const addClientSchema = z.object({
   name: z.string().min(2),
@@ -97,7 +102,7 @@ function AddClientDialog({
   });
 
   return (
-    <Dialog.Root
+    <Modal
       open={open}
       onOpenChange={(next) => {
         if (!next) {
@@ -105,111 +110,81 @@ function AddClientDialog({
         }
         onOpenChange(next);
       }}
+      title={t("title")}
+      description={t("description")}
+      closeLabel={t("close")}
+      onSubmit={handleSubmit}
     >
-      <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-40 bg-ink/40 backdrop-blur-sm" />
-        <Dialog.Content className="fixed inset-0 z-50 flex items-start justify-center px-4 py-10">
-          <div className="w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-2xl">
-            <div className="flex items-center justify-between border-b border-outline/20 px-6 py-4">
-              <div>
-                <Dialog.Title className="text-lg font-semibold text-ink">{t("title")}</Dialog.Title>
-                <Dialog.Description className="text-xs text-muted">
-                  {t("description")}
-                </Dialog.Description>
-              </div>
-              <Dialog.Close asChild>
-                <button
-                  type="button"
-                  className="rounded-full border border-outline bg-white p-2 text-ink shadow-sm transition hover:bg-primary-soft"
-                  aria-label={t("close")}
-                >
-                  <X size={16} weight="bold" />
-                </button>
-              </Dialog.Close>
-            </div>
+      <ModalBody>
+        <Field label={t("fields.name")} htmlFor="client-name" error={form.formState.errors.name ? t("errors.name") : undefined}>
+          <Input
+            id="client-name"
+            {...form.register("name")}
+            placeholder={t("placeholders.name")}
+            disabled={isLoading}
+            aria-invalid={Boolean(form.formState.errors.name)}
+            autoFocus
+          />
+        </Field>
 
-            <form className="space-y-4 px-6 py-6" onSubmit={handleSubmit}>
-              <div className="space-y-2">
-                <Label htmlFor="client-name">{t("fields.name")}</Label>
-                <Input
-                  id="client-name"
-                  {...form.register("name")}
-                  placeholder={t("placeholders.name")}
-                  disabled={isLoading}
-                />
-                {form.formState.errors.name ? (
-                  <p className="text-xs text-danger">{t("errors.name")}</p>
-                ) : null}
-              </div>
+        <Field label={t("fields.company")} htmlFor="client-company">
+          <Input
+            id="client-company"
+            {...form.register("companyName")}
+            placeholder={t("placeholders.company")}
+            disabled={isLoading}
+          />
+        </Field>
 
-              <div className="space-y-2">
-                <Label htmlFor="client-company">{t("fields.company")}</Label>
-                <Input
-                  id="client-company"
-                  {...form.register("companyName")}
-                  placeholder={t("placeholders.company")}
-                  disabled={isLoading}
-                />
-              </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          <Field label={t("fields.email")} htmlFor="client-email" error={form.formState.errors.email ? t("errors.email") : undefined}>
+            <Input
+              id="client-email"
+              type="email"
+              {...form.register("email")}
+              placeholder={t("placeholders.email")}
+              disabled={isLoading}
+              aria-invalid={Boolean(form.formState.errors.email)}
+            />
+          </Field>
+          <Field label={t("fields.phone")} htmlFor="client-phone">
+            <Input
+              id="client-phone"
+              {...form.register("phone")}
+              placeholder={t("placeholders.phone")}
+              disabled={isLoading}
+            />
+          </Field>
+        </div>
 
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="client-email">{t("fields.email")}</Label>
-                  <Input
-                    id="client-email"
-                    type="email"
-                    {...form.register("email")}
-                    placeholder={t("placeholders.email")}
-                    disabled={isLoading}
-                  />
-                  {form.formState.errors.email ? (
-                    <p className="text-xs text-danger">{t("errors.email")}</p>
-                  ) : null}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="client-phone">{t("fields.phone")}</Label>
-                  <Input
-                    id="client-phone"
-                    {...form.register("phone")}
-                    placeholder={t("placeholders.phone")}
-                    disabled={isLoading}
-                  />
-                </div>
-              </div>
+        <Field label={t("fields.notes")} htmlFor="client-notes">
+          <Textarea
+            id="client-notes"
+            rows={3}
+            {...form.register("notes")}
+            placeholder={t("placeholders.notes")}
+            disabled={isLoading}
+          />
+        </Field>
 
-              <div className="space-y-2">
-                <Label htmlFor="client-notes">{t("fields.notes")}</Label>
-                <Textarea
-                  id="client-notes"
-                  rows={3}
-                  {...form.register("notes")}
-                  placeholder={t("placeholders.notes")}
-                  disabled={isLoading}
-                />
-              </div>
-
-              {errorMessage ? <p className="text-sm text-danger">{errorMessage}</p> : null}
-
-              <div className="flex justify-end gap-2 pt-2">
-                <Dialog.Close asChild>
-                  <Button type="button" variant="ghost">
-                    {t("cancel")}
-                  </Button>
-                </Dialog.Close>
-                <Button
-                  type="submit"
-                  disabled={!form.formState.isValid}
-                  loading={isLoading}
-                  loadingText={t("saving")}
-                >
-                  {t("save")}
-                </Button>
-              </div>
-            </form>
-          </div>
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
+        {errorMessage ? <Notice tone="danger">{errorMessage}</Notice> : null}
+      </ModalBody>
+      <ModalFooter>
+        <ModalClose asChild>
+          <Button type="button" variant="ghost">
+            {t("cancel")}
+          </Button>
+        </ModalClose>
+        <Button
+          type="submit"
+          disabled={!form.formState.isValid}
+          loading={isLoading}
+          loadingText={t("saving")}
+        >
+          {t("save")}
+        </Button>
+      </ModalFooter>
+    </Modal>
   );
 }
 
@@ -228,100 +203,62 @@ function ClientDetailsDialog({
 }) {
   const t = useTranslations("clients.details");
 
+  const vazio = t("placeholders.empty");
+
   return (
-    <Dialog.Root open={open} onOpenChange={onOpenChange}>
-      <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-40 bg-ink/40 backdrop-blur-sm" />
-        <Dialog.Content className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto px-4 py-10">
-          <div className="w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-2xl">
-            <div className="flex items-center justify-between border-b border-outline/20 px-6 py-4">
-              <div>
-                <Dialog.Title className="text-lg font-semibold text-ink">
-                  {client?.name ?? t("loading")}
-                </Dialog.Title>
-                <Dialog.Description className="text-xs text-muted">
-                  {t("subtitle")}
-                </Dialog.Description>
-              </div>
-              <Dialog.Close asChild>
-                <button
-                  type="button"
-                  className="rounded-full border border-outline bg-white p-2 text-ink shadow-sm transition hover:bg-primary-soft"
-                  aria-label={t("close")}
-                >
-                  <X size={16} weight="bold" />
-                </button>
-              </Dialog.Close>
-            </div>
-
-            <div className="space-y-4 px-6 py-6 text-sm">
-              {isLoading ? (
-                <div className="space-y-2">
-                  <div className="h-4 w-3/4 animate-pulse rounded bg-outline/40" />
-                  <div className="h-4 w-2/3 animate-pulse rounded bg-outline/30" />
-                  <div className="h-4 w-1/2 animate-pulse rounded bg-outline/20" />
-                </div>
-              ) : errorMessage ? (
-                <p className="text-danger">{errorMessage}</p>
-              ) : client ? (
-                <div className="space-y-3">
-                  <div>
-                    <p className="text-xs uppercase tracking-wide text-muted">
-                      {t("fields.company")}
-                    </p>
-                    <p className="text-ink">{client.companyName ?? t("placeholders.empty")}</p>
-                  </div>
-                  <div className="grid gap-3 md:grid-cols-2">
-                    <div>
-                      <p className="text-xs uppercase tracking-wide text-muted">
-                        {t("fields.email")}
-                      </p>
-                      <p className="text-ink">{client.email ?? t("placeholders.empty")}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs uppercase tracking-wide text-muted">
-                        {t("fields.phone")}
-                      </p>
-                      <p className="text-ink">{client.phone ?? t("placeholders.empty")}</p>
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-xs uppercase tracking-wide text-muted">
-                      {t("fields.notes")}
-                    </p>
-                    <p className="whitespace-pre-wrap text-ink">
-                      {client.notes ?? t("placeholders.empty")}
-                    </p>
-                  </div>
-                  <div className="grid gap-3 md:grid-cols-2">
-                    <div>
-                      <p className="text-xs uppercase tracking-wide text-muted">
-                        {t("fields.createdAt")}
-                      </p>
-                      <p className="text-ink">{client.createdAt}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs uppercase tracking-wide text-muted">
-                        {t("fields.updatedAt")}
-                      </p>
-                      <p className="text-ink">{client.updatedAt}</p>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <p className="text-muted">{t("notFound")}</p>
-              )}
-            </div>
-
-            <div className="flex justify-end border-t border-outline/20 bg-[var(--color-surface-muted)]/40 px-6 py-4">
-              <Dialog.Close asChild>
-                <Button variant="ghost">{t("close")}</Button>
-              </Dialog.Close>
-            </div>
+    <Modal
+      open={open}
+      onOpenChange={onOpenChange}
+      title={client?.name ?? t("loading")}
+      description={t("subtitle")}
+      closeLabel={t("close")}
+    >
+      <ModalBody className="text-sm">
+        {isLoading ? (
+          <div className="space-y-3">
+            <Skeleton className="h-4 w-3/4" />
+            <Skeleton className="h-4 w-2/3" />
+            <Skeleton className="h-4 w-1/2" />
           </div>
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
+        ) : errorMessage ? (
+          <Notice tone="danger">{errorMessage}</Notice>
+        ) : client ? (
+          <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
+            <div className="sm:col-span-2">
+              <dt className="meta-label">{t("fields.company")}</dt>
+              <dd className="mt-1 text-ink">{client.companyName ?? vazio}</dd>
+            </div>
+            <div>
+              <dt className="meta-label">{t("fields.email")}</dt>
+              <dd className="mt-1 break-all text-ink">{client.email ?? vazio}</dd>
+            </div>
+            <div>
+              <dt className="meta-label">{t("fields.phone")}</dt>
+              <dd className="mt-1 text-ink">{client.phone ?? vazio}</dd>
+            </div>
+            <div className="sm:col-span-2">
+              <dt className="meta-label">{t("fields.notes")}</dt>
+              <dd className="mt-1 whitespace-pre-wrap text-ink">{client.notes ?? vazio}</dd>
+            </div>
+            <div>
+              <dt className="meta-label">{t("fields.createdAt")}</dt>
+              <dd className="mt-1 text-ink">{client.createdAt}</dd>
+            </div>
+            <div>
+              <dt className="meta-label">{t("fields.updatedAt")}</dt>
+              <dd className="mt-1 text-ink">{client.updatedAt}</dd>
+            </div>
+          </dl>
+        ) : (
+          <p className="text-muted">{t("notFound")}</p>
+        )}
+      </ModalBody>
+      <ModalFooter>
+        <ModalClose asChild>
+          <Button variant="secondary">{t("close")}</Button>
+        </ModalClose>
+      </ModalFooter>
+    </Modal>
   );
 }
 
@@ -474,21 +411,14 @@ export default function ClientsPage() {
         title={t("title")}
         description={t("description")}
         action={
-          <Button
-            className="w-full sm:w-auto"
-            onClick={() => setDialogOpen(true)}
-            disabled={!canCreate}
-          >
+          <Button onClick={() => setDialogOpen(true)} disabled={!canCreate}>
+            <Plus size={16} weight="bold" />
             {t("actions.add")}
           </Button>
         }
       />
 
-      {api.token ? null : (
-        <Card className="border border-warning/40 bg-warning-soft px-6 py-4 text-sm text-warning">
-          {t("warnings.tokenMissing")}
-        </Card>
-      )}
+      {api.token ? null : <Notice tone="warning">{t("warnings.tokenMissing")}</Notice>}
 
       {api.token && clients.length > 0 ? (
         <div className="grid gap-4 md:grid-cols-3">
@@ -520,7 +450,11 @@ export default function ClientsPage() {
         }}
         rotuloLimpar={t("filters.clear")}
         extra={
-          <Select value={sortOption} onValueChange={(value) => setSortOption(value as typeof sortOption)}>
+          <Select
+            value={sortOption}
+            onValueChange={(value) => setSortOption(value as typeof sortOption)}
+            aria-label={t("filters.sort.label")}
+          >
             <SelectItem value="recent">{t("filters.sort.recent")}</SelectItem>
             <SelectItem value="oldest">{t("filters.sort.oldest")}</SelectItem>
             <SelectItem value="name">{t("filters.sort.name")}</SelectItem>
@@ -529,35 +463,40 @@ export default function ClientsPage() {
       />
 
       {isLoading ? (
-        <Card className="border border-outline/30 bg-white px-6 py-10 text-center text-sm text-muted">
-          {t("states.loading")}
+        <Card className="overflow-hidden">
+          <div className="divide-y divide-border">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <div key={index} className="flex items-center gap-4 px-5 py-4">
+                <Skeleton className="h-4 w-40" />
+                <Skeleton className="h-4 flex-1" />
+                <Skeleton className="h-4 w-24" />
+              </div>
+            ))}
+          </div>
         </Card>
       ) : null}
 
       {error ? (
-        <Card className="border border-danger/40 bg-danger-soft/20 px-6 py-4 text-sm text-danger">
+        <Notice tone="danger">
           {t("states.error")} {error.message}
-        </Card>
+        </Notice>
       ) : null}
 
       {api.token && !isLoading && !error ? (
         filteredClients.length > 0 ? (
-          <Card className="rounded-3xl border-outline bg-white p-0">
-            <div className="w-full overflow-x-auto">
-              <table className="w-full min-w-[720px] table-auto text-sm">
-                <thead className="bg-surface text-muted">
+          <Card>
+            {/* Visible overflow on wide screens so the row menu is not clipped. */}
+            <div className="w-full overflow-x-auto rounded-xl xl:overflow-visible">
+              <table className="data-table data-table--rounded min-w-[760px]">
+                <thead>
                   <tr>
-                    <th className="px-6 py-4 text-left font-medium">{t("table.headers.name")}</th>
-                    <th className="px-6 py-4 text-left font-medium">
-                      {t("table.headers.company")}
-                    </th>
-                    <th className="px-6 py-4 text-left font-medium">{t("table.headers.email")}</th>
-                    <th className="px-6 py-4 text-left font-medium">{t("table.headers.phone")}</th>
-                    <th className="px-6 py-4 text-left font-medium">
-                      {t("table.headers.createdAt")}
-                    </th>
-                    <th className="px-6 py-4 text-right font-medium">
-                      {t("table.headers.actions")}
+                    <th>{t("table.headers.name")}</th>
+                    <th>{t("table.headers.company")}</th>
+                    <th>{t("table.headers.email")}</th>
+                    <th>{t("table.headers.phone")}</th>
+                    <th>{t("table.headers.createdAt")}</th>
+                    <th className="text-right">
+                      <span className="sr-only">{t("table.headers.actions")}</span>
                     </th>
                   </tr>
                 </thead>
@@ -565,29 +504,26 @@ export default function ClientsPage() {
                   {filteredClients.map((client) => {
                     const isMenuOpen = openMenuId === client.id;
                     return (
-                      <tr
-                        key={client.id}
-                        className="border-t border-outline/50 transition hover:bg-surface/40"
-                      >
-                        <td className="px-6 py-4 text-ink">
-                          <div className="flex flex-col">
-                            <span className="font-medium text-ink">{client.name}</span>
-                            <span className="text-xs text-muted">
-                              {t("badges.memberSince", { date: formatDate(client.createdAt) })}
+                      <tr key={client.id}>
+                        <td>
+                          <button
+                            type="button"
+                            onClick={() => openDetails(client.id)}
+                            className="flex items-center gap-3 text-left"
+                          >
+                            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface-sunken text-xs font-bold text-ink-muted">
+                              {client.name.trim().charAt(0).toUpperCase()}
                             </span>
-                          </div>
+                            <span className="font-semibold text-ink hover:underline">{client.name}</span>
+                          </button>
                         </td>
-                        <td className="px-6 py-4 text-muted">
-                          {client.companyName ?? t("table.noCompany")}
+                        <td>{client.companyName ?? <span className="text-muted">{t("table.noCompany")}</span>}</td>
+                        <td>{client.email ?? <span className="text-muted">{t("table.noEmail")}</span>}</td>
+                        <td className="tabular whitespace-nowrap">
+                          {client.phone ?? <span className="text-muted">{t("table.noPhone")}</span>}
                         </td>
-                        <td className="px-6 py-4 text-muted">
-                          {client.email ?? t("table.noEmail")}
-                        </td>
-                        <td className="px-6 py-4 text-muted">
-                          {client.phone ?? t("table.noPhone")}
-                        </td>
-                        <td className="px-6 py-4 text-muted">{formatDate(client.createdAt)}</td>
-                        <td className="px-6 py-4 text-right">
+                        <td className="tabular whitespace-nowrap">{formatDate(client.createdAt)}</td>
+                        <td className="text-right">
                           <div
                             className="relative inline-flex"
                             ref={
@@ -600,7 +536,7 @@ export default function ClientsPage() {
                           >
                             <Button
                               variant="ghost"
-                              size="sm"
+                              size="icon-sm"
                               onClick={() =>
                                 setOpenMenuId((prev) => (prev === client.id ? null : client.id))
                               }
@@ -608,26 +544,26 @@ export default function ClientsPage() {
                               aria-expanded={isMenuOpen}
                               aria-label={t("table.actions.openMenu")}
                             >
-                              <DotsThreeVertical size={18} />
+                              <DotsThreeVertical size={18} weight="bold" />
                             </Button>
                             {isMenuOpen ? (
-                              <div className="absolute right-0 top-10 z-20 w-48 rounded-lg border border-outline/40 bg-white p-2 text-left shadow-xl">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="w-full justify-start gap-2"
-                                  asChild
+                              <div
+                                role="menu"
+                                className="absolute right-0 top-9 z-20 w-60 rounded-xl border border-border bg-white p-1.5 text-left shadow-raised animate-pop-in"
+                              >
+                                <Link
+                                  href={`/proposals/new?clientId=${client.id}`}
+                                  role="menuitem"
+                                  className={menuItemClass}
                                   onClick={() => setOpenMenuId(null)}
                                 >
-                                  <Link href={`/proposals/new?clientId=${client.id}`}>
-                                    <PaperPlaneTilt size={16} />
-                                    {t("table.actions.sendProposal")}
-                                  </Link>
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="w-full justify-start gap-2"
+                                  <PaperPlaneTilt size={16} />
+                                  {t("table.actions.sendProposal")}
+                                </Link>
+                                <button
+                                  type="button"
+                                  role="menuitem"
+                                  className={menuItemClass}
                                   onClick={() => {
                                     openDetails(client.id);
                                     setOpenMenuId(null);
@@ -635,12 +571,12 @@ export default function ClientsPage() {
                                 >
                                   <UserCircle size={16} />
                                   {t("table.view")}
-                                </Button>
+                                </button>
                                 {client.email ? (
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="w-full justify-start gap-2"
+                                  <button
+                                    type="button"
+                                    role="menuitem"
+                                    className={menuItemClass}
                                     onClick={() => {
                                       navigator.clipboard
                                         .writeText(client.email as string)
@@ -653,20 +589,22 @@ export default function ClientsPage() {
                                         });
                                     }}
                                   >
-                                    {client.email}
-                                    {copiedClientId === client.id
-                                      ? ` • ${t("table.actions.copied")}`
-                                      : ` • ${t("table.actions.copyEmail")}`}
-                                  </Button>
+                                    {copiedClientId === client.id ? (
+                                      <Check size={16} className="text-success" />
+                                    ) : (
+                                      <Copy size={16} />
+                                    )}
+                                    <span className="min-w-0 flex-1">
+                                      <span className="block">
+                                        {copiedClientId === client.id
+                                          ? t("table.actions.copied")
+                                          : t("table.actions.copyEmail")}
+                                      </span>
+                                      <span className="block truncate text-xs font-normal text-muted">{client.email}</span>
+                                    </span>
+                                  </button>
                                 ) : (
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="w-full justify-start gap-2 text-muted"
-                                    disabled
-                                  >
-                                    {t("table.actions.noEmail")}
-                                  </Button>
+                                  <p className="px-2.5 py-2 text-sm text-muted">{t("table.actions.noEmail")}</p>
                                 )}
                               </div>
                             ) : null}
@@ -680,9 +618,18 @@ export default function ClientsPage() {
             </div>
           </Card>
         ) : (
-          <Card className="border border-outline/40 bg-white px-6 py-10 text-center text-sm text-muted">
-            {t("states.empty")}
-          </Card>
+          <EmptyState
+            icon={<UsersThree size={24} weight="bold" />}
+            title={t("states.empty")}
+            action={
+              clients.length === 0 && canCreate ? (
+                <Button onClick={() => setDialogOpen(true)}>
+                  <Plus size={16} weight="bold" />
+                  {t("actions.add")}
+                </Button>
+              ) : undefined
+            }
+          />
         )
       ) : null}
 

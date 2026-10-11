@@ -1,8 +1,8 @@
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Select, SelectItem } from "@/components/ui/select";
 
 export default function NewClientPage() {
@@ -12,46 +12,39 @@ export default function NewClientPage() {
         title="Cadastrar cliente"
         description="Armazene dados completos para preencher propostas em segundos e manter o histórico sempre atualizado."
       />
-      <Card className="space-y-6 p-6">
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="client-name">Nome/Razão social</Label>
+      <Card className="max-w-3xl space-y-6 p-5 sm:p-6">
+        <div className="grid gap-5 sm:grid-cols-2">
+          <Field label="Nome/Razão social" htmlFor="client-name">
             <Input id="client-name" placeholder="Empresa Exemplo LTDA" />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="cnpj">CNPJ/CPF</Label>
+          </Field>
+          <Field label="CNPJ/CPF" htmlFor="cnpj">
             <Input id="cnpj" placeholder="00.000.000/0000-00" />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="email">E-mail</Label>
+          </Field>
+          <Field label="E-mail" htmlFor="email">
             <Input id="email" type="email" placeholder="contato@empresa.com" />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="phone">Telefone</Label>
+          </Field>
+          <Field label="Telefone" htmlFor="phone">
             <Input id="phone" placeholder="(11) 91234-5678" />
-          </div>
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="segment">Segmento</Label>
-            <Select defaultValue="construcao">
+          </Field>
+          <Field label="Segmento" htmlFor="segment">
+            <Select id="segment" defaultValue="construcao">
               <SelectItem value="construcao">Construção</SelectItem>
               <SelectItem value="logistica">Logística</SelectItem>
               <SelectItem value="industrial">Industrial</SelectItem>
             </Select>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="credit">Limite de crédito interno</Label>
-            <Select defaultValue="padrao">
+          </Field>
+          <Field label="Limite de crédito interno" htmlFor="credit">
+            <Select id="credit" defaultValue="padrao">
               <SelectItem value="padrao">Padrão (R$ 50.000)</SelectItem>
               <SelectItem value="alto">Alto (R$ 150.000)</SelectItem>
               <SelectItem value="sob-demanda">Sob demanda</SelectItem>
             </Select>
-          </div>
+          </Field>
         </div>
 
-        <Button className="w-full sm:w-auto">Salvar cliente</Button>
+        <div className="flex justify-end border-t border-border pt-5">
+          <Button>Salvar cliente</Button>
+        </div>
       </Card>
     </section>
   );
