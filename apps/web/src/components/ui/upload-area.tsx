@@ -18,11 +18,13 @@ export function UploadArea({ hint, accept, onFilesSelected }: UploadAreaProps) {
   };
 
   return (
-    <label className="flex w-full cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-outline bg-[var(--color-surface-muted)]/60 px-6 py-10 text-center text-sm text-muted transition hover:border-primary hover:bg-primary-soft">
-      <UploadSimple size={24} className="text-primary" />
-      <span>Arraste e solte arquivos ou clique para carregar</span>
+    <label className="group flex w-full cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-outline bg-surface-muted/60 px-6 py-9 text-center text-sm text-muted transition-colors hover:border-primary hover:bg-primary-tint focus-within:border-primary focus-within:ring-[3px] focus-within:ring-primary/25">
+      <span className="flex h-11 w-11 items-center justify-center rounded-full border border-border bg-white text-primary-strong shadow-card transition-colors group-hover:border-primary/40">
+        <UploadSimple size={20} weight="bold" />
+      </span>
+      <span className="font-semibold text-ink">Arraste e solte arquivos ou clique para carregar</span>
       {hint ? <span className="text-xs text-muted">{hint}</span> : null}
-      <input type="file" multiple onChange={handleChange} accept={accept} className="hidden" />
+      <input type="file" multiple onChange={handleChange} accept={accept} className="sr-only" />
     </label>
   );
 }

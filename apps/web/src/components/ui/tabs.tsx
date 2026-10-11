@@ -45,7 +45,7 @@ export function Tabs({
 
   return (
     <TabsContext.Provider value={contextValue}>
-      <div className={cn("space-y-4", className)}>{children}</div>
+      <div className={cn("space-y-5", className)}>{children}</div>
     </TabsContext.Provider>
   );
 }
@@ -57,8 +57,8 @@ interface TabsListProps {
 
 export function TabsList({ children, className }: TabsListProps) {
   return (
-    <div className={cn("overflow-x-auto", className)}>
-      <div className="inline-flex min-w-max items-center gap-1 rounded-lg border border-outline bg-white p-1">
+    <div className={cn("overflow-x-auto border-b border-border", className)}>
+      <div role="tablist" className="-mb-px flex min-w-max items-end gap-6">
         {children}
       </div>
     </div>
@@ -77,18 +77,18 @@ export function TabsTrigger({ value, children, className, ...props }: TabsTrigge
   }
 
   const isActive = context.value === value;
-  let classeAtivo = "text-muted hover:text-ink";
-  if (isActive) {
-    classeAtivo = "bg-primary text-ink";
-  }
 
   return (
     <button
       type="button"
+      role="tab"
+      aria-selected={isActive}
       onClick={() => context.setValue(value)}
       className={cn(
-        "relative rounded-md px-3 py-1.5 text-sm font-medium transition",
-        classeAtivo,
+        "relative whitespace-nowrap border-b-2 px-0.5 pb-3 pt-1 text-sm font-semibold transition-colors",
+        isActive
+          ? "border-primary text-ink"
+          : "border-transparent text-muted hover:border-outline hover:text-ink",
         className
       )}
       {...props}
@@ -114,7 +114,11 @@ export function TabsContent({ value, children, className }: TabsContentProps) {
     return null;
   }
 
-  return <div className={cn(className)}>{children}</div>;
+  return (
+    <div role="tabpanel" className={cn(className)}>
+      {children}
+    </div>
+  );
 }
 
 export type { TabsRootProps as TabsProps };

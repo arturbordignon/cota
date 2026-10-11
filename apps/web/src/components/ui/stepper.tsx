@@ -19,35 +19,54 @@ interface StepperProps {
 
 export function Stepper({ steps, activeStep }: StepperProps) {
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        {steps.map((step, index) => {
-          const status = index < activeStep ? "complete" : index === activeStep ? "current" : "upcoming";
-          return (
-            <div key={step.id} className="flex items-start gap-3 sm:flex-1 sm:flex-col sm:items-center">
-              <div
+    <ol className="grid gap-3 sm:grid-cols-[repeat(var(--steps),minmax(0,1fr))] sm:gap-0" style={{ "--steps": steps.length } as React.CSSProperties}>
+      {steps.map((step, index) => {
+        const status = index < activeStep ? "complete" : index === activeStep ? "current" : "upcoming";
+        const isLast = index === steps.length - 1;
+        return (
+          <li
+            key={step.id}
+            aria-current={status === "current" ? "step" : undefined}
+            className="relative flex items-start gap-3 sm:flex-col sm:gap-2.5 sm:pr-4"
+          >
+            <div className="flex items-center gap-3 sm:w-full">
+              <span
                 className={cn(
-                  "flex h-10 w-10 items-center justify-center rounded-full border-2 text-sm font-semibold",
-                  status === "complete" && "border-success bg-success text-white",
-                  status === "current" && "border-primary bg-primary/10 text-primary",
-                  status === "upcoming" && "border-outline text-muted"
+                  "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold tabular transition-colors",
+                  status === "complete" && "bg-ink text-white",
+                  status === "current" &&
+                    "bg-primary text-primary-foreground shadow-press [text-shadow:0_1px_1px_rgb(110_66_0/0.45)] ring-4 ring-primary/20",
+                  status === "upcoming" && "border border-outline bg-white text-muted"
                 )}
               >
-                {status === "complete" ? <Check size={18} weight="bold" /> : step.id}
-              </div>
-              <div className="flex flex-col sm:items-center">
-                <span className="text-sm font-semibold text-ink sm:text-base">{step.title}</span>
-                {step.description ? (
-                  <span className="text-xs text-muted sm:text-center sm:text-sm">{step.description}</span>
-                ) : null}
-              </div>
-              {index < steps.length - 1 && (
-                <span className="hidden flex-1 border-t border-dashed border-outline sm:block" />
-              )}
+                {status === "complete" ? <Check size={14} weight="bold" /> : step.id}
+              </span>
+              {!isLast ? (
+                <span
+                  aria-hidden
+                  className={cn(
+                    "hidden h-0.5 flex-1 rounded-full sm:block",
+                    status === "complete" ? "bg-ink" : "bg-border"
+                  )}
+                />
+              ) : null}
             </div>
-          );
-        })}
-      </div>
-    </div>
+            <div className="min-w-0">
+              <p
+                className={cn(
+                  "text-sm font-semibold leading-snug",
+                  status === "upcoming" ? "text-muted" : "text-ink"
+                )}
+              >
+                {step.title}
+              </p>
+              {step.description ? (
+                <p className="mt-0.5 text-[13px] leading-snug text-muted">{step.description}</p>
+              ) : null}
+            </div>
+          </li>
+        );
+      })}
+    </ol>
   );
 }

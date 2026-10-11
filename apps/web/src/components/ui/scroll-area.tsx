@@ -14,14 +14,14 @@ const ScrollArea = forwardRef<
     className={cn("relative overflow-hidden", className)}
     {...props}
   >
-    <ScrollAreaPrimitive.Viewport className="h-full w-full rounded-inherit">
+    <ScrollAreaPrimitive.Viewport className="h-full w-full rounded-[inherit]">
       {children}
     </ScrollAreaPrimitive.Viewport>
     <ScrollAreaPrimitive.Scrollbar
       orientation="horizontal"
-      className="flex h-2 select-none touch-none items-center bg-transparent transition"
+      className="flex h-2.5 touch-none select-none items-center rounded-full bg-surface-muted p-0.5 transition"
     >
-      <ScrollAreaPrimitive.Thumb className="relative flex-1 rounded-full bg-outline" />
+      <ScrollAreaPrimitive.Thumb className="relative flex-1 rounded-full bg-outline hover:bg-muted" />
     </ScrollAreaPrimitive.Scrollbar>
   </ScrollAreaPrimitive.Root>
 ));

@@ -8,34 +8,48 @@ import type {
 } from "@radix-ui/react-select";
 import { forwardRef } from "react";
 
+import { fieldStyles } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 export interface SelectProps extends RadixSelectProps {
   placeholder?: string;
+  className?: string;
+  id?: string;
+  "aria-label"?: string;
 }
 
-export function Select({ children, placeholder, ...props }: SelectProps) {
+export function Select({
+  children,
+  placeholder,
+  className,
+  id,
+  "aria-label": ariaLabel,
+  ...props
+}: SelectProps) {
   return (
     <SelectPrimitive.Root {...props}>
       <SelectPrimitive.Trigger
+        id={id}
+        aria-label={ariaLabel}
         disabled={props.disabled}
         className={cn(
-          "inline-flex h-11 w-full items-center justify-between gap-2 rounded-lg border border-outline bg-white px-4 text-sm font-medium text-ink transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
+          fieldStyles,
+          "group inline-flex h-10 items-center justify-between gap-2 px-3 text-left data-[placeholder]:text-muted [&>span]:truncate",
+          className
         )}
       >
         <SelectPrimitive.Value placeholder={placeholder} />
-        <SelectPrimitive.Icon>
-          <CaretDown size={16} />
+        <SelectPrimitive.Icon className="shrink-0 text-muted transition-transform duration-150 group-data-[state=open]:rotate-180">
+          <CaretDown size={14} weight="bold" />
         </SelectPrimitive.Icon>
       </SelectPrimitive.Trigger>
       <SelectPrimitive.Portal>
         <SelectPrimitive.Content
-          className="z-50 min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-lg border border-outline bg-white shadow-xl"
+          className="z-50 max-h-[min(var(--radix-select-content-available-height),360px)] min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-xl border border-border bg-white shadow-raised data-[state=open]:animate-pop-in"
           position="popper"
+          sideOffset={6}
         >
-          <SelectPrimitive.Viewport className="p-1">
-            {children}
-          </SelectPrimitive.Viewport>
+          <SelectPrimitive.Viewport className="p-1">{children}</SelectPrimitive.Viewport>
         </SelectPrimitive.Content>
       </SelectPrimitive.Portal>
     </SelectPrimitive.Root>
@@ -50,13 +64,13 @@ export const SelectItem = forwardRef<
     <SelectPrimitive.Item
       ref={ref}
       className={cn(
-        "relative flex cursor-pointer select-none items-center gap-2 rounded-md px-3 py-2 pr-8 text-sm text-ink outline-none transition hover:bg-primary-soft focus:bg-primary-soft data-[state=checked]:bg-primary-soft data-[state=checked]:text-primary",
+        "relative flex cursor-pointer select-none items-center gap-2 rounded-lg py-2 pl-3 pr-9 text-sm text-ink-muted outline-none transition-colors data-[disabled]:pointer-events-none data-[highlighted]:bg-surface-muted data-[state=checked]:font-semibold data-[highlighted]:text-ink data-[state=checked]:text-ink data-[disabled]:opacity-50",
         inset && "pl-8",
         className
       )}
       {...props}
     >
-      <SelectPrimitive.ItemIndicator className="absolute right-3 inline-flex h-4 w-4 items-center justify-center text-primary">
+      <SelectPrimitive.ItemIndicator className="absolute right-3 inline-flex h-4 w-4 items-center justify-center text-primary-strong">
         <Check size={14} weight="bold" />
       </SelectPrimitive.ItemIndicator>
       <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>

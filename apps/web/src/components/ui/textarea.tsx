@@ -1,5 +1,6 @@
 import { forwardRef, TextareaHTMLAttributes } from "react";
 
+import { fieldStyles } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 export interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {}
@@ -10,7 +11,8 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
       <textarea
         ref={ref}
         className={cn(
-          "min-h-[120px] w-full rounded-lg border border-outline bg-white px-4 py-3 text-sm text-ink placeholder:text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30",
+          fieldStyles,
+          "min-h-[96px] px-3 py-2.5 leading-relaxed read-only:bg-surface-muted read-only:focus:border-outline read-only:focus:ring-0",
           className
         )}
         {...props}

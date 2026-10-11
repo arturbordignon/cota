@@ -12,7 +12,7 @@ type ButtonVariant =
   | "danger"
   | "link";
 
-type ButtonSize = "sm" | "md" | "lg";
+type ButtonSize = "sm" | "md" | "lg" | "icon" | "icon-sm";
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   asChild?: boolean;
@@ -23,22 +23,37 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const baseStyles =
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg font-medium transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60";
+  "relative inline-flex shrink-0 select-none items-center justify-center gap-2 whitespace-nowrap rounded-lg font-semibold transition-[background-color,border-color,color,box-shadow,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-white disabled:cursor-not-allowed disabled:opacity-50 aria-disabled:opacity-50 [&_svg]:shrink-0";
 
 const variantStyles: Record<ButtonVariant, string> = {
-  primary: "bg-primary text-primary-foreground shadow-md hover:bg-primary/90",
-  secondary: "bg-surface text-ink shadow-sm hover:bg-primary-soft",
-  ghost: "bg-transparent text-ink hover:bg-primary-soft",
-  outline: "border border-outline bg-transparent text-ink hover:bg-primary-soft",
-  danger: "bg-danger text-white hover:bg-danger/90",
-  link: "bg-transparent text-primary underline-offset-4 hover:underline",
+  // White label on crane yellow; the text shadow keeps the label readable on the light fill.
+  primary:
+    "bg-primary text-primary-foreground shadow-press [text-shadow:0_1px_1px_rgb(110_66_0/0.45)] hover:bg-primary-hover active:translate-y-px active:shadow-none",
+  secondary:
+    "border border-outline bg-white text-ink shadow-card hover:border-ink/25 hover:bg-surface-muted active:bg-surface-sunken",
+  outline:
+    "border border-outline bg-transparent text-ink hover:border-ink/25 hover:bg-surface-muted active:bg-surface-sunken",
+  ghost: "text-ink-muted hover:bg-surface-muted hover:text-ink active:bg-surface-sunken",
+  danger: "bg-danger text-white shadow-press hover:bg-danger/90 active:translate-y-px active:shadow-none",
+  link: "h-auto rounded-sm px-0 font-semibold text-primary-strong underline-offset-4 hover:underline",
 };
 
 const sizeStyles: Record<ButtonSize, string> = {
-  sm: "px-3 py-1.5 text-xs",
-  md: "px-4 py-2.5 text-sm",
-  lg: "px-6 py-3 text-base",
+  sm: "h-8 px-3 text-[13px]",
+  md: "h-10 px-4 text-sm",
+  lg: "h-12 px-6 text-[15px]",
+  icon: "h-10 w-10 text-sm",
+  "icon-sm": "h-8 w-8 text-[13px]",
 };
+
+function Spinner() {
+  return (
+    <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeOpacity="0.3" strokeWidth="3" />
+      <path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+    </svg>
+  );
+}
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   (
@@ -63,9 +78,9 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 
     const baseClass = cn(
       baseStyles,
-      variantStyles[variant],
       sizeStyles[size],
-      computedDisabled ? 'pointer-events-none' : '',
+      variantStyles[variant],
+      computedDisabled ? "pointer-events-none" : "",
       className,
     );
 
@@ -88,8 +103,10 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         className={baseClass}
         disabled={computedDisabled}
+        aria-busy={isLoading || undefined}
         {...props}
       >
+        {isLoading ? <Spinner /> : null}
         {content}
       </Comp>
     );
