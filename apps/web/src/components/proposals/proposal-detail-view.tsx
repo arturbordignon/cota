@@ -16,7 +16,11 @@ import { PageHeader } from "@/components/layout/page-header";
 import { useCurrentUser } from "@/components/providers/user-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardTitle } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Notice } from "@/components/ui/notice";
+import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 import { useApi } from "@/hooks/use-api";
 import type {
   GenerateProposalResponse,
@@ -314,6 +318,17 @@ export function ProposalDetailView({ proposalId }: ProposalDetailViewProps) {
 
   const resumo = montarResumo(proposal);
 
+  const metadados = proposal
+    ? [
+        { rotulo: "Cliente", valor: proposal.client?.name ?? "—" },
+        { rotulo: "Modelo", valor: proposal.template?.name ?? "—" },
+        { rotulo: "Idioma", valor: proposal.locale ?? "—" },
+        { rotulo: "Expira em", valor: formatDateTime(proposal.expiresAt) },
+      ]
+    : [];
+
+  const etapasConcluidas = timeline.filter((item) => Boolean(item.value));
+
   return (
     <section className="space-y-6">
       <PageHeader
@@ -321,8 +336,9 @@ export function ProposalDetailView({ proposalId }: ProposalDetailViewProps) {
         description={headerDescription}
         action={
           proposal && podeEditar && (
-            <div className="flex flex-wrap gap-2">
+            <>
               <Button
+                variant="secondary"
                 onClick={() => generateMutation.mutate()}
                 loading={generateMutation.isPending || Boolean(esperaPdf)}
                 loadingText="Gerando PDF..."
@@ -331,202 +347,197 @@ export function ProposalDetailView({ proposalId }: ProposalDetailViewProps) {
                 {rotuloGerarPdf}
               </Button>
               <Button
-                variant="outline"
+                variant="secondary"
                 onClick={() => baixarPdf.mutate()}
                 loading={baixarPdf.isPending}
                 disabled={!proposal.pdfObjectKey}
-                className="gap-1"
               >
                 <DownloadSimple size={16} weight="bold" />
                 Baixar PDF
               </Button>
-              <Button
-                variant="outline"
-                onClick={() => enviarProposta.mutate()}
-                loading={enviarProposta.isPending}
-                className="gap-1"
-              >
+              <Button onClick={() => enviarProposta.mutate()} loading={enviarProposta.isPending}>
                 <ClipboardText size={16} weight="bold" />
                 {rotuloLink}
               </Button>
-            </div>
+            </>
           )
         }
       />
 
-      {banner ? (
-        <Card
-          className={`border ${
-            banner.tone === "success"
-              ? "border-success/40 bg-success-soft/50 text-success"
-              : banner.tone === "danger"
-              ? "border-danger/40 bg-danger-soft/40 text-danger"
-              : "border-info/40 bg-info-soft/40 text-info"
-          } px-6 py-4 text-sm`}
-        >
-          {banner.text}
-        </Card>
-      ) : null}
+      {banner ? <Notice tone={banner.tone}>{banner.text}</Notice> : null}
 
       {isTokenMissing ? (
-        <Card className="border border-warning/40 bg-warning-soft/40 px-6 py-4 text-sm text-warning">
+        <Notice tone="warning">
           Autentique-se ou defina o token da API para visualizar os detalhes reais da proposta.
-        </Card>
+        </Notice>
       ) : null}
 
       {loadError && !isLoading ? (
-        <Card className="border border-danger/40 bg-danger-soft/30 px-6 py-4 text-sm text-danger">
-          Não foi possível carregar a proposta: {loadError.message}
-        </Card>
+        <Notice tone="danger">Não foi possível carregar a proposta: {loadError.message}</Notice>
       ) : null}
 
       {isLoading ? (
-        <Card className="border border-outline/60 bg-white px-6 py-5 text-sm text-muted">
-          Carregando detalhes da proposta...
-        </Card>
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1.75fr)_minmax(0,1fr)]">
+          <Skeleton className="h-72 rounded-xl" />
+          <Skeleton className="h-72 rounded-xl" />
+        </div>
       ) : null}
 
       {!proposal && !isLoading ? (
-        <Card className="border border-outline/60 bg-white px-6 py-5 text-sm text-muted">
-          Proposta não encontrada ou você não possui permissão para visualizá-la.
-        </Card>
+        <EmptyState
+          title="Proposta não encontrada"
+          description="Ela pode ter sido removida ou você não possui permissão para visualizá-la."
+        />
       ) : null}
 
       {proposal ? (
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,1.75fr)_minmax(0,1fr)]">
-          <Card className="space-y-6 p-6">
-            <div className="flex flex-wrap items-center gap-3">
-              <Badge tone={statusTone}>{statusLabel}</Badge>
-              <span className="text-xs uppercase tracking-[0.25em] text-muted">
-                Atualizado em {formatDateTime(proposal.updatedAt)}
-              </span>
+        <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.75fr)_minmax(0,1fr)]">
+          <Card className="overflow-hidden">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-6 py-4">
+              <Badge tone={statusTone} dot>
+                {statusLabel}
+              </Badge>
+              <span className="text-xs text-muted">Atualizada em {formatDateTime(proposal.updatedAt)}</span>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <p className="text-xs uppercase tracking-wide text-muted">Cliente</p>
-                <p className="mt-1 text-sm text-ink">{proposal.client?.name ?? "—"}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-wide text-muted">Modelo</p>
-                <p className="mt-1 text-sm text-ink">{proposal.template?.name ?? "—"}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-wide text-muted">Idioma</p>
-                <p className="mt-1 text-sm text-ink">{proposal.locale ?? "—"}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-wide text-muted">Expira em</p>
-                <p className="mt-1 text-sm text-ink">{formatDateTime(proposal.expiresAt)}</p>
-              </div>
-              <div className="sm:col-span-2">
-                <p className="text-xs uppercase tracking-wide text-muted">Slug público</p>
-                <p className="mt-1 break-all text-sm text-ink">{proposal.publicSlug ?? "—"}</p>
-              </div>
+            <div className="space-y-7 p-6">
+              <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
+                {metadados.map((item) => (
+                  <div key={item.rotulo}>
+                    <dt className="meta-label">{item.rotulo}</dt>
+                    <dd className="mt-1 text-[15px] font-medium text-ink">{item.valor}</dd>
+                  </div>
+                ))}
+                <div className="sm:col-span-2">
+                  <dt className="meta-label">Link público</dt>
+                  <dd className="mt-1 break-all text-sm text-ink-muted">
+                    {proposal.publicSlug ? `/p/${proposal.publicSlug}` : "—"}
+                  </dd>
+                </div>
+              </dl>
+
+              {resumo.length > 0 && (
+                <div className="space-y-3">
+                  <h3 className="font-sans text-[15px] font-semibold text-ink">Resumo da operação</h3>
+                  <dl className="divide-y divide-border rounded-lg border border-border">
+                    {resumo.map((item) => (
+                      <div key={item.label} className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 px-4 py-3">
+                        <dt className="text-sm text-muted">{item.label}</dt>
+                        <dd className="tabular text-sm font-semibold text-ink">{item.value}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </div>
+              )}
+
+              {payloadEntries.length > 0 && (
+                <div className="space-y-3">
+                  <h3 className="font-sans text-[15px] font-semibold text-ink">Dados enviados</h3>
+                  <dl className="grid gap-3 sm:grid-cols-2">
+                    {payloadEntries.map(({ key, label, value }) => (
+                      <div key={key} className="rounded-lg bg-surface-muted px-4 py-3">
+                        <dt className="meta-label">{label}</dt>
+                        <dd className="mt-1 text-sm text-ink">{value}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </div>
+              )}
+
+              {payloadEntries.length === 0 && resumo.length === 0 && (
+                <p className="text-sm text-muted">
+                  Nenhum dado adicional foi informado para esta proposta.
+                </p>
+              )}
             </div>
-
-            {resumo.length > 0 && (
-              <div className="space-y-3">
-                <h3 className="text-sm font-semibold text-ink">Resumo</h3>
-                <dl className="grid gap-3 sm:grid-cols-2">
-                  {resumo.map((item) => (
-                    <div
-                      key={item.label}
-                      className="rounded-lg border border-outline/40 bg-[var(--color-surface-muted)]/40 px-4 py-3"
-                    >
-                      <dt className="text-xs uppercase tracking-wide text-muted">{item.label}</dt>
-                      <dd className="mt-1 text-sm text-ink">{item.value}</dd>
-                    </div>
-                  ))}
-                </dl>
-              </div>
-            )}
-
-            {payloadEntries.length > 0 && (
-              <div className="space-y-3">
-                <h3 className="text-sm font-semibold text-ink">Dados enviados</h3>
-                <dl className="grid gap-3 sm:grid-cols-2">
-                  {payloadEntries.map(({ key, label, value }) => (
-                    <div
-                      key={key}
-                      className="rounded-lg border border-outline/40 bg-[var(--color-surface-muted)]/40 px-4 py-3"
-                    >
-                      <dt className="text-xs uppercase tracking-wide text-muted">{label}</dt>
-                      <dd className="mt-1 text-sm text-ink">{value}</dd>
-                    </div>
-                  ))}
-                </dl>
-              </div>
-            )}
-
-            {payloadEntries.length === 0 && resumo.length === 0 && (
-              <p className="text-sm text-muted">
-                Nenhum dado adicional foi informado para esta proposta.
-              </p>
-            )}
           </Card>
 
           <div className="space-y-6">
-            <Card className="space-y-4 p-6">
-              <h3 className="flex items-center gap-2 text-sm font-semibold text-ink">
-                <PaperPlaneTilt size={18} weight="duotone" className="text-primary" />
+            <Card className="p-5">
+              <CardTitle className="flex items-center gap-2">
+                <PaperPlaneTilt size={18} weight="bold" className="text-primary-strong" />
                 Linha do tempo
-              </h3>
-              <ul className="space-y-3 text-sm text-muted">
-                {timeline.map((item) => (
-                  <li
-                    key={item.label}
-                    className="flex items-center justify-between gap-3 rounded-lg border border-outline/40 bg-white px-4 py-3"
-                  >
-                    <span>{item.label}</span>
-                    <span className="text-ink">{formatDateTime(item.value)}</span>
-                  </li>
-                ))}
-              </ul>
+              </CardTitle>
+              <ol className="mt-4">
+                {timeline.map((item, indice) => {
+                  const feito = Boolean(item.value);
+                  const ultimo = indice === timeline.length - 1;
+                  return (
+                    <li key={item.label} className="relative flex gap-3 pb-4 last:pb-0">
+                      {!ultimo ? (
+                        <span
+                          aria-hidden
+                          className={cn(
+                            "absolute left-[7px] top-5 h-[calc(100%-12px)] w-0.5 rounded-full",
+                            feito && Boolean(timeline[indice + 1]?.value) ? "bg-ink" : "bg-border",
+                          )}
+                        />
+                      ) : null}
+                      <span
+                        aria-hidden
+                        className={cn(
+                          "relative mt-1 h-4 w-4 shrink-0 rounded-full border-2",
+                          feito ? "border-ink bg-ink" : "border-outline bg-white",
+                          feito && item === etapasConcluidas[etapasConcluidas.length - 1] && "border-primary bg-primary ring-4 ring-primary/20",
+                        )}
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className={cn("text-sm font-semibold", feito ? "text-ink" : "text-muted")}>{item.label}</p>
+                        <p className="tabular text-xs text-muted">{formatDateTime(item.value)}</p>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ol>
             </Card>
 
-            <Card className="space-y-4 p-6">
-              <h3 className="flex items-center gap-2 text-sm font-semibold text-ink">
-                <Files size={18} weight="duotone" className="text-primary" />
+            <Card className="p-5">
+              <CardTitle className="flex items-center gap-2">
+                <Files size={18} weight="bold" className="text-primary-strong" />
                 PDF e anexos
-              </h3>
-              <div className="space-y-3 text-sm">
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-muted">PDF gerado</p>
-                  {proposal.pdfObjectKey && (
-                    <button
-                      type="button"
-                      className="mt-1 border-0 bg-transparent p-0 text-left font-medium text-primary hover:underline"
-                      onClick={() => baixarPdf.mutate()}
-                    >
-                      Baixar PDF da proposta
-                    </button>
-                  )}
-                  {!proposal.pdfObjectKey && (
-                    <p className="mt-1 text-ink">Ainda não disponível. Clique em &quot;Gerar PDF&quot; para criar o arquivo.</p>
-                  )}
-                </div>
+              </CardTitle>
+              <div className="mt-4 space-y-4 text-sm">
+                {proposal.pdfObjectKey ? (
+                  <button
+                    type="button"
+                    className="flex w-full items-center gap-3 rounded-lg border border-border px-3 py-2.5 text-left transition-colors hover:border-outline hover:bg-surface-muted"
+                    onClick={() => baixarPdf.mutate()}
+                  >
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-danger-soft text-xs font-bold text-danger">
+                      PDF
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block font-semibold text-ink">Baixar PDF da proposta</span>
+                      <span className="block truncate text-xs text-muted">{proposal.title ?? proposal.template?.name}</span>
+                    </span>
+                    <DownloadSimple size={16} className="shrink-0 text-muted" />
+                  </button>
+                ) : (
+                  <p className="rounded-lg bg-surface-muted px-3 py-2.5 text-ink-muted">
+                    Ainda não disponível. Clique em &quot;Gerar PDF&quot; para criar o arquivo.
+                  </p>
+                )}
 
-                {displayAttachments.length > 0 ? (
-                  <div className="space-y-2">
-                    <p className="text-xs uppercase tracking-wide text-muted">Anexos</p>
-                    <ul className="space-y-2">
+                <div className="space-y-2">
+                  <p className="meta-label">Anexos</p>
+                  {displayAttachments.length > 0 ? (
+                    <ul className="divide-y divide-border rounded-lg border border-border">
                       {displayAttachments.map((attachment) => (
                         <li
                           key={attachment.id}
-                          className="flex items-center justify-between gap-3 rounded-lg border border-outline/40 bg-[var(--color-surface-muted)]/60 px-3 py-2 text-xs text-muted"
+                          className="flex items-center justify-between gap-3 px-3 py-2 text-xs text-muted"
                         >
                           <span className="truncate text-ink">{attachment.label}</span>
-                          <span>{formatFileSize(attachment.size) || attachment.meta}</span>
+                          <span className="shrink-0">{formatFileSize(attachment.size) || attachment.meta}</span>
                         </li>
                       ))}
                     </ul>
-                  </div>
-                ) : (
-                  <p className="text-xs text-muted">
-                    Nenhum anexo foi associado a esta proposta até o momento.
-                  </p>
-                )}
+                  ) : (
+                    <p className="text-xs text-muted">
+                      Nenhum anexo foi associado a esta proposta até o momento.
+                    </p>
+                  )}
+                </div>
               </div>
             </Card>
           </div>

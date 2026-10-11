@@ -2,10 +2,13 @@
 
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Check, DownloadSimple } from "@phosphor-icons/react";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Notice } from "@/components/ui/notice";
+import { Skeleton } from "@/components/ui/skeleton";
 import { buscarPropostaPublica, responderPropostaPublica } from "@/lib/public-client";
 import type { PublicProposal } from "@/types/api";
 
@@ -53,18 +56,23 @@ export default function PublicProposalPage({ params }: PublicProposalPageProps) 
 
   if (propostaQuery.isLoading) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-background">
-        <p className="text-sm text-muted">Carregando proposta...</p>
+      <main className="min-h-screen bg-surface-muted px-4 py-8 sm:px-8">
+        <div className="mx-auto max-w-5xl space-y-4">
+          <Skeleton className="h-32 rounded-xl" />
+          <Skeleton className="h-[60vh] rounded-xl" />
+        </div>
       </main>
     );
   }
 
   if (!propostaQuery.data) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-background px-4">
-        <Card className="max-w-md px-6 py-6 text-center text-sm text-muted">
-          Proposta não encontrada. Verifique o link recebido.
-        </Card>
+      <main className="flex min-h-screen items-center justify-center bg-surface-muted px-4">
+        <EmptyState
+          className="max-w-md"
+          title="Proposta não encontrada"
+          description="Verifique o link recebido ou peça um novo à empresa."
+        />
       </main>
     );
   }
@@ -74,21 +82,25 @@ export default function PublicProposalPage({ params }: PublicProposalPageProps) 
   const podeResponder = proposta.status === "SENT";
 
   return (
-    <main className="min-h-screen bg-background px-4 py-8 sm:px-8">
-      <div className="mx-auto max-w-5xl space-y-6">
-        <Card className="flex flex-wrap items-center justify-between gap-4 px-6 py-5">
-          <div className="space-y-1">
-            <p className="text-xs uppercase tracking-wide text-muted">{proposta.companyName}</p>
-            <h1 className="text-xl font-semibold text-ink">{proposta.title}</h1>
+    <main className="min-h-screen bg-surface-muted pb-12">
+      <header className="border-b border-border bg-white">
+        <div className="mx-auto flex max-w-5xl flex-col gap-5 px-4 py-6 sm:px-8 md:flex-row md:items-end md:justify-between">
+          <div className="min-w-0 space-y-1.5">
+            <p className="text-sm font-semibold text-primary-strong">{proposta.companyName}</p>
+            <h1 className="text-balance font-display text-[28px] font-semibold leading-tight text-ink sm:text-[32px]">
+              {proposta.title}
+            </h1>
             <p className="text-sm text-muted">
-              Valor total: <span className="font-semibold text-ink">{proposta.total}</span>
+              Valor total{" "}
+              <span className="tabular font-display text-lg font-semibold text-ink">{proposta.total}</span>
               {descreverValidade(proposta)}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
             {proposta.pdfUrl && (
-              <Button variant="outline" asChild>
+              <Button variant="secondary" asChild>
                 <a href={proposta.pdfUrl} target="_blank" rel="noopener noreferrer">
+                  <DownloadSimple size={16} weight="bold" />
                   Baixar PDF
                 </a>
               </Button>
@@ -104,44 +116,44 @@ export default function PublicProposalPage({ params }: PublicProposalPageProps) 
                 loading={responder.isPending && responder.variables === "accept"}
                 loadingText="Enviando..."
               >
+                <Check size={16} weight="bold" />
                 Aceitar proposta
               </Button>
             )}
           </div>
-        </Card>
+        </div>
+      </header>
 
-        {situacao && (
-          <Card className="px-6 py-4">
-            <Badge tone={situacao.tom}>{situacao.texto}</Badge>
-          </Card>
-        )}
+      <div className="mx-auto max-w-5xl space-y-4 px-4 pt-6 sm:px-8">
+        {situacao && <Notice tone={situacao.tom}>{situacao.texto}</Notice>}
 
         {confirmarRecusa && (
-          <Card className="flex flex-wrap items-center justify-between gap-3 border border-danger/30 px-6 py-4 text-sm">
-            <span className="text-ink">Tem certeza que deseja recusar esta proposta?</span>
-            <div className="flex gap-2">
-              <Button variant="ghost" onClick={() => setConfirmarRecusa(false)}>
-                Voltar
-              </Button>
-              <Button
-                variant="danger"
-                onClick={() => responder.mutate("decline")}
-                loading={responder.isPending}
-                loadingText="Enviando..."
-              >
-                Confirmar recusa
-              </Button>
-            </div>
-          </Card>
+          <Notice
+            tone="danger"
+            action={
+              <div className="flex gap-2">
+                <Button variant="ghost" size="sm" onClick={() => setConfirmarRecusa(false)}>
+                  Voltar
+                </Button>
+                <Button
+                  variant="danger"
+                  size="sm"
+                  onClick={() => responder.mutate("decline")}
+                  loading={responder.isPending}
+                  loadingText="Enviando..."
+                >
+                  Confirmar recusa
+                </Button>
+              </div>
+            }
+          >
+            Tem certeza que deseja recusar esta proposta?
+          </Notice>
         )}
 
-        {responder.isError && (
-          <Card className="border border-danger/30 bg-danger-soft/40 px-6 py-4 text-sm text-danger">
-            {responder.error.message}
-          </Card>
-        )}
+        {responder.isError && <Notice tone="danger">{responder.error.message}</Notice>}
 
-        <Card className="overflow-hidden p-0">
+        <Card className="overflow-hidden">
           <iframe
             title={proposta.title}
             srcDoc={proposta.html}

@@ -3,7 +3,7 @@
 import type { Route } from "next";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import * as Dialog from "@radix-ui/react-dialog";
+import { CaretLeft, CaretRight, CheckCircle, FilePlus, ImageSquare, Plus } from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import type {
@@ -18,10 +18,14 @@ import { useCurrentUser } from "@/components/providers/user-provider";
 import { PageHeader } from "@/components/layout/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardDescription, CardTitle } from "@/components/ui/card";
+import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Modal, ModalBody, ModalClose, ModalFooter } from "@/components/ui/modal";
+import { Notice } from "@/components/ui/notice";
 import { Select, SelectItem } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Stepper } from "@/components/ui/stepper";
 import { Textarea } from "@/components/ui/textarea";
 import { UploadArea } from "@/components/ui/upload-area";
@@ -208,13 +212,6 @@ function montarTotais(formulario: Formulario): Totais {
 
 function calcularTotal(totais: Totais) {
   return totais.mobilization + totais.dailyRate * totais.days;
-}
-
-function buscarVariante(selecionado: boolean) {
-  if (selecionado) {
-    return "primary" as const;
-  }
-  return "secondary" as const;
 }
 
 function buscarRotuloModelo(selecionado: boolean) {
@@ -450,462 +447,469 @@ export default function NewProposalPage() {
 
   if (!podeCriar) {
     return (
-      <section className="space-y-8">
-        <PageHeader title="Nova Proposta" />
-        <Card className="border border-warning/40 bg-warning-soft px-6 py-4 text-sm text-warning">
-          Seu departamento não tem permissão para criar propostas.
-        </Card>
+      <section className="space-y-6">
+        <PageHeader title="Nova proposta" />
+        <Notice tone="warning">Seu departamento não tem permissão para criar propostas.</Notice>
       </section>
     );
   }
 
+  const resumoLinhas = [
+    { rotulo: "Cliente", valor: clienteSelecionado?.name },
+    { rotulo: "Modelo", valor: modeloAtivo?.name },
+    { rotulo: "Projeto", valor: formulario.titulo },
+    { rotulo: "Local", valor: formulario.localOperacao },
+    { rotulo: "Período", valor: montarPeriodo(formulario) },
+  ];
+
+  const resumo = (
+    <Card className="p-5">
+      <CardTitle>Resumo</CardTitle>
+      <dl className="mt-4 space-y-3 text-sm">
+        {resumoLinhas.map((linha) => (
+          <div key={linha.rotulo} className="flex items-baseline justify-between gap-4">
+            <dt className="shrink-0 text-muted">{linha.rotulo}</dt>
+            <dd className="min-w-0 truncate text-right font-medium text-ink">{linha.valor || "—"}</dd>
+          </div>
+        ))}
+      </dl>
+      <div className="mt-4 flex items-end justify-between gap-4 border-t border-dashed border-outline pt-4">
+        <span className="text-sm font-semibold text-ink">Total</span>
+        <span className="tabular font-display text-2xl font-semibold leading-none text-ink">
+          {formatarMoeda(total)}
+        </span>
+      </div>
+    </Card>
+  );
+
   return (
-    <section className="space-y-8">
+    <section className="space-y-6">
       <PageHeader
-        title="Nova Proposta"
+        title="Nova proposta"
         description="Escolha um modelo, detalhe a operação, defina os valores e gere o PDF para enviar ao cliente."
       />
 
-      <Card className="space-y-6 p-6">
+      <Card className="px-5 py-5 sm:px-6">
         <Stepper steps={steps} activeStep={stepIndex} />
+      </Card>
 
-        {stepIndex === 0 && (
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            <Card className="flex flex-col justify-between gap-3 border border-outline/60 bg-[var(--color-surface-muted)] p-5 shadow-none">
-              <div className="space-y-2">
-                <h3 className="text-base font-semibold text-ink">Começar do zero</h3>
-                <p className="text-sm text-muted">
-                  Usa o layout padrão com todos os campos em branco para você preencher.
-                </p>
-              </div>
-              <Button variant={buscarVariante(emBranco)} onClick={selecionarEmBranco}>
-                Usar proposta em branco
-              </Button>
-            </Card>
+      {stepIndex === 0 && (
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <button
+            type="button"
+            onClick={selecionarEmBranco}
+            className={cn(
+              "flex min-h-[168px] flex-col items-start gap-3 rounded-xl border border-dashed border-outline bg-white p-5 text-left transition-colors hover:border-primary hover:bg-primary-tint",
+              emBranco && "border-solid border-primary bg-primary-tint ring-[3px] ring-primary/20",
+            )}
+          >
+            <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-surface-muted text-ink-muted">
+              <FilePlus size={20} weight="bold" />
+            </span>
+            <span>
+              <span className="block text-[15px] font-semibold text-ink">Começar do zero</span>
+              <span className="mt-1 block text-sm leading-snug text-muted">
+                Usa o layout padrão com todos os campos em branco para você preencher.
+              </span>
+            </span>
+            <span className="mt-auto text-[13px] font-semibold text-primary-strong">Usar proposta em branco</span>
+          </button>
 
-            {templatesQuery.isLoading && <p className="text-sm text-muted">Carregando modelos...</p>}
+          {templatesQuery.isLoading &&
+            Array.from({ length: 2 }).map((_, indice) => (
+              <Skeleton key={indice} className="min-h-[168px] rounded-xl" />
+            ))}
 
-            {modelos.map((modelo) => {
-              const selecionado = modeloId === modelo.id && !emBranco;
-              return (
-                <Card
-                  key={modelo.id}
-                  onClick={() => selecionarModelo(modelo)}
+          {modelos.map((modelo) => {
+            const selecionado = modeloId === modelo.id && !emBranco;
+            return (
+              <button
+                key={modelo.id}
+                type="button"
+                onClick={() => selecionarModelo(modelo)}
+                aria-pressed={selecionado}
+                className={cn(
+                  "flex min-h-[168px] flex-col items-start gap-3 rounded-xl border border-border bg-white p-5 text-left shadow-card transition-colors hover:border-primary/60",
+                  selecionado && "border-primary bg-primary-tint ring-[3px] ring-primary/20",
+                )}
+              >
+                <span className="flex flex-wrap items-center gap-2">
+                  {modelo.category && <Badge tone="brand">{modelo.category}</Badge>}
+                  <span className="text-xs font-medium text-muted">{buscarCategoriaModelo(modelo)}</span>
+                </span>
+                <span>
+                  <span className="block text-[15px] font-semibold text-ink">{modelo.name}</span>
+                  {modelo.description ? (
+                    <span className="mt-1 block text-sm leading-snug text-muted">{modelo.description}</span>
+                  ) : null}
+                </span>
+                <span
                   className={cn(
-                    "flex cursor-pointer flex-col gap-3 border border-outline/60 bg-white p-5 transition hover:-translate-y-1 hover:shadow-lg",
-                    selecionado && "border-primary bg-[var(--color-surface-muted)]/60 ring-2 ring-primary/20",
+                    "mt-auto inline-flex items-center gap-1.5 text-[13px] font-semibold",
+                    selecionado ? "text-ink" : "text-primary-strong",
                   )}
                 >
-                  <div className="flex items-center gap-2 text-xs text-muted">
-                    {modelo.category && <Badge tone="info">{modelo.category}</Badge>}
-                    <span>{buscarCategoriaModelo(modelo)}</span>
-                  </div>
-                  <div className="space-y-2">
-                    <h3 className="text-base font-semibold text-ink">{modelo.name}</h3>
-                    <p className="text-sm text-muted">{modelo.description}</p>
-                  </div>
-                  <div className="mt-auto">
-                    <Button
-                      variant={buscarVariante(selecionado)}
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        selecionarModelo(modelo);
-                      }}
-                    >
-                      {buscarRotuloModelo(selecionado)}
-                    </Button>
-                  </div>
-                </Card>
-              );
-            })}
-          </div>
-        )}
+                  {selecionado ? <CheckCircle size={16} weight="fill" className="text-primary" /> : null}
+                  {buscarRotuloModelo(selecionado)}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
-        {stepIndex === 1 && (
-          <div className="grid gap-6 lg:grid-cols-[2fr,1fr]">
-            <div className="space-y-5">
-              <div className="space-y-2">
-                <Label>Cliente</Label>
-                <div className="flex items-center gap-2">
-                  <div className="flex-1">
-                    <Select
-                      value={formulario.clientId}
-                      placeholder="Nenhum cliente cadastrado"
-                      onValueChange={(valor) => atualizarCampo("clientId", valor)}
-                    >
-                      {clientes.map((cliente) => (
-                        <SelectItem key={cliente.id} value={cliente.id}>
-                          {cliente.name}
-                        </SelectItem>
-                      ))}
-                    </Select>
-                  </div>
-                  {podeCadastrarCliente && (
-                    <Button variant="ghost" size="sm" onClick={() => setAddClientOpen(true)}>
-                      Adicionar
-                    </Button>
-                  )}
-                </div>
-
-                <Dialog.Root open={addClientOpen} onOpenChange={setAddClientOpen}>
-                  <Dialog.Portal>
-                    <Dialog.Overlay className="fixed inset-0 z-40 bg-ink/40 backdrop-blur-sm" />
-                    <Dialog.Content className="fixed inset-0 z-50 flex items-start justify-center px-4 py-10">
-                      <form
-                        onSubmit={(e) => {
-                          e.preventDefault();
-                          if (!newClient.name.trim()) return;
-                          createClient.mutate({
-                            name: newClient.name.trim(),
-                            companyName: newClient.companyName.trim() || undefined,
-                          });
-                        }}
-                        className="w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl"
-                      >
-                        <div className="flex items-center justify-between border-b border-outline/20 px-6 py-4">
-                          <div>
-                            <Dialog.Title className="text-lg font-semibold text-ink">Adicionar cliente</Dialog.Title>
-                            <Dialog.Description className="text-xs text-muted">
-                              Cadastre um cliente sem sair da criação da proposta
-                            </Dialog.Description>
-                          </div>
-                          <Dialog.Close asChild>
-                            <button
-                              type="button"
-                              className="rounded-full border border-outline bg-white p-2 text-ink shadow-sm transition hover:bg-primary-soft"
-                              aria-label="Fechar"
-                            >
-                              ×
-                            </button>
-                          </Dialog.Close>
-                        </div>
-                        <div className="space-y-4 px-6 py-6">
-                          <div className="space-y-2">
-                            <Label>Nome</Label>
-                            <Input value={newClient.name} onChange={(e) => setNewClient((s) => ({ ...s, name: e.target.value }))} />
-                          </div>
-                          <div className="space-y-2">
-                            <Label>Empresa</Label>
-                            <Input
-                              value={newClient.companyName}
-                              onChange={(e) => setNewClient((s) => ({ ...s, companyName: e.target.value }))}
-                            />
-                          </div>
-                          {createClient.isError && (
-                            <p className="text-sm text-danger">{createClient.error.message}</p>
-                          )}
-                        </div>
-                        <div className="flex justify-end gap-2 border-t border-outline/20 bg-[var(--color-surface-muted)]/40 px-6 py-4">
-                          <Dialog.Close asChild>
-                            <Button variant="ghost">Cancelar</Button>
-                          </Dialog.Close>
-                          <Button type="submit" loading={createClient.isPending}>
-                            Cadastrar
-                          </Button>
-                        </div>
-                      </form>
-                    </Dialog.Content>
-                  </Dialog.Portal>
-                </Dialog.Root>
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="titulo">Título / nome do projeto</Label>
-                  <Input
-                    id="titulo"
-                    placeholder="Montagem de estrutura metálica - Galpão X"
-                    value={formulario.titulo}
-                    onChange={(event) => atualizarCampo("titulo", event.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="localOperacao">Local da operação</Label>
-                  <Input
-                    id="localOperacao"
-                    placeholder="Porto de Santos, SP"
-                    value={formulario.localOperacao}
-                    onChange={(event) => atualizarCampo("localOperacao", event.target.value)}
-                  />
-                </div>
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="dataInicio">Data de início</Label>
-                  <Input
-                    id="dataInicio"
-                    type="date"
-                    value={formulario.dataInicio}
-                    onChange={(event) => atualizarData("dataInicio", event.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="dataFim">Data de término</Label>
-                  <Input
-                    id="dataFim"
-                    type="date"
-                    value={formulario.dataFim}
-                    onChange={(event) => atualizarData("dataFim", event.target.value)}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="escopo">Escopo do serviço (um item por linha)</Label>
-                <Textarea
-                  id="escopo"
-                  rows={4}
-                  placeholder={"Içamento e posicionamento de treliças\nSupervisor técnico durante o turno"}
-                  value={formulario.escopo}
-                  onChange={(event) => atualizarCampo("escopo", event.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Equipamentos</Label>
-                {catalogo.length > 0 && (
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    {catalogo.map((equipamento) => (
-                      <label
-                        key={equipamento.id}
-                        className="flex cursor-pointer items-center gap-3 rounded-lg border border-outline/60 bg-white px-3 py-2 text-sm text-ink"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={formulario.equipamentosIds.includes(equipamento.id)}
-                          onChange={() => alternarEquipamento(equipamento.id)}
-                        />
-                        <span>{equipamento.name}</span>
-                        <span className="ml-auto text-xs text-muted">{descreverCapacidade(equipamento)}</span>
-                      </label>
+      {stepIndex === 1 && (
+        <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+          <Card className="space-y-6 p-5 sm:p-6">
+            <div className="space-y-2">
+              <Label htmlFor="cliente">Cliente</Label>
+              <div className="flex items-center gap-2">
+                <div className="min-w-0 flex-1">
+                  <Select
+                    id="cliente"
+                    value={formulario.clientId}
+                    placeholder="Nenhum cliente cadastrado"
+                    onValueChange={(valor) => atualizarCampo("clientId", valor)}
+                  >
+                    {clientes.map((cliente) => (
+                      <SelectItem key={cliente.id} value={cliente.id}>
+                        {cliente.name}
+                      </SelectItem>
                     ))}
-                  </div>
+                  </Select>
+                </div>
+                {podeCadastrarCliente && (
+                  <Button variant="secondary" onClick={() => setAddClientOpen(true)}>
+                    <Plus size={14} weight="bold" />
+                    Adicionar
+                  </Button>
                 )}
-                <Textarea
-                  rows={2}
-                  placeholder="Outros equipamentos (um por linha)"
-                  value={formulario.equipamentosExtras}
-                  onChange={(event) => atualizarCampo("equipamentosExtras", event.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="equipe">Equipe e certificações (um item por linha)</Label>
-                <Textarea
-                  id="equipe"
-                  rows={3}
-                  placeholder={"Operador de guindaste certificado\nRigger responsável com ART"}
-                  value={formulario.equipe}
-                  onChange={(event) => atualizarCampo("equipe", event.target.value)}
-                />
               </div>
             </div>
 
-            <Card className="space-y-4 border border-outline/50 bg-[var(--color-surface-muted)]/70 p-5 shadow-none">
-              <h3 className="text-sm font-semibold text-ink">Resumo rápido</h3>
-              <div className="space-y-2 text-sm">
-                <p>
-                  <span className="text-muted">Cliente:</span> {clienteSelecionado?.name || "–"}
-                </p>
-                <p>
-                  <span className="text-muted">Modelo:</span> {modeloAtivo?.name || "–"}
-                </p>
-                <p>
-                  <span className="text-muted">Período:</span> {montarPeriodo(formulario) || "–"}
-                </p>
-              </div>
-            </Card>
-          </div>
-        )}
-
-        {stepIndex === 2 && (
-          <div className="grid gap-6 lg:grid-cols-[2fr,1fr]">
-            <div className="space-y-5">
-              <div className="grid gap-4 sm:grid-cols-3">
-                <div className="space-y-2">
-                  <Label htmlFor="mobilizacao">Mobilização / desmobilização (R$)</Label>
-                  <Input
-                    id="mobilizacao"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={formulario.mobilizacao}
-                    onChange={(event) => atualizarCampo("mobilizacao", event.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="diaria">Diária operacional (R$)</Label>
-                  <Input
-                    id="diaria"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={formulario.diaria}
-                    onChange={(event) => atualizarCampo("diaria", event.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="dias">Dias de operação</Label>
-                  <Input
-                    id="dias"
-                    type="number"
-                    min="0"
-                    step="1"
-                    value={formulario.dias}
-                    onChange={(event) => atualizarCampo("dias", event.target.value)}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2 sm:max-w-xs">
-                <Label htmlFor="validadeDias">Validade da proposta (dias)</Label>
+            <div className="grid gap-5 sm:grid-cols-2">
+              <Field label="Título / nome do projeto" htmlFor="titulo">
                 <Input
-                  id="validadeDias"
+                  id="titulo"
+                  placeholder="Montagem de estrutura metálica - Galpão X"
+                  value={formulario.titulo}
+                  onChange={(event) => atualizarCampo("titulo", event.target.value)}
+                />
+              </Field>
+              <Field label="Local da operação" htmlFor="localOperacao">
+                <Input
+                  id="localOperacao"
+                  placeholder="Porto de Santos, SP"
+                  value={formulario.localOperacao}
+                  onChange={(event) => atualizarCampo("localOperacao", event.target.value)}
+                />
+              </Field>
+              <Field label="Data de início" htmlFor="dataInicio">
+                <Input
+                  id="dataInicio"
+                  type="date"
+                  value={formulario.dataInicio}
+                  onChange={(event) => atualizarData("dataInicio", event.target.value)}
+                />
+              </Field>
+              <Field label="Data de término" htmlFor="dataFim">
+                <Input
+                  id="dataFim"
+                  type="date"
+                  value={formulario.dataFim}
+                  onChange={(event) => atualizarData("dataFim", event.target.value)}
+                />
+              </Field>
+            </div>
+
+            <Field label="Escopo do serviço" htmlFor="escopo" hint="Um item por linha.">
+              <Textarea
+                id="escopo"
+                rows={4}
+                placeholder={"Içamento e posicionamento de treliças\nSupervisor técnico durante o turno"}
+                value={formulario.escopo}
+                onChange={(event) => atualizarCampo("escopo", event.target.value)}
+              />
+            </Field>
+
+            <div className="space-y-2">
+              <Label htmlFor="equipamentosExtras">Equipamentos</Label>
+              {catalogo.length > 0 && (
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {catalogo.map((equipamento) => (
+                    <label
+                      key={equipamento.id}
+                      className="flex cursor-pointer items-center gap-3 rounded-lg border border-outline bg-white px-3 py-2.5 text-sm text-ink transition-colors hover:border-ink/30 has-[:checked]:border-primary has-[:checked]:bg-primary-tint has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-primary/25"
+                    >
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 shrink-0 accent-primary"
+                        checked={formulario.equipamentosIds.includes(equipamento.id)}
+                        onChange={() => alternarEquipamento(equipamento.id)}
+                      />
+                      <span className="min-w-0 truncate font-medium">{equipamento.name}</span>
+                      <span className="tabular ml-auto shrink-0 text-xs text-muted">
+                        {descreverCapacidade(equipamento)}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              )}
+              <Textarea
+                id="equipamentosExtras"
+                rows={2}
+                placeholder="Outros equipamentos (um por linha)"
+                value={formulario.equipamentosExtras}
+                onChange={(event) => atualizarCampo("equipamentosExtras", event.target.value)}
+              />
+            </div>
+
+            <Field label="Equipe e certificações" htmlFor="equipe" hint="Um item por linha.">
+              <Textarea
+                id="equipe"
+                rows={3}
+                placeholder={"Operador de guindaste certificado\nRigger responsável com ART"}
+                value={formulario.equipe}
+                onChange={(event) => atualizarCampo("equipe", event.target.value)}
+              />
+            </Field>
+          </Card>
+
+          <div className="lg:sticky lg:top-24">{resumo}</div>
+        </div>
+      )}
+
+      {stepIndex === 2 && (
+        <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+          <Card className="space-y-6 p-5 sm:p-6">
+            <div className="grid gap-5 sm:grid-cols-3">
+              <Field label="Mobilização (R$)" htmlFor="mobilizacao" hint="Ida e volta do equipamento.">
+                <Input
+                  id="mobilizacao"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  inputMode="decimal"
+                  placeholder="0,00"
+                  value={formulario.mobilizacao}
+                  onChange={(event) => atualizarCampo("mobilizacao", event.target.value)}
+                />
+              </Field>
+              <Field label="Diária operacional (R$)" htmlFor="diaria">
+                <Input
+                  id="diaria"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  inputMode="decimal"
+                  placeholder="0,00"
+                  value={formulario.diaria}
+                  onChange={(event) => atualizarCampo("diaria", event.target.value)}
+                />
+              </Field>
+              <Field label="Dias de operação" htmlFor="dias">
+                <Input
+                  id="dias"
                   type="number"
                   min="0"
                   step="1"
-                  value={formulario.validadeDias}
-                  onChange={(event) => atualizarCampo("validadeDias", event.target.value)}
+                  inputMode="numeric"
+                  value={formulario.dias}
+                  onChange={(event) => atualizarCampo("dias", event.target.value)}
                 />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="condicoes">Condições gerais (uma por linha)</Label>
-                <Textarea
-                  id="condicoes"
-                  rows={5}
-                  placeholder={"Pagamento: 40% na confirmação + 60% após a conclusão\nOperação sujeita a condições climáticas"}
-                  value={formulario.condicoes}
-                  onChange={(event) => atualizarCampo("condicoes", event.target.value)}
-                />
-              </div>
+              </Field>
             </div>
 
-            <Card className="space-y-3 border border-outline/50 bg-white p-5 shadow-lg">
-              <h3 className="text-sm font-semibold text-ink">Investimento</h3>
-              <div className="space-y-2 text-sm">
-                <p className="flex justify-between gap-3">
-                  <span className="text-muted">Mobilização</span>
-                  <span className="text-ink">{formatarMoeda(totais.mobilization)}</span>
-                </p>
-                <p className="flex justify-between gap-3">
-                  <span className="text-muted">
-                    Diária × {totais.days} dia(s)
-                  </span>
-                  <span className="text-ink">{formatarMoeda(totais.dailyRate * totais.days)}</span>
-                </p>
-              </div>
-              <div className="border-t border-outline/40 pt-3">
-                <p className="text-xs uppercase tracking-wide text-muted">Total</p>
-                <p className="text-2xl font-semibold text-primary">{formatarMoeda(total)}</p>
-              </div>
-            </Card>
-          </div>
-        )}
+            <Field label="Validade da proposta (dias)" htmlFor="validadeDias" className="sm:max-w-[220px]">
+              <Input
+                id="validadeDias"
+                type="number"
+                min="0"
+                step="1"
+                inputMode="numeric"
+                value={formulario.validadeDias}
+                onChange={(event) => atualizarCampo("validadeDias", event.target.value)}
+              />
+            </Field>
 
-        {stepIndex === 3 && (
-          <div className="grid gap-6 lg:grid-cols-[2fr,1fr]">
-            <div className="space-y-5">
-              <div className="space-y-2">
-                <Label>Fotos da operação (máx. 5)</Label>
-                <UploadArea
-                  hint="Formatos aceitos: JPG, PNG – tamanho máximo 5MB por foto"
-                  onFilesSelected={selecionarFotos}
-                  accept="image/png,image/jpeg"
-                />
-                {avisoFotos && <p className="text-xs text-warning">{avisoFotos}</p>}
-                {fotos.length > 0 && (
-                  <ul className="space-y-2 rounded-lg border border-outline/40 bg-white px-4 py-3 text-sm text-muted">
-                    {fotos.map((foto) => (
-                      <li key={`${foto.name}-${foto.lastModified}`} className="flex items-center justify-between gap-3">
-                        <span className="truncate">{foto.name}</span>
-                        <span className="text-xs uppercase tracking-wide text-muted">
-                          {formatarTamanhoArquivo(foto.size)}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-                {fotos.length === 0 && <p className="text-xs text-muted">Nenhuma foto selecionada.</p>}
+            <Field label="Condições gerais" htmlFor="condicoes" hint="Uma condição por linha.">
+              <Textarea
+                id="condicoes"
+                rows={5}
+                placeholder={"Pagamento: 40% na confirmação + 60% após a conclusão\nOperação sujeita a condições climáticas"}
+                value={formulario.condicoes}
+                onChange={(event) => atualizarCampo("condicoes", event.target.value)}
+              />
+            </Field>
+          </Card>
+
+          <Card className="p-5 lg:sticky lg:top-24">
+            <CardTitle>Investimento</CardTitle>
+            <dl className="mt-4 space-y-3 text-sm">
+              <div className="flex items-baseline justify-between gap-3">
+                <dt className="text-muted">Mobilização</dt>
+                <dd className="tabular font-medium text-ink">{formatarMoeda(totais.mobilization)}</dd>
               </div>
-              <div className="space-y-3 rounded-xl border border-outline bg-white p-5 shadow-sm">
-                <h3 className="text-sm font-semibold text-ink">Checklist antes de gerar</h3>
-                <ul className="space-y-2 text-sm text-muted">
-                  <li>• Revisar escopo e valores</li>
-                  <li>• Confirmar equipamentos e datas</li>
-                  <li>• Conferir os dados da empresa em Minha Conta</li>
-                </ul>
+              <div className="flex items-baseline justify-between gap-3">
+                <dt className="text-muted">Diária × {totais.days} dia(s)</dt>
+                <dd className="tabular font-medium text-ink">{formatarMoeda(totais.dailyRate * totais.days)}</dd>
               </div>
+            </dl>
+            <div className="mt-4 border-t border-dashed border-outline pt-4">
+              <p className="meta-label">Total</p>
+              <p className="tabular mt-1 font-display text-[32px] font-semibold leading-none text-ink">
+                {formatarMoeda(total)}
+              </p>
             </div>
-            <Card className="space-y-4 border border-outline/50 bg-white p-5 shadow-lg">
-              <h3 className="text-sm font-semibold text-ink">Resumo</h3>
-              <div className="space-y-3 text-sm">
-                <div>
-                  <p className="text-muted">Cliente</p>
-                  <p className="font-medium text-ink">{clienteSelecionado?.name || "Sem cliente"}</p>
-                </div>
-                <div>
-                  <p className="text-muted">Projeto</p>
-                  <p className="font-medium text-ink">{formulario.titulo || "Sem título"}</p>
-                </div>
-                <div>
-                  <p className="text-muted">Local e período</p>
-                  <p className="font-medium text-ink">
-                    {formulario.localOperacao || "–"} · {montarPeriodo(formulario) || "–"}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-muted">Total</p>
-                  <p className="font-medium text-ink">{formatarMoeda(total)}</p>
-                </div>
-                <div>
-                  <p className="text-muted">Fotos</p>
-                  <p className="font-medium text-ink">{fotos.length} arquivo(s)</p>
-                </div>
-              </div>
-              <Button
-                className="w-full"
-                loading={createProposalFlow.isPending}
-                loadingText="Gerando..."
-                onClick={() => createProposalFlow.mutate({ gerarPdf: true })}
-              >
-                Gerar proposta e PDF
-              </Button>
-              <Button
-                variant="ghost"
-                className="w-full"
-                loading={createProposalFlow.isPending}
-                loadingText="Salvando..."
-                onClick={() => createProposalFlow.mutate({ gerarPdf: false })}
-              >
-                Salvar rascunho
-              </Button>
-            </Card>
-          </div>
-        )}
-
-        {submissionError && (
-          <div className="rounded-lg border border-danger/30 bg-danger-soft/40 px-4 py-3 text-sm text-danger">
-            {submissionError}
-          </div>
-        )}
-
-        <div className="flex justify-between border-t border-outline/60 pt-4">
-          <Button
-            variant="ghost"
-            onClick={handlePrevious}
-            disabled={stepIndex === 0 || createProposalFlow.isPending}
-          >
-            Voltar
-          </Button>
-          {stepIndex < steps.length - 1 && (
-            <Button onClick={handleNext} disabled={!modeloId || createProposalFlow.isPending}>
-              Continuar
-            </Button>
-          )}
+          </Card>
         </div>
-      </Card>
+      )}
+
+      {stepIndex === 3 && (
+        <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+          <div className="space-y-6">
+            <Card className="space-y-3 p-5 sm:p-6">
+              <div>
+                <CardTitle>Fotos da operação</CardTitle>
+                <CardDescription>Até {MAX_ATTACHMENTS} fotos, aparecem no PDF.</CardDescription>
+              </div>
+              <UploadArea
+                hint="JPG ou PNG, até 5 MB por foto"
+                onFilesSelected={selecionarFotos}
+                accept="image/png,image/jpeg"
+              />
+              {avisoFotos && <Notice tone="warning">{avisoFotos}</Notice>}
+              {fotos.length > 0 ? (
+                <ul className="divide-y divide-border rounded-lg border border-border">
+                  {fotos.map((foto) => (
+                    <li
+                      key={`${foto.name}-${foto.lastModified}`}
+                      className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm"
+                    >
+                      <span className="flex min-w-0 items-center gap-2 text-ink">
+                        <ImageSquare size={16} className="shrink-0 text-muted" />
+                        <span className="truncate">{foto.name}</span>
+                      </span>
+                      <span className="tabular shrink-0 text-xs text-muted">{formatarTamanhoArquivo(foto.size)}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-xs text-muted">Nenhuma foto selecionada.</p>
+              )}
+            </Card>
+
+            <Card className="p-5 sm:p-6">
+              <CardTitle>Antes de gerar</CardTitle>
+              <ul className="mt-3 space-y-2 text-sm text-ink-muted">
+                {[
+                  "Revise escopo e valores",
+                  "Confirme equipamentos e datas",
+                  "Confira os dados da empresa em Minha conta",
+                ].map((item) => (
+                  <li key={item} className="flex items-center gap-2.5">
+                    <CheckCircle size={16} weight="fill" className="shrink-0 text-outline" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          </div>
+
+          <div className="space-y-3 lg:sticky lg:top-24">
+            {resumo}
+            <Button
+              size="lg"
+              className="w-full"
+              loading={createProposalFlow.isPending && createProposalFlow.variables?.gerarPdf === true}
+              loadingText="Gerando..."
+              disabled={createProposalFlow.isPending}
+              onClick={() => createProposalFlow.mutate({ gerarPdf: true })}
+            >
+              Gerar proposta e PDF
+            </Button>
+            <Button
+              variant="secondary"
+              className="w-full"
+              loading={createProposalFlow.isPending && createProposalFlow.variables?.gerarPdf === false}
+              loadingText="Salvando..."
+              disabled={createProposalFlow.isPending}
+              onClick={() => createProposalFlow.mutate({ gerarPdf: false })}
+            >
+              Salvar rascunho
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {submissionError && <Notice tone="danger">{submissionError}</Notice>}
+
+      <div className="flex items-center justify-between gap-3 border-t border-border pt-5">
+        <Button
+          variant="ghost"
+          onClick={handlePrevious}
+          disabled={stepIndex === 0 || createProposalFlow.isPending}
+        >
+          <CaretLeft size={14} weight="bold" />
+          Voltar
+        </Button>
+        <span className="tabular text-[13px] font-medium text-muted">
+          Etapa {stepIndex + 1} de {steps.length}
+        </span>
+        {stepIndex < steps.length - 1 ? (
+          <Button onClick={handleNext} disabled={!modeloId || createProposalFlow.isPending}>
+            Continuar
+            <CaretRight size={14} weight="bold" />
+          </Button>
+        ) : (
+          <span className="w-[104px]" aria-hidden />
+        )}
+      </div>
+
+      <Modal
+        open={addClientOpen}
+        onOpenChange={setAddClientOpen}
+        title="Adicionar cliente"
+        description="Cadastre um cliente sem sair da criação da proposta."
+        size="sm"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (!newClient.name.trim()) return;
+          createClient.mutate({
+            name: newClient.name.trim(),
+            companyName: newClient.companyName.trim() || undefined,
+          });
+        }}
+      >
+        <ModalBody>
+          <Field label="Nome" htmlFor="novo-cliente-nome">
+            <Input
+              id="novo-cliente-nome"
+              autoFocus
+              value={newClient.name}
+              onChange={(e) => setNewClient((s) => ({ ...s, name: e.target.value }))}
+            />
+          </Field>
+          <Field label="Empresa" htmlFor="novo-cliente-empresa" optional="opcional">
+            <Input
+              id="novo-cliente-empresa"
+              value={newClient.companyName}
+              onChange={(e) => setNewClient((s) => ({ ...s, companyName: e.target.value }))}
+            />
+          </Field>
+          {createClient.isError && <Notice tone="danger">{createClient.error.message}</Notice>}
+        </ModalBody>
+        <ModalFooter>
+          <ModalClose asChild>
+            <Button type="button" variant="ghost">
+              Cancelar
+            </Button>
+          </ModalClose>
+          <Button type="submit" loading={createClient.isPending} disabled={!newClient.name.trim()}>
+            Cadastrar cliente
+          </Button>
+        </ModalFooter>
+      </Modal>
     </section>
   );
 }

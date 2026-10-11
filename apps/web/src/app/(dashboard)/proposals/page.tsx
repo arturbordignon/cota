@@ -1,9 +1,11 @@
 'use client';
 
+import type { Route } from "next";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useFormatter, useTranslations } from "next-intl";
 import { useQuery } from "@tanstack/react-query";
+import { Check, LinkSimple, Plus } from "@phosphor-icons/react";
 
 import { FilterBar } from "@/components/layout/filter-bar";
 import { PageHeader } from "@/components/layout/page-header";
@@ -11,6 +13,7 @@ import { useCurrentUser } from "@/components/providers/user-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Notice } from "@/components/ui/notice";
 import { useApi } from "@/hooks/use-api";
 import { ProposalStatus, ProposalSummary, ProposalsResponse } from "@/types/api";
 
@@ -84,9 +87,17 @@ export default function ProposalsPage() {
       dateStyle: 'long',
     });
 
+  const [linkCopiado, setLinkCopiado] = useState<string | null>(null);
+
   const handleCopyLink = (proposal: ProposalSummary) => {
     if (typeof window === 'undefined' || !navigator?.clipboard) return;
-    navigator.clipboard.writeText(`${window.location.origin}/p/${proposal.publicSlug}`).catch(() => {});
+    navigator.clipboard
+      .writeText(`${window.location.origin}/p/${proposal.publicSlug}`)
+      .then(() => {
+        setLinkCopiado(proposal.id);
+        window.setTimeout(() => setLinkCopiado((atual) => (atual === proposal.id ? null : atual)), 2000);
+      })
+      .catch(() => {});
   };
 
   const linkPublicoDisponivel = (proposal: ProposalSummary) => {
@@ -98,28 +109,25 @@ export default function ProposalsPage() {
 
   return (
     <section className="space-y-6">
-      {isTokenMissing ? (
-        <Card className="border border-warning/40 bg-warning-soft px-6 py-4 text-sm text-warning">
-          {t("alerts.missingToken")}
-        </Card>
-      ) : null}
-
       <PageHeader
         title={t("header.title")}
         description={t("header.description")}
         action={
           temPermissao('proposals', 'edit') && (
-            <Button variant="primary" className="w-full sm:w-auto" asChild>
-              <Link href="/proposals/new">{t("actions.create")}</Link>
+            <Button variant="primary" asChild>
+              <Link href="/proposals/new">
+                <Plus size={16} weight="bold" />
+                {t("actions.create")}
+              </Link>
             </Button>
           )
         }
       />
 
+      {isTokenMissing ? <Notice tone="warning">{t("alerts.missingToken")}</Notice> : null}
+
       {loadError && !isTokenMissing ? (
-        <Card className="border border-danger/40 bg-danger-soft/20 px-6 py-4 text-sm text-danger">
-          {t("alerts.loadError", { message: loadError.message })}
-        </Card>
+        <Notice tone="danger">{t("alerts.loadError", { message: loadError.message })}</Notice>
       ) : null}
 
       <FilterBar
@@ -136,28 +144,28 @@ export default function ProposalsPage() {
         rotuloLimpar={t("filters.clear")}
       />
 
-      <Card className="overflow-hidden rounded-xl border-outline bg-white p-0">
+      <Card className="overflow-hidden">
         <div className="w-full overflow-x-auto">
-          <table className="w-full min-w-[640px] table-auto text-sm">
-            <thead className="bg-surface text-muted">
+          <table className="data-table min-w-[720px]">
+            <thead>
               <tr>
-                <th className="px-6 py-4 text-left font-medium">{t("table.headers.client")}</th>
-                <th className="px-6 py-4 text-left font-medium">{t("table.headers.title")}</th>
-                <th className="px-6 py-4 text-left font-medium">{t("table.headers.createdAt")}</th>
-                <th className="px-6 py-4 text-left font-medium">{t("table.headers.status")}</th>
-                <th className="px-6 py-4 text-right font-medium">{t("table.headers.actions")}</th>
+                <th>{t("table.headers.client")}</th>
+                <th>{t("table.headers.title")}</th>
+                <th>{t("table.headers.createdAt")}</th>
+                <th>{t("table.headers.status")}</th>
+                <th className="text-right">{t("table.headers.actions")}</th>
               </tr>
             </thead>
             <tbody>
               {proposalsQuery.isLoading ? (
-                <tr className="border-t border-outline/60">
-                  <td colSpan={5} className="px-6 py-5 text-center text-muted">
+                <tr>
+                  <td colSpan={5} className="py-10 text-center text-muted">
                     {t("table.loading")}
                   </td>
                 </tr>
               ) : propostasVisiveis.length === 0 ? (
-                <tr className="border-t border-outline/60">
-                  <td colSpan={5} className="px-6 py-10 text-center text-muted">
+                <tr>
+                  <td colSpan={5} className="py-14 text-center text-muted">
                     {mensagemVazia}
                   </td>
                 </tr>
@@ -165,38 +173,41 @@ export default function ProposalsPage() {
                 propostasVisiveis.map((proposal) => {
                   const tone = STATUS_TONES[proposal.status] ?? 'neutral';
                   const statusLabel = tStatus(proposal.status);
+                  const href = `/proposals/${proposal.publicSlug ?? proposal.id}` as Route;
                   return (
-                    <tr
-                      key={proposal.id}
-                      className="border-t border-outline/60 transition hover:bg-surface/40"
-                    >
-                      <td className="px-6 py-5 text-ink">
-                        {proposal.client?.name ?? t("table.noClient")}
+                    <tr key={proposal.id}>
+                      <td className="font-semibold text-ink">
+                        <Link href={href} className="hover:underline">
+                          {proposal.client?.name ?? t("table.noClient")}
+                        </Link>
                       </td>
-                      <td className="px-6 py-5 text-muted">
-                        {proposal.title ?? proposal.template?.name ?? t("table.noTitle")}
+                      <td>{proposal.title ?? proposal.template?.name ?? t("table.noTitle")}</td>
+                      <td className="tabular whitespace-nowrap">{formatDate(proposal)}</td>
+                      <td>
+                        <Badge tone={tone} dot>
+                          {statusLabel}
+                        </Badge>
                       </td>
-                      <td className="px-6 py-5 text-muted">{formatDate(proposal)}</td>
-                      <td className="px-6 py-5">
-                        <Badge tone={tone}>{statusLabel}</Badge>
-                      </td>
-                      <td className="px-6 py-5 text-right text-sm font-medium text-primary">
-                        <div className="inline-flex items-center gap-3">
-                          <Link
-                            href={`/proposals/${proposal.publicSlug ?? proposal.id}`}
-                            className="hover:underline"
-                          >
-                            {t("table.view")}
-                          </Link>
+                      <td className="text-right">
+                        <div className="inline-flex items-center gap-1">
                           {linkPublicoDisponivel(proposal) && (
-                            <button
+                            <Button
                               type="button"
-                              className="text-primary hover:underline"
+                              variant="ghost"
+                              size="sm"
                               onClick={() => handleCopyLink(proposal)}
                             >
-                              {t("table.copyLink")}
-                            </button>
+                              {linkCopiado === proposal.id ? (
+                                <Check size={14} weight="bold" className="text-success" />
+                              ) : (
+                                <LinkSimple size={14} weight="bold" />
+                              )}
+                              {linkCopiado === proposal.id ? t("table.linkCopied") : t("table.copyLink")}
+                            </Button>
                           )}
+                          <Button asChild variant="secondary" size="sm">
+                            <Link href={href}>{t("table.view")}</Link>
+                          </Button>
                         </div>
                       </td>
                     </tr>

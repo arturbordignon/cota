@@ -5,11 +5,14 @@ import { useMemo } from 'react';
 import Link from 'next/link';
 import { useFormatter, useTranslations } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
+import { CaretRight, FilePlus, Files, UserPlus } from '@phosphor-icons/react';
 
 import { PageHeader } from '@/components/layout/page-header';
 import { useCurrentUser } from '@/components/providers/user-provider';
+import { StatCard } from '@/components/reports/stat-card';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Notice } from '@/components/ui/notice';
 import { useApi } from '@/hooks/use-api';
 import {
   BillingOverviewResponse,
@@ -52,6 +55,12 @@ function minutesBetween(start: string, end: string) {
   return diff > 0 ? diff / 60000 : null;
 }
 
+const quickActionIcons = {
+  '/proposals/new': FilePlus,
+  '/clients/new': UserPlus,
+  '/templates/new': Files,
+} as const;
+
 export default function DashboardPage() {
   const t = useTranslations('dashboard');
   const tActions = useTranslations('actions');
@@ -79,7 +88,9 @@ export default function DashboardPage() {
   const plan = billingQuery.data?.data.plan;
   const loadError = (proposalsQuery.error ?? billingQuery.error) as Error | null;
 
-  const quickActions = useMemo<{ title: string; href: Route; description: string; cta: string }[]>(
+  const quickActions = useMemo<
+    { title: string; href: keyof typeof quickActionIcons & Route; description: string; cta: string }[]
+  >(
     () => [
       {
         title: tActions('createProposal'),
@@ -214,92 +225,107 @@ export default function DashboardPage() {
   }, [format, proposals, t]);
 
   const creditsLabel = t('credits.label');
+  const isUnlimited = plan?.isUnlimited || plan?.proposalsPerMonth == null || usage?.total == null;
 
   const creditsValue = useMemo(() => {
     if (!usage) {
       return t('credits.unavailable');
     }
 
-    if (plan?.isUnlimited || plan?.proposalsPerMonth == null || usage.total == null) {
+    if (isUnlimited) {
       return t('credits.unlimited');
     }
 
-    const remaining = Math.max(usage.total - usage.used, 0);
+    const remaining = Math.max((usage.total ?? 0) - usage.used, 0);
     return format.number(remaining, { maximumFractionDigits: 0 });
-  }, [format, plan, t, usage]);
+  }, [format, isUnlimited, t, usage]);
+
+  const usagePercent =
+    usage && usage.total ? Math.min(Math.round((usage.used / usage.total) * 100), 100) : null;
 
   const isTokenMissing = !api.token;
 
   return (
-    <section className="space-y-10">
-      {isTokenMissing ? (
-        <Card className="border border-warning/40 bg-warning-soft px-6 py-4 text-sm text-warning">
-          {t('warnings.tokenMissing')}
-        </Card>
-      ) : null}
+    <section className="space-y-8">
+      <PageHeader title={t('title')} description={t('description')} />
+
+      {isTokenMissing ? <Notice tone="warning">{t('warnings.tokenMissing')}</Notice> : null}
 
       {loadError && !isTokenMissing ? (
-        <Card className="border border-danger/40 bg-danger-soft/20 px-6 py-4 text-sm text-danger">
+        <Notice tone="danger">
           {t('states.error')} {loadError.message}
-        </Card>
+        </Notice>
       ) : null}
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {metrics.map((metric) => (
-          <Card
+          <StatCard
             key={metric.key}
-            className="rounded-3xl border border-outline/50 bg-white px-5 py-4 shadow-sm"
-          >
-            <p className="text-xs uppercase tracking-wide text-muted">{metric.label}</p>
-            <p className="mt-2 text-2xl font-semibold text-ink">
-              {proposalsQuery.isLoading ? '...' : metric.value}
-            </p>
-            <p className="text-xs text-success">
-              {proposalsQuery.isLoading ? '—' : metric.delta}
-            </p>
-          </Card>
+            label={metric.label}
+            value={proposalsQuery.isLoading ? '…' : metric.value}
+            hint={proposalsQuery.isLoading ? undefined : metric.delta}
+          />
         ))}
       </div>
 
-      <PageHeader title={t('title')} description={t('description')} />
-
-      <Card className="flex flex-col gap-6 rounded-3xl border-none bg-gradient-to-br from-primary-soft to-white px-6 py-6 shadow-md md:flex-row md:items-center md:justify-between">
-        <div>
-          <p className="text-sm text-muted">{creditsLabel}</p>
-          <p className="font-display text-4xl font-semibold text-ink">
-            {billingQuery.isLoading ? '...' : creditsValue}
-          </p>
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+        <div className="space-y-3">
+          <h2 className="font-sans text-[15px] font-semibold text-ink">{t('quickAccess.title')}</h2>
+          <Card className="divide-y divide-border overflow-hidden">
+            {quickActions.map((item) => {
+              const Icon = quickActionIcons[item.href];
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="group flex items-center gap-4 px-5 py-4 transition-colors hover:bg-surface-muted/70"
+                >
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary-soft text-primary-strong">
+                    <Icon size={20} weight="bold" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-[15px] font-semibold text-ink">{item.title}</span>
+                    <span className="mt-0.5 block text-sm leading-snug text-muted">{item.description}</span>
+                  </span>
+                  <span className="hidden shrink-0 items-center gap-1 text-[13px] font-semibold text-primary-strong sm:inline-flex">
+                    {item.cta}
+                    <CaretRight size={12} weight="bold" className="transition-transform group-hover:translate-x-0.5" />
+                  </span>
+                </Link>
+              );
+            })}
+          </Card>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <Button asChild>
-            <Link href="/account">{t('ctaButtons.buyCredits')}</Link>
-          </Button>
-          <Button variant="secondary" asChild>
-            <Link href="/account">{t('ctaButtons.upgradePlan')}</Link>
-          </Button>
-        </div>
-      </Card>
 
-      <div>
-        <h2 className="mb-4 text-xl font-semibold text-ink">{t('quickAccess.title')}</h2>
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {quickActions.map((item) => (
-            <Card
-              key={item.href}
-              className="group flex flex-col justify-between gap-3 rounded-2xl border border-outline/60 bg-white px-6 py-5 shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
-            >
-              <div>
-                <div className="text-base font-semibold text-ink">{item.title}</div>
-                <p className="mt-1 text-sm text-muted">{item.description}</p>
+        <div className="space-y-3">
+          <h2 className="font-sans text-[15px] font-semibold text-ink">{creditsLabel}</h2>
+          <Card className="p-5">
+            <p className="meta-label">{plan?.name ?? creditsLabel}</p>
+            <p className="tabular mt-1 font-display text-[40px] font-semibold leading-none text-ink">
+              {billingQuery.isLoading ? '…' : creditsValue}
+            </p>
+            {usagePercent != null ? (
+              <div className="mt-4 space-y-1.5">
+                <div className="h-2 overflow-hidden rounded-full bg-surface-sunken">
+                  <div
+                    className={usagePercent >= 90 ? 'h-full rounded-full bg-danger' : 'h-full rounded-full bg-primary'}
+                    style={{ width: `${usagePercent}%` }}
+                  />
+                </div>
+                <p className="tabular text-xs text-muted">
+                  {usage?.used} / {usage?.total}
+                </p>
               </div>
-              <Link
-                className="inline-flex items-center text-sm font-medium text-primary transition-colors group-hover:text-ink"
-                href={item.href}
-              >
-                {item.cta}
-              </Link>
-            </Card>
-          ))}
+            ) : null}
+            <div className="mt-5 flex flex-wrap gap-2">
+              <Button asChild>
+                <Link href="/plans">{t('ctaButtons.buyCredits')}</Link>
+              </Button>
+              <Button variant="secondary" asChild>
+                <Link href="/plans">{t('ctaButtons.upgradePlan')}</Link>
+              </Button>
+            </div>
+          </Card>
         </div>
       </div>
     </section>
