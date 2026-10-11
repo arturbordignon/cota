@@ -58,11 +58,7 @@ export function DashboardShell({ children, headerActions }: DashboardShellProps)
   };
 
   if (status === 'loading') {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <p className="text-sm text-muted">Carregando...</p>
-      </div>
-    );
+    return <div className="min-h-screen bg-white" />;
   }
   if (status === 'unauthenticated') return null;
 

@@ -41,7 +41,7 @@ export function MobileNav({ open, onOpenChange }: MobileNavProps) {
         <button
           type="button"
           aria-label="Abrir menu"
-          className="inline-flex items-center justify-center rounded-lg border border-outline bg-white/90 p-2 text-ink shadow-sm md:hidden"
+          className="inline-flex items-center justify-center rounded-md p-2 text-ink lg:hidden"
         >
           <List size={22} weight="bold" />
         </button>
@@ -51,20 +51,17 @@ export function MobileNav({ open, onOpenChange }: MobileNavProps) {
         <Dialog.Content
           className={cn(
             "fixed inset-y-0 left-0 z-50 flex w-full max-w-sm -translate-x-full flex-col bg-white",
-            "shadow-2xl transition-transform duration-300 ease-out",
+            "transition-transform duration-300 ease-out",
             "data-[state=open]:translate-x-0 data-[state=closed]:-translate-x-full"
           )}
         >
-          <div className="border-b border-outline/30 px-5 pb-4 pt-5">
+          <div className="px-5 pb-4 pt-5">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-semibold text-ink">Crane Proposals</p>
-                <p className="text-xs text-muted">Escolha onde deseja navegar</p>
-              </div>
+              <p className="font-display text-base font-semibold text-ink">Crane Proposals</p>
               <Dialog.Close asChild>
                 <button
                   type="button"
-                  className="rounded-full border border-outline bg-[var(--color-surface-muted)] p-2 text-ink shadow-sm"
+                  className="rounded-md p-2 text-muted hover:bg-primary-soft hover:text-ink"
                   aria-label="Fechar menu"
                 >
                   <X size={18} weight="bold" />
@@ -83,15 +80,14 @@ export function MobileNav({ open, onOpenChange }: MobileNavProps) {
                     href={item.href}
                     prefetch
                     className={cn(
-                      "flex items-center justify-between rounded-xl border px-4 py-3 text-sm font-semibold transition",
+                      "flex items-center rounded-md px-3 py-2.5 text-sm font-medium transition",
                       isActive
-                        ? "border-primary bg-primary text-primary-foreground shadow-sm"
-                        : "border-outline/40 bg-[var(--color-surface-muted)] text-ink hover:border-primary/60 hover:bg-primary-soft"
+                        ? "bg-primary text-ink"
+                        : "text-muted hover:bg-primary-soft hover:text-ink"
                     )}
                     onClick={() => onOpenChange(false)}
                   >
                     <span>{t(item.key as NavKey)}</span>
-                    <span className="text-xs text-muted">{isActive ? "Agora" : "Ir"}</span>
                   </Link>
                 );
               })}

@@ -58,7 +58,7 @@ interface TabsListProps {
 export function TabsList({ children, className }: TabsListProps) {
   return (
     <div className={cn("overflow-x-auto", className)}>
-      <div className="inline-flex min-w-max items-center gap-2 rounded-full bg-surface/80 p-1">
+      <div className="inline-flex min-w-max items-center gap-1 rounded-lg border border-outline bg-white p-1">
         {children}
       </div>
     </div>
@@ -77,14 +77,18 @@ export function TabsTrigger({ value, children, className, ...props }: TabsTrigge
   }
 
   const isActive = context.value === value;
+  let classeAtivo = "text-muted hover:text-ink";
+  if (isActive) {
+    classeAtivo = "bg-primary text-ink";
+  }
 
   return (
     <button
       type="button"
       onClick={() => context.setValue(value)}
       className={cn(
-        "relative rounded-full px-4 py-2 text-sm font-semibold transition",
-        isActive ? "bg-primary text-primary-foreground shadow-card" : "text-muted hover:bg-primary-soft hover:text-ink",
+        "relative rounded-md px-3 py-1.5 text-sm font-medium transition",
+        classeAtivo,
         className
       )}
       {...props}

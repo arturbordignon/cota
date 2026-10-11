@@ -27,11 +27,12 @@ export function Topbar({
   const t = useTranslations('dashboard');
   const tActions = useTranslations('actions');
   const tTopbar = useTranslations('common.topbar');
+  const tSearch = useTranslations('common.search');
   const [searchOpen, setSearchOpen] = useState(false);
   const router = useRouter();
 
   const iconButtonClass =
-    'inline-flex h-10 w-10 items-center justify-center rounded-full border border-outline bg-white text-ink shadow-sm transition hover:border-primary hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40';
+    'inline-flex h-9 w-9 items-center justify-center rounded-md text-muted transition hover:bg-white hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40';
 
   const handleSearch = (query: string, scope: SearchScope) => {
     const encodedQuery = encodeURIComponent(query);
@@ -48,26 +49,23 @@ export function Topbar({
   };
 
   return (
-    <header className="sticky top-0 z-30 border-b border-outline/30 bg-white/95 px-4 py-4 shadow-sm backdrop-blur sm:px-6 lg:px-10">
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex flex-1 items-center gap-2 min-w-0">
-          {mobileNavTrigger ? <div className="md:hidden shrink-0">{mobileNavTrigger}</div> : null}
-          <div className="min-w-0">
-            <div className="flex items-baseline gap-2">
-              <p className="truncate text-xl font-semibold text-ink sm:text-xl">{t('title')}</p>
-              {credits && (
-                <span className="hidden sm:inline-flex items-center gap-1 rounded-full border border-outline/50 bg-white px-2 py-0.5 text-xs font-medium text-muted">
-                  {t('credits.label')}:<span className="text-primary">{credits}</span>
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div className="flex shrink-0 items-center gap-2">
+    <header className="sticky top-0 z-30 border-b border-outline/40 bg-white px-4 py-3 sm:px-6 lg:px-8">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex min-w-0 flex-1 items-center gap-2">
+          {mobileNavTrigger ? <div className="shrink-0 lg:hidden">{mobileNavTrigger}</div> : null}
           <Dialog.Root open={searchOpen} onOpenChange={setSearchOpen}>
             <Dialog.Trigger asChild>
-              <button type="button" className={iconButtonClass} aria-label={tTopbar('openSearch')}>
+              <button
+                type="button"
+                className="hidden h-9 min-w-[240px] max-w-md flex-1 items-center gap-2 rounded-md border border-outline bg-white px-3 text-sm text-muted md:inline-flex"
+                aria-label={tTopbar('openSearch')}
+              >
+                <MagnifyingGlass size={16} />
+                <span className="truncate">{tSearch('action')}</span>
+              </button>
+            </Dialog.Trigger>
+            <Dialog.Trigger asChild>
+              <button type="button" className={`${iconButtonClass} md:hidden`} aria-label={tTopbar('openSearch')}>
                 <MagnifyingGlass size={18} />
               </button>
             </Dialog.Trigger>
@@ -89,6 +87,15 @@ export function Topbar({
               </Dialog.Content>
             </Dialog.Portal>
           </Dialog.Root>
+        </div>
+
+        <div className="flex shrink-0 items-center gap-1">
+          {credits && (
+            <span className="mr-2 hidden items-center gap-1.5 rounded-md bg-white px-2.5 py-1.5 text-xs text-muted sm:inline-flex">
+              {t('credits.label')}
+              <span className="font-semibold text-ink">{credits}</span>
+            </span>
+          )}
           <button
             type="button"
             className={iconButtonClass}
@@ -99,12 +106,7 @@ export function Topbar({
           </button>
           <LocaleSwitcher variant="icon" ariaLabel={tTopbar('openLocale')} />
           {onCreateProposal ? (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onCreateProposal}
-              className="hidden md:inline-flex"
-            >
+            <Button size="sm" onClick={onCreateProposal} className="ml-2 hidden md:inline-flex">
               {tActions('createProposal')}
             </Button>
           ) : null}

@@ -4,8 +4,12 @@
 
 :root {
   /* Surfaces & text */
-  --color-background: #f7f9fb; /* slate-50-ish */
+  --color-background: #f7f9fb;
   --color-surface: #ffffff;
+  --color-steel: #17202b;
+  --color-steel-raised: #243140;
+  --color-steel-muted: #93a2b3;
+  --color-primary-soft: #f6edd4;
   --color-surface-muted: #f1f5f9; /* slate-100 */
   --color-border: #e2e8f0; /* slate-200 */
   --color-outline: rgba(100, 116, 139, 0.28); /* slate-500 @ 28% */

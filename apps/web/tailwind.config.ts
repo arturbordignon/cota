@@ -31,6 +31,10 @@ const config: Config = {
           soft: "var(--color-primary-soft)",
           foreground: "var(--color-on-primary)",
         },
+        steel: {
+          DEFAULT: "var(--color-steel)",
+          raised: "var(--color-steel-raised)",
+        },
         ink: {
           DEFAULT: "var(--color-ink)",
           subtle: "var(--color-ink-subtle)",

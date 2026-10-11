@@ -61,6 +61,19 @@ export function Sidebar({
     });
   }, [availableNav, router]);
 
+  const classeItem = (ativo: boolean) => {
+    if (collapsed && ativo) {
+      return "justify-center bg-primary py-3 text-ink";
+    }
+    if (collapsed) {
+      return "justify-center py-3 text-muted hover:bg-primary-soft";
+    }
+    if (ativo) {
+      return "gap-3 bg-primary px-3 py-2.5 text-ink";
+    }
+    return "gap-3 px-3 py-2.5 text-muted hover:bg-primary-soft";
+  };
+
   const toggle = () => {
     const newState = !collapsed;
     document.cookie = `sidebar-collapsed=${newState ? 'true' : 'false'}; Path=/; Max-Age=${
@@ -72,30 +85,22 @@ export function Sidebar({
   return (
     <aside
       className={cn(
-        'fixed inset-y-0 left-0 z-40 hidden h-screen flex-col border-r border-outline/40 bg-white/95 py-6 shadow-xl transition-all duration-300 lg:flex',
+        'fixed inset-y-0 left-0 z-40 hidden h-screen flex-col border-r border-outline/40 bg-white py-6 transition-all duration-300 lg:flex',
         collapsed ? 'w-20 px-2' : 'w-72 px-6',
       )}
     >
-      <div className="mb-8 flex items-center justify-between">
-        <Link
-          href="/"
-          className={cn(
-            'font-display text-lg font-semibold text-ink',
-            collapsed && 'text-center w-full',
-          )}
-        >
-          {collapsed ? 'CP' : 'Crane Proposals'}
+      <div className={cn('mb-8 flex items-center', collapsed ? 'flex-col gap-3' : 'justify-between')}>
+        <Link href="/dashboard" className="font-display text-lg font-semibold text-ink">
+          {collapsed && 'CP'}
+          {!collapsed && 'Crane Proposals'}
         </Link>
 
         <button
           onClick={toggle}
-          className={cn(
-            'ml-2 flex h-9 w-9 items-center justify-center rounded-md hover:bg-primary-soft transition',
-            collapsed && 'mx-auto',
-          )}
+          className="flex h-9 w-9 items-center justify-center rounded-md text-muted transition hover:bg-primary-soft hover:text-ink"
           aria-label="Toggle sidebar"
         >
-          <List size={22} weight="bold" />
+          <List size={18} weight="bold" />
         </button>
       </div>
 
@@ -114,15 +119,13 @@ export function Sidebar({
               onFocus={() => router.prefetch(item.href)}
               onMouseEnter={() => router.prefetch(item.href)}
               className={cn(
-                'group flex items-center rounded-lg text-md font-medium transition-all duration-200',
-                isActive ? 'bg-primary text-white shadow-sm' : 'text-muted hover:bg-primary-soft',
-                collapsed ? 'justify-center py-3' : 'gap-3 px-3 py-2',
+                'group relative flex items-center rounded-md text-sm font-medium transition-colors',
+                classeItem(isActive),
               )}
             >
               <Icon
-                size={22}
+                size={20}
                 weight={isActive ? 'fill' : 'regular'}
-                className={cn(isActive ? 'text-white' : 'text-muted')}
               />
               {!collapsed && <span>{label}</span>}
             </Link>
@@ -134,8 +137,8 @@ export function Sidebar({
         <Link
           href="/proposals/new"
           className={cn(
-            'inline-flex items-center justify-center gap-2 rounded-lg bg-primary text-sm font-semibold text-white shadow-md transition hover:-translate-y-0.5 w-full',
-            collapsed ? 'h-10 justify-center' : 'px-4 py-2',
+            'inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary text-sm font-semibold text-ink transition hover:bg-primary/90',
+            collapsed ? 'h-10' : 'px-3 py-2.5',
           )}
         >
           <PaperPlaneRight size={20} weight="fill" />
