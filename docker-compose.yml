@@ -26,6 +26,24 @@ services:
       - redis
       - minio
 
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+      target: runtime
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:${API_PORT:-3333}/api/v1
+    container_name: crane-web
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: http://localhost:${API_PORT:-3333}/api/v1
+    ports:
+      - "${WEB_PORT:-3001}:3001"
+    depends_on:
+      - api
+
   worker:
     build:
       context: .

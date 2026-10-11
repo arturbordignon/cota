@@ -116,7 +116,7 @@ fi
 pnpm generate
 pnpm migrate:dev
 
-docker compose up -d --build api worker
+docker compose up -d --build api worker web
 
 echo "Waiting for API..."
 attempts=0
@@ -136,16 +136,21 @@ if ! curl -fsS "http://127.0.0.1:$api_port/health" >/dev/null 2>&1; then
   echo "Warning: API is healthy inside Docker, but host curl to http://127.0.0.1:$api_port/health failed." >&2
 fi
 
-cat <<'EOF'
-
-Local Docker services are running.
-
-The API and worker are running in Docker.
-Start the web app in another terminal:
-EOF
+echo "Waiting for the web app..."
+web_attempts=0
+until curl -fsS "http://127.0.0.1:$web_port" >/dev/null 2>&1; do
+  web_attempts=$((web_attempts + 1))
+  if [ "$web_attempts" -ge 90 ]; then
+    echo "Web app did not become ready. Recent logs:" >&2
+    docker compose logs --tail=80 web >&2
+    exit 1
+  fi
+  sleep 2
+done
 
 cat <<EOF
-  pnpm --filter web exec next dev -p $web_port
+
+Local Docker services are running.
 
 URLs:
   Web:       http://localhost:$web_port
