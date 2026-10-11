@@ -13,6 +13,7 @@ model Account {
   slug           String    @unique
   defaultLocale  String    @default("pt-BR")
   settingsJson   Json
+  stripeCustomerId String? @unique
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
@@ -48,7 +49,6 @@ model User {
   lastLoginAt     DateTime?
   departmentId    String?
   invitedById     String?
-  inviteToken      String?
   inviteTokenHash  String?  @unique
   inviteTokenExpiresAt DateTime?
   invitedAt       DateTime?
@@ -401,7 +401,7 @@ model Subscription {
   accountId            String
   planId               String
   stripeCustomerId     String?
-  stripeSubscriptionId String?
+  stripeSubscriptionId String?       @unique
   status               String
   currentPeriodEnd     DateTime?
   cancelAtPeriodEnd    Boolean       @default(false)
