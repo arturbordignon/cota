@@ -1,17 +1,27 @@
-import { Card } from "@/components/ui/card";
+import { PaintBrush } from "@phosphor-icons/react/dist/ssr";
+import Link from "next/link";
+
+import { PageHeader } from "@/components/layout/page-header";
+import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 
 export default function NewTemplatePage() {
   return (
     <section className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-semibold text-ink">Criar Novo Modelo</h1>
-        <p className="text-muted">
-          Defina os campos obrigatórios, placeholders e estrutura da sua proposta padrão.
-        </p>
-      </div>
-      <Card className="rounded-2xl border-dashed border-outline bg-background/70 px-8 py-12 text-muted">
-        Editor visual de modelos (drag-and-drop) será implementado aqui.
-      </Card>
+      <PageHeader
+        title="Criar novo modelo"
+        description="Defina os campos obrigatórios, placeholders e estrutura da sua proposta padrão."
+      />
+      <EmptyState
+        icon={<PaintBrush size={24} weight="bold" />}
+        title="Editor de campos em construção"
+        description="Enquanto isso, monte o layout do modelo no editor visual."
+        action={
+          <Button asChild>
+            <Link href="/templates/builder">Abrir editor visual</Link>
+          </Button>
+        }
+      />
     </section>
   );
 }

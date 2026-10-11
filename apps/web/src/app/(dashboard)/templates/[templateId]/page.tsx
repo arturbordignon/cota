@@ -5,11 +5,15 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useTranslations, useFormatter } from "next-intl";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { CaretLeft, Copy } from "@phosphor-icons/react";
 
 import { PageHeader } from "@/components/layout/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Notice } from "@/components/ui/notice";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useApi } from "@/hooks/use-api";
 import type { TemplateDetailResponse } from "@/types/api";
 
@@ -83,13 +87,14 @@ export default function TemplateDetailPage() {
           description={t("descriptionFallback")}
           action={
             <Button asChild variant="ghost">
-              <Link href="/templates">{t("backButton")}</Link>
+              <Link href="/templates">
+                <CaretLeft size={14} weight="bold" />
+                {t("backButton")}
+              </Link>
             </Button>
           }
         />
-        <Card className="border border-warning/40 bg-warning-soft px-6 py-4 text-sm text-warning">
-          {t("alerts.missingToken")}
-        </Card>
+        <Notice tone="warning">{t("alerts.missingToken")}</Notice>
       </section>
     );
   }
@@ -102,90 +107,85 @@ export default function TemplateDetailPage() {
           template?.description ?? t(templateQuery.isLoading ? "loadingDescription" : "defaultDescription")
         }
         action={
-          <div className="flex flex-col-reverse gap-2 sm:flex-row">
+          <>
             <Button asChild variant="ghost">
-              <Link href="/templates">{t("backButton")}</Link>
+              <Link href="/templates">
+                <CaretLeft size={14} weight="bold" />
+                {t("backButton")}
+              </Link>
             </Button>
             <Button
               onClick={handleDuplicate}
-              disabled={duplicateMutation.isPending || !template}
+              disabled={!template}
+              loading={duplicateMutation.isPending}
+              loadingText={t("actions.duplicating")}
             >
-              {duplicateMutation.isPending ? t("actions.duplicating") : t("actions.duplicate")}
+              <Copy size={16} />
+              {t("actions.duplicate")}
             </Button>
-          </div>
+          </>
         }
       />
 
-      {feedback ? (
-        <Card
-          className={`border px-6 py-4 text-sm ${
-            feedback.tone === "info"
-              ? "border-info/40 bg-info-soft text-info"
-              : "border-danger/40 bg-danger-soft/20 text-danger"
-          }`}
-        >
-          {feedback.message}
-        </Card>
-      ) : null}
+      {feedback ? <Notice tone={feedback.tone}>{feedback.message}</Notice> : null}
 
       {templateQuery.isLoading ? (
-        <Card className="h-48 animate-pulse rounded-3xl border border-outline/40 bg-white/70" />
+        <div className="grid gap-6 lg:grid-cols-[320px,1fr]">
+          <Skeleton className="h-64 rounded-xl" />
+          <Skeleton className="h-96 rounded-xl" />
+        </div>
       ) : null}
 
       {templateQuery.error ? (
-        <Card className="border border-danger/40 bg-danger-soft/20 px-6 py-4 text-sm text-danger">
-          {t("errors.load", { message: (templateQuery.error as Error).message })}
-        </Card>
+        <Notice tone="danger">{t("errors.load", { message: (templateQuery.error as Error).message })}</Notice>
       ) : null}
 
-      {!templateQuery.isLoading && !template ? (
-        <Card className="border border-outline/40 bg-white px-6 py-8 text-center text-muted">
-          {t("errors.notFound")}
-        </Card>
-      ) : null}
+      {!templateQuery.isLoading && !template ? <EmptyState title={t("errors.notFound")} /> : null}
 
       {template ? (
-        <div className="grid gap-6 lg:grid-cols-[380px,1fr]">
-          <Card className="flex flex-col gap-4 rounded-3xl border border-outline/60 bg-white p-6">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-sm font-semibold text-ink">{t("info.title")}</span>
-              <Badge tone={isSystemTemplate ? "info" : "neutral"}>
+        <div className="grid items-start gap-6 lg:grid-cols-[320px,1fr]">
+          <Card className="p-5 lg:sticky lg:top-24">
+            <CardHeader>
+              <CardTitle>{t("info.title")}</CardTitle>
+              <Badge tone={isSystemTemplate ? "brand" : "neutral"}>
                 {isSystemTemplate ? t("badges.system") : t("badges.custom")}
               </Badge>
-            </div>
+            </CardHeader>
 
-            <dl className="space-y-3 text-sm text-muted">
-              <div>
-                <dt className="font-medium text-ink">{t("info.locale")}</dt>
-                <dd>{localeLabel}</dd>
+            <dl className="mt-4 divide-y divide-border text-sm">
+              <div className="flex justify-between gap-4 py-2.5">
+                <dt className="text-muted">{t("info.locale")}</dt>
+                <dd className="text-right font-medium text-ink">{localeLabel}</dd>
               </div>
               {template.category ? (
-                <div>
-                  <dt className="font-medium text-ink">{t("info.category")}</dt>
-                  <dd>{template.category}</dd>
+                <div className="flex justify-between gap-4 py-2.5">
+                  <dt className="text-muted">{t("info.category")}</dt>
+                  <dd className="text-right font-medium text-ink">{template.category}</dd>
                 </div>
               ) : null}
-              <div>
-                <dt className="font-medium text-ink">{t("info.createdAt")}</dt>
-                <dd>{formatter.dateTime(new Date(template.createdAt), { dateStyle: "medium", timeStyle: "short" })}</dd>
+              <div className="flex justify-between gap-4 py-2.5">
+                <dt className="text-muted">{t("info.createdAt")}</dt>
+                <dd className="tabular text-right font-medium text-ink">
+                  {formatter.dateTime(new Date(template.createdAt), { dateStyle: "medium", timeStyle: "short" })}
+                </dd>
               </div>
-              <div>
-                <dt className="font-medium text-ink">{t("info.updatedAt")}</dt>
-                <dd>{formatter.dateTime(new Date(template.updatedAt), { dateStyle: "medium", timeStyle: "short" })}</dd>
+              <div className="flex justify-between gap-4 py-2.5">
+                <dt className="text-muted">{t("info.updatedAt")}</dt>
+                <dd className="tabular text-right font-medium text-ink">
+                  {formatter.dateTime(new Date(template.updatedAt), { dateStyle: "medium", timeStyle: "short" })}
+                </dd>
               </div>
             </dl>
           </Card>
 
-          <Card className="overflow-hidden rounded-3xl border border-outline/60 bg-white">
-            <header className="flex items-center justify-between border-b border-outline/30 px-6 py-4">
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
-                {t("preview.title")}
-              </h2>
+          <Card className="overflow-hidden">
+            <header className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-5 py-3.5">
+              <CardTitle>{t("preview.title")}</CardTitle>
               <span className="text-xs text-muted">{t("preview.subtitle")}</span>
             </header>
-            <div className="max-h-[70vh] overflow-auto bg-white px-6 py-6">
+            <div className="max-h-[75vh] overflow-auto bg-surface-muted p-4 sm:p-8">
               <div
-                className="rounded-2xl border border-outline/20 bg-surface px-6 py-6 text-sm text-ink"
+                className="mx-auto max-w-[820px] rounded-lg border border-border bg-white px-6 py-8 text-sm text-ink shadow-card sm:px-10"
                 dangerouslySetInnerHTML={{ __html: template.htmlBody }}
               />
             </div>

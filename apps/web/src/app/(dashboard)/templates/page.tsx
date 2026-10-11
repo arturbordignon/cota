@@ -4,16 +4,18 @@ import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
-import * as Dialog from "@radix-ui/react-dialog";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { X } from "@phosphor-icons/react";
+import { CaretRight, Files, PaintBrush, Plus, UploadSimple } from "@phosphor-icons/react";
 
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Modal, ModalBody, ModalClose, ModalFooter } from "@/components/ui/modal";
+import { Notice } from "@/components/ui/notice";
 import { Select, SelectItem } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { useApi } from "@/hooks/use-api";
@@ -77,104 +79,85 @@ function CreateTemplateDialog({
   };
 
   return (
-    <Dialog.Root open={open} onOpenChange={handleOpenChange}>
-      <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-40 bg-ink/40 backdrop-blur-sm" />
-        <Dialog.Content className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4 md:items-center">
-          <form
-            onSubmit={handleSubmit}
-            className="flex w-full max-w-2xl max-h-[90vh] md:max-h-[720px] flex-col overflow-hidden rounded-2xl bg-white shadow-2xl"
-          >
-            <header className="flex items-center justify-between border-b border-outline/20 px-6 py-4">
-              <div>
-                <Dialog.Title className="text-lg font-semibold text-ink">{t("title")}</Dialog.Title>
-                <Dialog.Description className="text-xs text-muted">{t("description")}</Dialog.Description>
-              </div>
-              <Dialog.Close asChild>
-                <button
-                  type="button"
-                  className="rounded-full border border-outline bg-white p-2 text-ink shadow-sm transition hover:bg-primary-soft"
-                  aria-label={t("close")}
-                >
-                  <X size={16} weight="bold" />
-                </button>
-              </Dialog.Close>
-            </header>
-
-            <div className="grid flex-1 gap-4 overflow-y-auto px-6 py-6">
-              <div className="space-y-2">
-                <Label htmlFor="template-name">{t("fields.name")}</Label>
-                <Input
-                  id="template-name"
-                  value={name}
-                  onChange={(event) => setName(event.target.value)}
-                  placeholder={t("placeholders.name")}
-                  required
-                  disabled={isSubmitting}
-                  autoFocus
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="template-description">{t("fields.description")}</Label>
-                <Input
-                  id="template-description"
-                  value={description}
-                  onChange={(event) => setDescription(event.target.value)}
-                  placeholder={t("placeholders.description")}
-                  disabled={isSubmitting}
-                />
-              </div>
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="template-category">{t("fields.category")}</Label>
-                  <Input
-                    id="template-category"
-                    value={category}
-                    onChange={(event) => setCategory(event.target.value)}
-                    placeholder={t("placeholders.category")}
-                    disabled={isSubmitting}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>{t("fields.locale")}</Label>
-                  <Select value={locale} onValueChange={(value) => setLocale(value as "pt-BR" | "en")}> 
-                    <SelectItem value="pt-BR">{t("localeLabels.ptBR")}</SelectItem>
-                    <SelectItem value="en">{t("localeLabels.en")}</SelectItem>
-                  </Select>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="template-html">{t("fields.html")}</Label>
-                <Textarea
-                  id="template-html"
-                  value={htmlBody}
-                  onChange={(event) => setHtmlBody(event.target.value)}
-                  rows={8}
-                  disabled={isSubmitting}
-                />
-                <p className="text-xs text-muted">{t("fields.htmlHint")}</p>
-              </div>
-              {errorMessage ? (
-                <p className="rounded-lg border border-danger/40 bg-danger-soft/20 px-3 py-2 text-sm text-danger">
-                  {errorMessage}
-                </p>
-              ) : null}
-            </div>
-
-            <footer className="flex justify-end gap-2 border-t border-outline/20 bg-[var(--color-surface-muted)]/40 px-6 py-4">
-              <Dialog.Close asChild>
-                <Button type="button" variant="ghost" disabled={isSubmitting}>
-                  {t("actions.cancel")}
-                </Button>
-              </Dialog.Close>
-              <Button type="submit" disabled={isSubmitting || !name.trim() || htmlBody.trim().length < 10}>
-                {isSubmitting ? t("actions.saving") : t("actions.submit")}
-              </Button>
-            </footer>
-          </form>
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
+    <Modal
+      open={open}
+      onOpenChange={handleOpenChange}
+      title={t("title")}
+      description={t("description")}
+      closeLabel={t("close")}
+      size="lg"
+      onSubmit={handleSubmit}
+    >
+      <ModalBody>
+        <Field label={t("fields.name")} htmlFor="template-name">
+          <Input
+            id="template-name"
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            placeholder={t("placeholders.name")}
+            required
+            disabled={isSubmitting}
+            autoFocus
+          />
+        </Field>
+        <Field label={t("fields.description")} htmlFor="template-description">
+          <Input
+            id="template-description"
+            value={description}
+            onChange={(event) => setDescription(event.target.value)}
+            placeholder={t("placeholders.description")}
+            disabled={isSubmitting}
+          />
+        </Field>
+        <div className="grid gap-4 md:grid-cols-2">
+          <Field label={t("fields.category")} htmlFor="template-category">
+            <Input
+              id="template-category"
+              value={category}
+              onChange={(event) => setCategory(event.target.value)}
+              placeholder={t("placeholders.category")}
+              disabled={isSubmitting}
+            />
+          </Field>
+          <Field label={t("fields.locale")} htmlFor="template-locale">
+            <Select
+              id="template-locale"
+              value={locale}
+              onValueChange={(value) => setLocale(value as "pt-BR" | "en")}
+            >
+              <SelectItem value="pt-BR">{t("localeLabels.ptBR")}</SelectItem>
+              <SelectItem value="en">{t("localeLabels.en")}</SelectItem>
+            </Select>
+          </Field>
+        </div>
+        <Field label={t("fields.html")} htmlFor="template-html" hint={t("fields.htmlHint")}>
+          <Textarea
+            id="template-html"
+            value={htmlBody}
+            onChange={(event) => setHtmlBody(event.target.value)}
+            rows={8}
+            className="font-mono text-[13px]"
+            disabled={isSubmitting}
+          />
+        </Field>
+        {errorMessage ? <Notice tone="danger">{errorMessage}</Notice> : null}
+      </ModalBody>
+      <ModalFooter>
+        <ModalClose asChild>
+          <Button type="button" variant="ghost" disabled={isSubmitting}>
+            {t("actions.cancel")}
+          </Button>
+        </ModalClose>
+        <Button
+          type="submit"
+          disabled={isSubmitting || !name.trim() || htmlBody.trim().length < 10}
+          loading={isSubmitting}
+          loadingText={t("actions.saving")}
+        >
+          {t("actions.submit")}
+        </Button>
+      </ModalFooter>
+    </Modal>
   );
 }
 
@@ -276,112 +259,127 @@ export default function TemplatesPage() {
   };
 
   return (
-    <section className="space-y-8">
-      {isTokenMissing ? (
-        <Card className="border border-warning/40 bg-warning-soft px-6 py-4 text-sm text-warning">
-          {t("alerts.missingToken")}
-        </Card>
-      ) : null}
-
+    <section className="space-y-6">
       <PageHeader
         title={t("header.title")}
         description={t("header.description")}
         action={
-          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
-            <Button asChild variant="secondary" className="w-full sm:w-auto">
-              <Link href="/templates/builder">{t("actions.openBuilder")}</Link>
+          <>
+            <Button asChild variant="secondary">
+              <Link href="/templates/builder">
+                <PaintBrush size={16} />
+                {t("actions.openBuilder")}
+              </Link>
             </Button>
-            <Button className="w-full sm:w-auto" onClick={() => setDialogOpen(true)} disabled={isTokenMissing}>
+            <Button onClick={() => setDialogOpen(true)} disabled={isTokenMissing}>
+              <Plus size={16} weight="bold" />
               {t("actions.new")}
             </Button>
-          </div>
+          </>
         }
       />
 
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <Tabs defaultValue="catalog" onValueChange={(value) => setActiveTab(value as TabValue)}>
-          <TabsList>
+      {isTokenMissing ? <Notice tone="warning">{t("alerts.missingToken")}</Notice> : null}
+
+      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as TabValue)}>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between sm:border-b sm:border-border">
+          <TabsList className="sm:border-b-0">
             {tabItems.map((item) => (
               <TabsTrigger key={item.id} value={item.id} title={item.description}>
                 {item.label}
               </TabsTrigger>
             ))}
           </TabsList>
-        </Tabs>
-        {activeTab !== "upload" ? (
-          <div className="w-full max-w-xs">
-            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectItem value="all">{t("filters.category.all")}</SelectItem>
-              {categories.map((category) => (
-                <SelectItem key={category} value={category}>
-                  {category}
-                </SelectItem>
-              ))}
-            </Select>
-          </div>
-        ) : null}
-      </div>
+          {activeTab !== "upload" ? (
+            <div className="w-full pb-2 sm:max-w-[220px]">
+              <Select
+                value={categoryFilter}
+                onValueChange={setCategoryFilter}
+                aria-label={t("filters.category.all")}
+              >
+                <SelectItem value="all">{t("filters.category.all")}</SelectItem>
+                {categories.map((category) => (
+                  <SelectItem key={category} value={category}>
+                    {category}
+                  </SelectItem>
+                ))}
+              </Select>
+            </div>
+          ) : null}
+        </div>
+      </Tabs>
 
       {showUpload ? (
-        <Card className="flex flex-col items-center justify-center gap-4 rounded-3xl border-dashed border-outline bg-white/90 px-10 py-16 text-center">
-          <p className="max-w-lg text-sm text-muted">
-            {t("upload.description")}
-          </p>
-          <Button variant="secondary" size="lg">
-            {t("upload.button")}
-          </Button>
-        </Card>
+        <EmptyState
+          icon={<UploadSimple size={24} weight="bold" />}
+          title={t("upload.button")}
+          description={t("upload.description")}
+          action={
+            <Button variant="secondary" size="lg">
+              {t("upload.button")}
+            </Button>
+          }
+        />
       ) : (
         <div className="space-y-5">
           {loadError ? (
-            <Card className="border border-danger/40 bg-danger-soft/20 px-6 py-4 text-sm text-danger">
-              {t("alerts.loadError", { message: loadError.message })}
-            </Card>
+            <Notice tone="danger">{t("alerts.loadError", { message: loadError.message })}</Notice>
           ) : null}
 
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {isLoading ? (
-              Array.from({ length: 3 }).map((_, index) => (
-                <Card
-                  key={`skeleton-${index}`}
-                  className="h-40 animate-pulse rounded-3xl border border-outline/40 bg-white/70"
-                />
-              ))
-            ) : filteredTemplates.length > 0 ? (
-              filteredTemplates.map((template) => (
-                <Card
+          {isLoading ? (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {Array.from({ length: 3 }).map((_, index) => (
+                <Skeleton key={`skeleton-${index}`} className="h-56 rounded-xl" />
+              ))}
+            </div>
+          ) : filteredTemplates.length > 0 ? (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {filteredTemplates.map((template) => (
+                <Link
                   key={template.id}
-                  className="flex flex-col justify-between gap-4 border border-outline/60 bg-white p-6 transition hover:-translate-y-1 hover:shadow-lg"
+                  href={`/templates/${template.id}`}
+                  className="group flex flex-col overflow-hidden rounded-xl border border-border bg-white shadow-card transition-colors hover:border-outline"
                 >
-                  <div className="space-y-3">
-                    <div className="h-10 w-10 rounded-full bg-primary/15 text-center text-lg font-semibold leading-10 text-primary">
-                      {template.name.substring(0, 1)}
-                    </div>
-                    <div className="space-y-1">
-                      <h3 className="text-base font-semibold text-ink">{template.name}</h3>
-                      <p className="text-sm text-muted">
-                        {template.description ?? t("cards.noDescription")}
-                      </p>
-                      {template.category ? (
-                        <p className="text-xs uppercase tracking-wide text-muted">{template.category}</p>
-                      ) : null}
+                  <div aria-hidden className="relative h-28 border-b border-border bg-surface-muted px-6 pt-5">
+                    <div className="mx-auto h-full max-w-[200px] rounded-t-md border border-b-0 border-border bg-white px-4 pt-3 shadow-card transition-transform duration-200 group-hover:-translate-y-1">
+                      <div className="h-1.5 w-10 rounded-full bg-primary" />
+                      <div className="mt-2.5 h-1.5 w-28 rounded-full bg-surface-sunken" />
+                      <div className="mt-1.5 h-1.5 w-20 rounded-full bg-surface-sunken" />
+                      <div className="mt-3 flex justify-between">
+                        <div className="h-1.5 w-12 rounded-full bg-surface-sunken" />
+                        <div className="h-1.5 w-8 rounded-full bg-ink/20" />
+                      </div>
                     </div>
                   </div>
-                  <Button variant="outline" asChild>
-                    <Link href={`/templates/${template.id}`}>{t("cards.use")}</Link>
-                  </Button>
-                </Card>
-              ))
-            ) : (
-              <Card className="col-span-full flex flex-col items-center justify-center gap-3 rounded-3xl border-dashed border-outline bg-white/90 px-10 py-16 text-center text-muted">
-                <span className="font-medium text-ink">{t("empty.title")}</span>
-                <p className="text-sm">{t("empty.description")}</p>
+                  <div className="flex flex-1 flex-col p-5">
+                    {template.category ? (
+                      <span className="mb-1.5 text-xs font-semibold text-primary-strong">{template.category}</span>
+                    ) : null}
+                    <h3 className="font-sans text-[15px] font-semibold leading-snug text-ink">{template.name}</h3>
+                    <p className="mt-1 line-clamp-2 text-sm leading-relaxed text-muted">
+                      {template.description ?? t("cards.noDescription")}
+                    </p>
+                    <span className="mt-auto inline-flex items-center gap-1 pt-4 text-[13px] font-semibold text-ink">
+                      {t("cards.use")}
+                      <CaretRight size={12} weight="bold" className="transition-transform group-hover:translate-x-0.5" />
+                    </span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <EmptyState
+              icon={<Files size={24} weight="bold" />}
+              title={t("empty.title")}
+              description={t("empty.description")}
+              action={
                 <Button onClick={() => setDialogOpen(true)} disabled={isTokenMissing}>
+                  <Plus size={16} weight="bold" />
                   {t("empty.action")}
                 </Button>
-              </Card>
-            )}
-          </div>
+              }
+            />
+          )}
         </div>
       )}
 

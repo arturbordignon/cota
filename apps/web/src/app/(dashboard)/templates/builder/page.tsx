@@ -5,17 +5,18 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useMutation } from "@tanstack/react-query";
-import { ArrowDown, ArrowUp, DownloadSimple, Plus, Printer, Trash } from "@phosphor-icons/react";
+import { ArrowDown, ArrowUp, CaretLeft, DotsSixVertical, DownloadSimple, PencilSimple, Plus, Printer, SquaresFour, Trash } from "@phosphor-icons/react";
 
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardTitle } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import { Select, SelectItem } from "@/components/ui/select";
 import { useApi } from "@/hooks/use-api";
+import { cn } from "@/lib/utils";
 
 const BLOCK_TYPES = [
   { type: "heading", label: "Título" },
@@ -253,51 +254,62 @@ export default function TemplateBuilderPage() {
   const canSave = name.trim().length > 2 && blocks.length > 0 && !saveTemplate.isPending;
 
   return (
-    <section className="space-y-8">
+    <section className="space-y-6">
       <PageHeader
-        title="Editor visual de templates"
+        title="Editor visual de modelos"
         description="Monte layouts para web ou PDF arrastando blocos reutilizáveis."
         action={
-          <Button variant="outline" asChild>
-            <Link href="/templates">Voltar para templates</Link>
+          <Button variant="ghost" asChild>
+            <Link href="/templates">
+              <CaretLeft size={14} weight="bold" />
+              Voltar para modelos
+            </Link>
           </Button>
         }
       />
 
-      <div className="grid gap-6 lg:grid-cols-[260px_1fr_320px]">
-        <Card className="space-y-4 border border-outline/40 bg-white p-4">
+      <div className="grid items-start gap-6 lg:grid-cols-[240px_minmax(0,1fr)] xl:grid-cols-[240px_minmax(0,1fr)_320px]">
+        <Card className="space-y-4 p-4 lg:sticky lg:top-24">
           <div className="space-y-1">
-            <h2 className="text-sm font-semibold text-ink">Blocos</h2>
+            <CardTitle>Blocos</CardTitle>
             <p className="text-xs text-muted">Clique para adicionar um componente ao layout.</p>
           </div>
-          <div className="space-y-2">
+          <div className="grid grid-cols-2 gap-1.5 lg:grid-cols-1">
             {BLOCK_TYPES.map((block) => (
-              <Button key={block.type} variant="outline" className="w-full justify-start" onClick={() => addBlock(block.type)}>
-                <Plus size={14} className="mr-2" /> {block.label}
-              </Button>
+              <button
+                key={block.type}
+                type="button"
+                onClick={() => addBlock(block.type)}
+                className="flex h-9 items-center gap-2 rounded-lg border border-border bg-white px-3 text-left text-[13px] font-semibold text-ink-muted transition-colors hover:border-primary/60 hover:bg-primary-tint hover:text-ink"
+              >
+                <Plus size={12} weight="bold" className="shrink-0 text-primary-strong" />
+                {block.label}
+              </button>
             ))}
           </div>
-          <div className="space-y-3 border-t border-outline/20 pt-4">
-            <h3 className="text-sm font-semibold text-ink">Exportar</h3>
-            <div className="flex flex-col gap-2">
-              <Button variant="secondary" className="justify-start" disabled={blocks.length === 0} onClick={handleExportHtml}>
-                <DownloadSimple size={16} className="mr-2" /> Exportar HTML
+          <div className="space-y-2 border-t border-border pt-4">
+            <p className="meta-label">Exportar</p>
+            <div className="flex flex-col gap-1.5">
+              <Button variant="secondary" size="sm" className="justify-start" disabled={blocks.length === 0} onClick={handleExportHtml}>
+                <DownloadSimple size={14} /> Exportar HTML
               </Button>
-              <Button variant="secondary" className="justify-start" disabled={blocks.length === 0} onClick={handleExportPdf}>
-                <Printer size={16} className="mr-2" /> Exportar PDF
+              <Button variant="secondary" size="sm" className="justify-start" disabled={blocks.length === 0} onClick={handleExportPdf}>
+                <Printer size={14} /> Exportar PDF
               </Button>
             </div>
           </div>
         </Card>
 
-        <Card className="space-y-4 border border-outline/40 bg-white p-6">
+        <Card className="min-h-[420px] bg-surface-muted/60 p-4 sm:p-6">
           {blocks.length === 0 ? (
-            <div className="flex h-full flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-outline/40 bg-[var(--color-surface-muted)]/40 p-10 text-center text-sm text-muted">
-              <span className="font-medium text-ink">Nenhum conteúdo ainda</span>
-              <p>Adicione blocos ao layout para visualizar a prévia.</p>
-            </div>
+            <EmptyState
+              className="h-full min-h-[372px]"
+              icon={<SquaresFour size={24} weight="bold" />}
+              title="Nenhum conteúdo ainda"
+              description="Adicione blocos ao layout para visualizar a prévia."
+            />
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3">
               {blocks.map((block, index) => {
                 const isDropTarget = Boolean(draggingBlock && draggingBlock !== block.id);
                 return (
@@ -312,42 +324,46 @@ export default function TemplateBuilderPage() {
                     }
                   }}
                   onDrop={() => handleBlockDrop(block.id)}
-                  className={`rounded-2xl border ${selectedBlock === block.id ? "border-primary" : "border-outline/60"} ${
-                    isDropTarget ? "border-primary/60 bg-primary-soft/20" : "bg-white/80"
-                  } p-4 shadow-sm transition hover:border-primary/60`}
+                  className={cn(
+                    "group rounded-xl border bg-white p-3 shadow-card transition-colors",
+                    selectedBlock === block.id ? "border-primary ring-[3px] ring-primary/20" : "border-border hover:border-outline",
+                    isDropTarget && "border-dashed border-primary bg-primary-tint",
+                  )}
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Badge tone="info">#{index + 1}</Badge>
-                      <span className="text-sm font-semibold text-ink">{BLOCK_TYPES.find((item) => item.type === block.type)?.label}</span>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex min-w-0 items-center gap-2 pl-1">
+                      <DotsSixVertical size={16} className="shrink-0 cursor-grab text-muted" />
+                      <span className="tabular text-xs font-semibold text-muted">{index + 1}</span>
+                      <span className="truncate text-sm font-semibold text-ink">{BLOCK_TYPES.find((item) => item.type === block.type)?.label}</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Button variant="ghost" size="sm" onClick={() => moveBlock(block.id, -1)} disabled={index === 0}>
+                    <div className="flex items-center gap-0.5">
+                      <Button variant="ghost" size="icon-sm" onClick={() => moveBlock(block.id, -1)} disabled={index === 0} aria-label="Mover para cima">
                         <ArrowUp size={14} />
                       </Button>
-                      <Button variant="ghost" size="sm" onClick={() => moveBlock(block.id, 1)} disabled={index === blocks.length - 1}>
+                      <Button variant="ghost" size="icon-sm" onClick={() => moveBlock(block.id, 1)} disabled={index === blocks.length - 1} aria-label="Mover para baixo">
                         <ArrowDown size={14} />
                       </Button>
-                      <Button variant="ghost" size="sm" onClick={() => setSelectedBlock(block.id)}>
+                      <Button variant={selectedBlock === block.id ? "secondary" : "ghost"} size="sm" onClick={() => setSelectedBlock(block.id)}>
+                        <PencilSimple size={14} />
                         Editar
                       </Button>
-                      <Button variant="danger" size="sm" onClick={() => removeBlock(block.id)}>
+                      <Button variant="ghost" size="icon-sm" onClick={() => removeBlock(block.id)} aria-label="Remover bloco" className="hover:bg-danger-soft hover:text-danger">
                         <Trash size={14} />
                       </Button>
                     </div>
                   </div>
 
-                  <div className="mt-3 rounded-xl border border-outline/20 bg-[var(--color-surface-muted)]/40 p-4 text-sm text-muted">
+                  <div className="mt-3 rounded-lg bg-surface-muted/70 p-4 text-sm text-muted">
                     {block.type === "heading" && <h2 className="text-lg font-semibold text-ink">{block.content}</h2>}
                     {block.type === "paragraph" && <p className="text-sm text-ink">{block.content}</p>}
                     {block.type === "image" && <img src={block.url ?? ""} alt="Prévia" className="h-auto w-full max-w-[420px] rounded-xl" />}
-                    {block.type === "divider" && <hr className="border-outline/40" />}
+                    {block.type === "divider" && <hr className="border-outline" />}
                     {block.type === "pricing" && (
                       <ul className="space-y-2 text-ink">
                         {(block.items ?? []).map((item, itemIndex) => (
-                          <li key={`${block.id}-${itemIndex}`} className="flex items-center justify-between rounded-lg bg-white/80 px-3 py-2">
+                          <li key={`${block.id}-${itemIndex}`} className="flex items-center justify-between rounded-lg bg-white px-3 py-2">
                             <span>{item.label}</span>
-                            <span className="font-semibold text-primary">{item.value}</span>
+                            <span className="tabular font-semibold text-ink">{item.value}</span>
                           </li>
                         ))}
                       </ul>
@@ -358,7 +374,7 @@ export default function TemplateBuilderPage() {
                       </Button>
                     )}
                     {block.type === "signature" && (
-                      <div className="rounded-lg border border-dashed border-outline/40 bg-white/70 px-4 py-3 text-left text-sm text-ink">
+                      <div className="rounded-lg border border-dashed border-outline bg-white px-4 py-3 text-left text-sm text-ink">
                         {block.content}
                       </div>
                     )}
@@ -370,13 +386,13 @@ export default function TemplateBuilderPage() {
           )}
         </Card>
 
-        <Card className="space-y-4 border border-outline/40 bg-white p-4">
+        <Card className="space-y-4 p-4 lg:col-span-2 xl:sticky xl:top-24 xl:col-span-1">
           <div className="space-y-1">
-            <h2 className="text-sm font-semibold text-ink">Detalhes do modelo</h2>
+            <CardTitle>Detalhes do modelo</CardTitle>
             <p className="text-xs text-muted">Essas informações serão usadas na listagem de templates.</p>
           </div>
           <div className="space-y-3">
-            <div className="space-y-1">
+            <div className="space-y-2">
               <Label htmlFor="template-name">Nome</Label>
               <Input
                 id="template-name"
@@ -385,7 +401,7 @@ export default function TemplateBuilderPage() {
                 placeholder="Ex.: Proposta corporativa"
               />
             </div>
-            <div className="space-y-1">
+            <div className="space-y-2">
               <Label htmlFor="template-description">Descrição</Label>
               <Textarea
                 id="template-description"
@@ -395,7 +411,7 @@ export default function TemplateBuilderPage() {
                 rows={3}
               />
             </div>
-            <div className="space-y-1">
+            <div className="space-y-2">
               <Label htmlFor="template-category">Categoria</Label>
               <Input
                 id="template-category"
@@ -404,7 +420,7 @@ export default function TemplateBuilderPage() {
                 placeholder="Ex.: Comercial"
               />
             </div>
-            <div className="space-y-1">
+            <div className="space-y-2">
               <Label>Idioma</Label>
               <Select value={locale} onValueChange={(value) => setLocale(value as "pt-BR" | "en") }>
                 <SelectItem value="pt-BR">Português</SelectItem>
@@ -413,12 +429,12 @@ export default function TemplateBuilderPage() {
             </div>
           </div>
 
-          <div className="space-y-3 border-t border-outline/20 pt-4">
-            <h3 className="text-sm font-semibold text-ink">Editar bloco</h3>
+          <div className="space-y-3 border-t border-border pt-4">
+            <CardTitle>Editar bloco</CardTitle>
             {selectedBlockData ? (
               <div className="space-y-3 text-sm">
                 {(selectedBlockData.type === "heading" || selectedBlockData.type === "paragraph" || selectedBlockData.type === "signature") && (
-                  <div className="space-y-1">
+                  <div className="space-y-2">
                     <Label>Conteúdo</Label>
                     <Textarea
                       value={selectedBlockData.content ?? ""}
@@ -430,7 +446,7 @@ export default function TemplateBuilderPage() {
                   </div>
                 )}
                 {selectedBlockData.type === "image" && (
-                  <div className="space-y-1">
+                  <div className="space-y-2">
                     <Label>URL da imagem</Label>
                     <Input
                       value={selectedBlockData.url ?? ""}
@@ -485,7 +501,7 @@ export default function TemplateBuilderPage() {
                 )}
                 {selectedBlockData.type === "button" && (
                   <div className="space-y-2">
-                    <div className="space-y-1">
+                    <div className="space-y-2">
                       <Label>Texto do botão</Label>
                       <Input
                         value={selectedBlockData.button?.label ?? ""}
@@ -500,7 +516,7 @@ export default function TemplateBuilderPage() {
                         }
                       />
                     </div>
-                    <div className="space-y-1">
+                    <div className="space-y-2">
                       <Label>Link</Label>
                       <Input
                         value={selectedBlockData.button?.link ?? ""}
@@ -526,7 +542,7 @@ export default function TemplateBuilderPage() {
             )}
           </div>
 
-          <div className="space-y-2 border-t border-outline/20 pt-4">
+          <div className="space-y-2 border-t border-border pt-4">
             <Button
               className="w-full"
               onClick={() => {
