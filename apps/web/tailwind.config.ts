@@ -66,6 +66,7 @@ const config: Config = {
       },
       fontFamily: {
         display: ["var(--font-display)", ...defaultTheme.fontFamily.sans],
+        brand: ["var(--font-brand)", ...defaultTheme.fontFamily.sans],
         sans: ["var(--font-sans)", ...defaultTheme.fontFamily.sans],
       },
       borderRadius: {

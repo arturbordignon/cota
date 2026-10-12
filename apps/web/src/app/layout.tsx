@@ -6,19 +6,15 @@ import "./globals.css";
 import { AppProviders } from "@/components/providers/app-providers";
 import { resolveLocale } from "@/lib/locale";
 import { loadMessages } from "@/messages/load-messages";
-import { fontDisplay, fontSans } from "@/lib/fonts";
+import { fontBrand, fontDisplay, fontSans } from "@/lib/fonts";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: {
-    default: "Crane Proposals",
-    template: "%s | Crane Proposals",
+    default: "Cota",
+    template: "%s | Cota",
   },
-  description:
-    "Plataforma SaaS para criação de propostas bilíngues de serviços pesados e locação de guindastes.",
-  icons: {
-    icon: "/favicon.ico",
-  },
+  description: "Propostas comerciais para guindaste, guincho, munck e outros serviços pesados.",
 };
 
 export default async function RootLayout({
@@ -35,7 +31,8 @@ export default async function RootLayout({
         className={cn(
           "min-h-screen bg-background text-ink antialiased",
           fontSans.variable,
-          fontDisplay.variable
+          fontDisplay.variable,
+          fontBrand.variable
         )}
       >
         <NextIntlClientProvider locale={locale} messages={messages} timeZone="America/Sao_Paulo">
