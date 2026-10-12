@@ -42,7 +42,7 @@ export default function LandingPage() {
       <main>
         <section className="mx-auto grid max-w-6xl items-center gap-12 px-6 py-16 md:py-24 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
           <div>
-            <p className="text-sm font-semibold text-primary-strong">Propostas de içamento</p>
+            <p className="text-sm font-semibold text-primary-strong">Guindaste, guincho, munck e outros serviços pesados</p>
             <h1 className="mt-3 max-w-xl text-balance font-display text-[40px] font-semibold leading-[1.05] tracking-[-0.015em] md:text-[56px]">
               A proposta sai pronta para o cliente abrir e responder.
             </h1>

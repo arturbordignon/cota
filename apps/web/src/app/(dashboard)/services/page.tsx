@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import { useFormatter } from "next-intl";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Crane, PencilSimple, Plus, Trash } from "@phosphor-icons/react";
+import { PencilSimple, Plus, Trash, Truck } from "@phosphor-icons/react";
 
 import type { Route } from "next";
 import Link from "next/link";
@@ -319,7 +319,7 @@ export default function ServicesPage() {
               <Card key={service.id} className="flex flex-col p-5">
                 <div className="flex items-start gap-3">
                   <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary-soft text-primary-strong">
-                    <Crane size={20} weight="bold" />
+                    <Truck size={20} weight="bold" />
                   </span>
                   <div className="min-w-0 flex-1">
                     <h3 className="font-sans text-[15px] font-semibold leading-snug text-ink">{service.name}</h3>
@@ -362,7 +362,7 @@ export default function ServicesPage() {
         </div>
       ) : (
         <EmptyState
-          icon={<Crane size={24} weight="bold" />}
+          icon={<Truck size={24} weight="bold" />}
           title="Nenhum serviço cadastrado ainda."
           description="Adicione seus equipamentos e pacotes principais para reutilizar os valores nas propostas."
           action={
