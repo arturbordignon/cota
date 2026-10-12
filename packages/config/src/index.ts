@@ -35,7 +35,7 @@ const envSchema = z.object({
   REDIS_PORT: z.coerce.number().default(6379),
   REDIS_PASSWORD: z.string().optional().or(z.literal('')),
   AWS_REGION: z.string().default('us-east-1'),
-  S3_BUCKET: z.string().default('crane-proposals-local'),
+  S3_BUCKET: z.string().default('cota-local'),
   S3_ENDPOINT: z.string().default('http://localhost:9000'),
   S3_ACCESS_KEY: z.string().default('minio'),
   S3_SECRET_KEY: z.string().default('minio123'),
@@ -43,7 +43,7 @@ const envSchema = z.object({
   JWT_REFRESH_SECRET: z.string().default('change-me-refresh'),
   FRONTEND_BASE_URL: z.string().default('http://localhost:5173'),
   CDN_BASE_URL: z.string().default('http://localhost:3000'),
-  QUEUE_PREFIX: z.string().default('crane'),
+  QUEUE_PREFIX: z.string().default('cota'),
   PDF_RENDER_TIMEOUT_MS: z.coerce.number().default(120000),
   CHROMIUM_EXECUTABLE_PATH: z.string().default(''),
   AUDIT_LOG_STORE_IP: z
@@ -68,7 +68,7 @@ const envSchema = z.object({
     .union([z.literal('true'), z.literal('false')])
     .default('false')
     .transform((value) => value === 'true'),
-  EMAIL_FROM: z.string().default('convites@crane.local')
+  EMAIL_FROM: z.string().default('convites@cota.local')
 });
 
 type Env = z.infer<typeof envSchema>;

@@ -46,7 +46,7 @@ export interface UsageInfo {
 
 const SEGMENTOS = 12;
 
-// Segmented gauge, read like the load indicator in a crane cab.
+// Segmented gauge, read like a load indicator.
 export function UsageMeter({ usage, onNavigate }: { usage?: UsageInfo; onNavigate?: () => void }) {
   const t = useTranslations('navigation.usage');
   if (!usage) {

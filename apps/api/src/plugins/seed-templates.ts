@@ -1,10 +1,10 @@
 import fp from 'fastify-plugin';
-import type { Prisma } from '@crane/db';
+import type { Prisma } from '@cota/db';
 
-const CRANE_TEMPLATE_ID = 'a3a92568-5d5f-4de8-9f7c-6f9b4a0e9d3f';
+const COTA_TEMPLATE_ID = 'a3a92568-5d5f-4de8-9f7c-6f9b4a0e9d3f';
 
-const craneTemplate = {
-  id: CRANE_TEMPLATE_ID,
+const cotaTemplate = {
+  id: COTA_TEMPLATE_ID,
   name: 'Modelo - Proposta de Serviço de Guindaste',
   description: 'Layout base para propostas de içamento com guindaste, cobrindo escopo, equipe e investimentos.',
   locale: 'pt-BR',
@@ -40,10 +40,10 @@ const craneTemplate = {
   } satisfies Prisma.InputJsonValue,
   defaultDataJson: {
     company: {
-      name: 'CranePro Serviços Pesados',
+      name: 'Cota Serviços Pesados',
       cnpj: '12.345.678/0001-90',
       phone: '(11) 4002-8922',
-      email: 'contato@cranepro.com.br',
+      email: 'contato@cota.com.br',
       tagline: 'Içamentos industriais com segurança, experiência e precisão.',
     },
     job: {
@@ -252,29 +252,29 @@ const craneTemplate = {
 
 export default fp(async (app) => {
   await app.prisma.proposalTemplate.upsert({
-    where: { id: craneTemplate.id },
+    where: { id: cotaTemplate.id },
     create: {
-      id: craneTemplate.id,
+      id: cotaTemplate.id,
       accountId: null,
-      name: craneTemplate.name,
-      description: craneTemplate.description,
-      locale: craneTemplate.locale,
-      category: craneTemplate.category,
-      inputSchemaJson: craneTemplate.inputSchemaJson,
-      defaultDataJson: craneTemplate.defaultDataJson,
-      pdfLayoutOptionsJson: craneTemplate.pdfLayoutOptionsJson,
-      htmlBody: craneTemplate.htmlBody,
+      name: cotaTemplate.name,
+      description: cotaTemplate.description,
+      locale: cotaTemplate.locale,
+      category: cotaTemplate.category,
+      inputSchemaJson: cotaTemplate.inputSchemaJson,
+      defaultDataJson: cotaTemplate.defaultDataJson,
+      pdfLayoutOptionsJson: cotaTemplate.pdfLayoutOptionsJson,
+      htmlBody: cotaTemplate.htmlBody,
       isActive: true,
     },
     update: {
-      name: craneTemplate.name,
-      description: craneTemplate.description,
-      locale: craneTemplate.locale,
-      category: craneTemplate.category,
-      inputSchemaJson: craneTemplate.inputSchemaJson,
-      defaultDataJson: craneTemplate.defaultDataJson,
-      pdfLayoutOptionsJson: craneTemplate.pdfLayoutOptionsJson,
-      htmlBody: craneTemplate.htmlBody,
+      name: cotaTemplate.name,
+      description: cotaTemplate.description,
+      locale: cotaTemplate.locale,
+      category: cotaTemplate.category,
+      inputSchemaJson: cotaTemplate.inputSchemaJson,
+      defaultDataJson: cotaTemplate.defaultDataJson,
+      pdfLayoutOptionsJson: cotaTemplate.pdfLayoutOptionsJson,
+      htmlBody: cotaTemplate.htmlBody,
       isActive: true,
       accountId: null,
     },

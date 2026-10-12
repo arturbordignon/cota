@@ -3,7 +3,7 @@ import { z } from 'zod';
 import argon2 from 'argon2';
 import { randomBytes, createHash } from 'crypto';
 import dayjs from 'dayjs';
-import type { DepartmentPreset as PrismaDepartmentPreset, PermissionModule } from '@crane/db';
+import type { DepartmentPreset as PrismaDepartmentPreset, PermissionModule } from '@cota/db';
 
 import { CACHE_RESOURCES } from '../../constants/cache.js';
 import { toDepartmentSlug } from '../../utils/slug.js';
@@ -14,7 +14,7 @@ import {
   mapFromDb,
 } from '../../utils/permissions.js';
 import type { PermissionKey, PermissionMap } from '../../utils/permissions.js';
-import env from '@crane/config';
+import env from '@cota/config';
 
 import { sendInviteEmail } from '../../lib/mailer.js';
 
@@ -165,7 +165,7 @@ function serializeDepartment(department: {
 async function generateDepartmentSlug(
   accountId: string,
   name: string,
-  prisma: typeof import('@crane/db').prisma,
+  prisma: typeof import('@cota/db').prisma,
 ) {
   const base = toDepartmentSlug(name) || 'department';
   let slug = base;

@@ -1,7 +1,7 @@
 import nodemailer from 'nodemailer';
 import type { FastifyBaseLogger } from 'fastify';
 
-import env from '@crane/config';
+import env from '@cota/config';
 
 interface InviteEmailPayload {
   to: string;

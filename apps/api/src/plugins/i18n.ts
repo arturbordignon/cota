@@ -1,5 +1,5 @@
 import fp from 'fastify-plugin';
-import { buildI18n } from '@crane/i18n';
+import { buildI18n } from '@cota/i18n';
 
 declare module 'fastify' {
   interface FastifyInstance {

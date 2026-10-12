@@ -4,7 +4,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.api
-    image: crane-proposals-api:latest
+    image: cota-api:latest
     env_file: .env
     environment:
       NODE_ENV: production
@@ -18,7 +18,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.worker
-    image: crane-proposals-worker:latest
+    image: cota-worker:latest
     env_file: .env
     environment:
       NODE_ENV: production
@@ -28,9 +28,9 @@ services:
   postgres:
     image: postgres:15-alpine
     environment:
-      POSTGRES_USER: crane
-      POSTGRES_PASSWORD: crane
-      POSTGRES_DB: crane
+      POSTGRES_USER: cota
+      POSTGRES_PASSWORD: cota
+      POSTGRES_DB: cota
     volumes:
       - postgres-data:/var/lib/postgresql/data
 

@@ -16,7 +16,7 @@ RUN pnpm install --frozen-lockfile
 
 FROM base AS dev
 COPY . .
-CMD ["sh", "-c", "pnpm --filter @crane/config --filter @crane/db --filter @crane/i18n --filter @crane/pdf build && pnpm --filter worker dev"]
+CMD ["sh", "-c", "pnpm --filter @cota/config --filter @cota/db --filter @cota/i18n --filter @cota/pdf build && pnpm --filter worker dev"]
 
 FROM base AS build
 COPY . .

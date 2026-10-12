@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify';
-import { createDownloadUrl } from '@crane/storage';
+import { createDownloadUrl } from '@cota/storage';
 
 import { renderProposalHtml } from '../utils/render.js';
 

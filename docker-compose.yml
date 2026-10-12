@@ -4,14 +4,14 @@ services:
       context: .
       dockerfile: Dockerfile.api
       target: dev
-    container_name: crane-api
+    container_name: cota-api
     restart: unless-stopped
     env_file: .env
     environment:
       NODE_ENV: development
       HOST: 0.0.0.0
       PORT: 3333
-      DATABASE_URL: postgresql://crane:crane@postgres:5432/crane?schema=public&options=-c%20TimeZone%3DAmerica%2FSao_Paulo
+      DATABASE_URL: postgresql://cota:cota@postgres:5432/cota?schema=public&options=-c%20TimeZone%3DAmerica%2FSao_Paulo
       REDIS_HOST: redis
       REDIS_PORT: 6379
       S3_ENDPOINT: http://minio:9000
@@ -33,7 +33,7 @@ services:
       target: runtime
       args:
         NEXT_PUBLIC_API_URL: http://localhost:${API_PORT:-3333}/api/v1
-    container_name: crane-web
+    container_name: cota-web
     restart: unless-stopped
     env_file: .env
     environment:
@@ -49,12 +49,12 @@ services:
       context: .
       dockerfile: Dockerfile.worker
       target: dev
-    container_name: crane-worker
+    container_name: cota-worker
     restart: unless-stopped
     env_file: .env
     environment:
       NODE_ENV: development
-      DATABASE_URL: postgresql://crane:crane@postgres:5432/crane?schema=public&options=-c%20TimeZone%3DAmerica%2FSao_Paulo
+      DATABASE_URL: postgresql://cota:cota@postgres:5432/cota?schema=public&options=-c%20TimeZone%3DAmerica%2FSao_Paulo
       REDIS_HOST: redis
       REDIS_PORT: 6379
     depends_on:
@@ -63,12 +63,12 @@ services:
 
   postgres:
     image: postgres:15-alpine
-    container_name: crane-postgres
+    container_name: cota-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: crane
-      POSTGRES_PASSWORD: crane
-      POSTGRES_DB: crane
+      POSTGRES_USER: cota
+      POSTGRES_PASSWORD: cota
+      POSTGRES_DB: cota
     ports:
       - "${POSTGRES_PORT:-5433}:5432"
     volumes:
@@ -76,7 +76,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: crane-redis
+    container_name: cota-redis
     restart: unless-stopped
     command: redis-server --save 60 1 --loglevel warning
     ports:
@@ -86,12 +86,12 @@ services:
 
   minio:
     image: bitnamilegacy/minio:2024.12.18
-    container_name: crane-minio
+    container_name: cota-minio
     restart: unless-stopped
     environment:
       MINIO_ROOT_USER: minio
       MINIO_ROOT_PASSWORD: minio123
-      MINIO_DEFAULT_BUCKETS: ${S3_BUCKET:-crane-proposals-dev}
+      MINIO_DEFAULT_BUCKETS: ${S3_BUCKET:-cota-dev}
     ports:
       - "${MINIO_API_PORT:-9000}:9000"
       - "${MINIO_CONSOLE_PORT:-9001}:9001"
@@ -100,7 +100,7 @@ services:
 
   mailhog:
     image: mailhog/mailhog:v1.0.1
-    container_name: crane-mailhog
+    container_name: cota-mailhog
     restart: unless-stopped
     ports:
       - "${MAILHOG_SMTP_PORT:-1025}:1025"
@@ -108,7 +108,7 @@ services:
 
   adminer:
     image: adminer:4.8.1
-    container_name: crane-adminer
+    container_name: cota-adminer
     restart: unless-stopped
     environment:
       ADMINER_DEFAULT_SERVER: postgres

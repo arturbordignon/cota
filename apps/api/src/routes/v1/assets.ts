@@ -1,7 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import { customAlphabet } from 'nanoid';
-import { createUploadUrl } from '@crane/storage';
+import { createUploadUrl } from '@cota/storage';
 import { exigirPermissao } from '../../utils/permissions.js';
 
 const nanoid = customAlphabet('abcdefghijklmnopqrstuvwxyz0123456789', 12);

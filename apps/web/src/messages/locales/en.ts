@@ -790,7 +790,7 @@ export const enMessages = {
         "htmlHint": "Keep it simple. You can adjust styles later."
       },
       "placeholders": {
-        "name": "e.g. Standard crane rental proposal",
+        "name": "e.g. Standard heavy-service proposal",
         "description": "Summary shown on the list",
         "category": "e.g. Operations"
       },

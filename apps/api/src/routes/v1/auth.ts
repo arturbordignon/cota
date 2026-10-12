@@ -2,7 +2,7 @@ import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import argon2 from 'argon2';
 import dayjs from 'dayjs';
-import env from '@crane/config';
+import env from '@cota/config';
 import { toAccountSlug } from '../../utils/slug.js';
 import { resolveLocale } from '../../utils/locale.js';
 import { getDefaultPlanSlug } from '../../services/billing.js';

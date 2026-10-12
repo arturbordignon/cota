@@ -1,14 +1,14 @@
 import 'fastify';
-import type { i18n } from '@crane/i18n';
+import type { i18n } from '@cota/i18n';
 import type { Queue } from 'bullmq';
 import type { FastifyRedis } from '@fastify/redis';
-import type { PdfJobData, PdfJobResult } from '@crane/pdf';
+import type { PdfJobData, PdfJobResult } from '@cota/pdf';
 
 declare module 'fastify' {
   interface FastifyInstance {
     i18n: i18n;
     i18nReady: boolean;
-    prisma: import('@crane/db').PrismaClient;
+    prisma: import('@cota/db').PrismaClient;
     pdfQueue: Queue<PdfJobData, PdfJobResult>;
     redis: FastifyRedis;
     cache: import('../plugins/cache.js').CacheManager;

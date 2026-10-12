@@ -97,7 +97,7 @@ if [ -z "$web_port" ]; then
 fi
 set_env_var WEB_PORT "$web_port"
 
-set_env_var DATABASE_URL "postgresql://crane:crane@localhost:$postgres_port/crane?schema=public&options=-c%20TimeZone%3DAmerica%2FSao_Paulo"
+set_env_var DATABASE_URL "postgresql://cota:cota@localhost:$postgres_port/cota?schema=public&options=-c%20TimeZone%3DAmerica%2FSao_Paulo"
 set_env_var NEXT_PUBLIC_API_URL "http://localhost:$api_port/api/v1"
 set_env_var FRONTEND_BASE_URL "http://localhost:$web_port"
 set_env_var CDN_BASE_URL "http://localhost:$web_port"
@@ -105,7 +105,7 @@ set_env_var CDN_BASE_URL "http://localhost:$web_port"
 docker compose up -d postgres redis minio mailhog adminer
 
 echo "Waiting for Postgres..."
-until docker compose exec -T postgres pg_isready -U crane -d crane >/dev/null 2>&1; do
+until docker compose exec -T postgres pg_isready -U cota -d cota >/dev/null 2>&1; do
   sleep 1
 done
 
@@ -163,7 +163,7 @@ EOF
 cat <<'EOF'
 
 Demo login:
-  Account slug: crane-demo
-  Email:        admin@crane.local
+  Account slug: cota-demo
+  Email:        admin@cota.local
   Password:     password123
 EOF

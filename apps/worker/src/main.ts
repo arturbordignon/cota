@@ -1,8 +1,8 @@
 import { Queue, Worker } from 'bullmq';
 import { pino } from 'pino';
-import env from '@crane/config';
-import { prisma } from '@crane/db';
-import { createPdfJobProcessor } from '@crane/pdf';
+import env from '@cota/config';
+import { prisma } from '@cota/db';
+import { createPdfJobProcessor } from '@cota/pdf';
 
 const logger = pino({ level: env.LOG_LEVEL });
 

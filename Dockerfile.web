@@ -17,14 +17,14 @@ RUN pnpm install --frozen-lockfile
 FROM base AS dev
 COPY . .
 EXPOSE 3001
-CMD ["sh", "-c", "pnpm --filter @crane/config --filter @crane/db --filter @crane/i18n --filter @crane/storage build && pnpm --filter web exec next dev -p 3001 -H 0.0.0.0"]
+CMD ["sh", "-c", "pnpm --filter @cota/config --filter @cota/db --filter @cota/i18n --filter @cota/storage build && pnpm --filter web exec next dev -p 3001 -H 0.0.0.0"]
 
 FROM base AS runtime
 COPY . .
 ARG NEXT_PUBLIC_API_URL=http://localhost:3333/api/v1
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 ENV NEXT_TELEMETRY_DISABLED=1
-RUN pnpm --filter @crane/config --filter @crane/db --filter @crane/i18n --filter @crane/storage build \
+RUN pnpm --filter @cota/config --filter @cota/db --filter @cota/i18n --filter @cota/storage build \
  && pnpm --filter web build
 ENV NODE_ENV=production
 EXPOSE 3001

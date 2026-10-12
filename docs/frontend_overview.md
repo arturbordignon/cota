@@ -79,7 +79,7 @@ apps/web
 
 ## Ready-made Templates
 
-- Catálogo inicia com um modelo de proposta para serviços de guindaste, com dados default em Mustache prontos para duplicação ou edição pelos clientes.
+- Catálogo inicia com um modelo de proposta para serviços pesados, com dados default em Mustache prontos para duplicação ou edição pelos clientes.
 
 ## API Integration Layer
 

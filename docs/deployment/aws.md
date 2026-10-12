@@ -1,6 +1,6 @@
 # AWS Deployment Plan
 
-This document captures the initial AWS layout for the Crane Proposals backend. Adjust as architecture evolves (Terraform/CDK recommended once requirements stabilize).
+This document captures the initial AWS layout for the Cota backend. Adjust as architecture evolves (Terraform/CDK recommended once requirements stabilize).
 
 ## Services
 - **ECS Fargate** for API + worker tasks (separate services, same VPC).
@@ -23,7 +23,7 @@ This document captures the initial AWS layout for the Crane Proposals backend. A
 
 ## Build & Release
 1. Enable `corepack` + pnpm in CI runner.
-2. Run checks: `pnpm install`, `pnpm lint`, `pnpm build`, `pnpm --filter @crane/db prisma generate`.
+2. Run checks: `pnpm install`, `pnpm lint`, `pnpm build`, `pnpm --filter @cota/db prisma generate`.
 3. Build Docker images:
    ```bash
    docker build -f Dockerfile.api -t $ECR/api:$GIT_SHA .

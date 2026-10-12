@@ -1,5 +1,5 @@
 {
-  "name": "@crane/db",
+  "name": "@cota/db",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -18,7 +18,7 @@
     "postinstall": "dotenv -e ../../.env -- prisma generate"
   },
   "dependencies": {
-    "@crane/config": "workspace:*",
+    "@cota/config": "workspace:*",
     "@prisma/client": "5.22.0"
   },
   "devDependencies": {

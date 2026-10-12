@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Notice } from "@/components/ui/notice";
 
-const ACCOUNT_SLUG_KEY = "crane.accountSlug";
+const ACCOUNT_SLUG_KEY = "cota.accountSlug";
 
 export default function SignInPage() {
   const router = useRouter();

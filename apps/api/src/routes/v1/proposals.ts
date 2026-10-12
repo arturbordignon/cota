@@ -1,7 +1,7 @@
 import type { FastifyPluginAsync, FastifyRequest } from 'fastify';
 import { z } from 'zod';
-import type { Prisma } from '@crane/db';
-import { createDownloadUrl } from '@crane/storage';
+import type { Prisma } from '@cota/db';
+import { createDownloadUrl } from '@cota/storage';
 
 import { toProposalSlug } from '../../utils/slug.js';
 import { resolveLocale } from '../../utils/locale.js';

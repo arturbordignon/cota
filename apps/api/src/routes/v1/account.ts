@@ -1,6 +1,6 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
-import type { Prisma } from '@crane/db';
+import type { Prisma } from '@cota/db';
 
 import { buscarEmpresa } from '../../services/proposal-render.js';
 

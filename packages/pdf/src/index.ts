@@ -2,8 +2,8 @@ import type { Job } from 'bullmq';
 import type { Logger } from 'pino';
 import chromium from '@sparticuz/chromium';
 import puppeteer from 'puppeteer-core';
-import env from '@crane/config';
-import { uploadObject } from '@crane/storage';
+import env from '@cota/config';
+import { uploadObject } from '@cota/storage';
 
 export interface PdfJobData {
   proposalId: string;

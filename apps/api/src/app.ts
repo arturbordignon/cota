@@ -10,7 +10,7 @@ import jwt from '@fastify/jwt';
 import redis from '@fastify/redis';
 import { ZodError } from 'zod';
 
-import env from '@crane/config';
+import env from '@cota/config';
 import i18nPlugin from './plugins/i18n.js';
 import prismaPlugin from './plugins/prisma.js';
 import queuesPlugin from './plugins/queues.js';

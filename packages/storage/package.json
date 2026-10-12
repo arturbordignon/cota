@@ -1,5 +1,5 @@
 {
-  "name": "@crane/storage",
+  "name": "@cota/storage",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -18,7 +18,7 @@
     "@aws-sdk/s3-request-presigner": "^3.525.0",
     "@aws-sdk/util-create-request": "^3.525.0",
     "@aws-sdk/util-format-url": "^3.525.0",
-    "@crane/config": "workspace:*"
+    "@cota/config": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^20.11.30",

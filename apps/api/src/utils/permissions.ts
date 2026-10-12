@@ -1,5 +1,5 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
-import type { DepartmentPreset, PermissionModule } from '@crane/db';
+import type { DepartmentPreset, PermissionModule } from '@cota/db';
 
 export const PERMISSION_KEYS = [
   'dashboard',

@@ -25,19 +25,19 @@ importers:
 
   apps/api:
     dependencies:
-      '@crane/config':
+      '@cota/config':
         specifier: workspace:*
         version: link:../../packages/config
-      '@crane/db':
+      '@cota/db':
         specifier: workspace:*
         version: link:../../packages/db
-      '@crane/i18n':
+      '@cota/i18n':
         specifier: workspace:*
         version: link:../../packages/i18n
-      '@crane/pdf':
+      '@cota/pdf':
         specifier: workspace:*
         version: link:../../packages/pdf
-      '@crane/storage':
+      '@cota/storage':
         specifier: workspace:*
         version: link:../../packages/storage
       '@fastify/cors':
@@ -246,13 +246,13 @@ importers:
 
   apps/worker:
     dependencies:
-      '@crane/config':
+      '@cota/config':
         specifier: workspace:*
         version: link:../../packages/config
-      '@crane/db':
+      '@cota/db':
         specifier: workspace:*
         version: link:../../packages/db
-      '@crane/pdf':
+      '@cota/pdf':
         specifier: workspace:*
         version: link:../../packages/pdf
       bullmq:
@@ -338,7 +338,7 @@ importers:
 
   packages/db:
     dependencies:
-      '@crane/config':
+      '@cota/config':
         specifier: workspace:*
         version: link:../config
       '@prisma/client':
@@ -424,10 +424,10 @@ importers:
 
   packages/pdf:
     dependencies:
-      '@crane/config':
+      '@cota/config':
         specifier: workspace:*
         version: link:../config
-      '@crane/storage':
+      '@cota/storage':
         specifier: workspace:*
         version: link:../storage
       '@sparticuz/chromium':
@@ -488,7 +488,7 @@ importers:
       '@aws-sdk/util-format-url':
         specifier: ^3.525.0
         version: 3.893.0
-      '@crane/config':
+      '@cota/config':
         specifier: workspace:*
         version: link:../config
     devDependencies:

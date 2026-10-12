@@ -1,5 +1,5 @@
 import Stripe from 'stripe';
-import env from '@crane/config';
+import env from '@cota/config';
 
 let stripeInstance: Stripe | null = null;
 

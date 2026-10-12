@@ -23,9 +23,9 @@ const argon2 = requireFromApi('argon2');
 const prisma = new PrismaClient();
 
 const demo = {
-  accountName: 'Crane Demo',
-  accountSlug: 'crane-demo',
-  email: 'admin@crane.local',
+  accountName: 'Cota Demo',
+  accountSlug: 'cota-demo',
+  email: 'admin@cota.local',
   password: 'password123',
   locale: 'pt-BR',
 };
@@ -109,7 +109,7 @@ async function main() {
     });
   }
 
-  console.log('Seeded demo login: crane-demo / admin@crane.local / password123');
+  console.log('Seeded demo login: cota-demo / admin@cota.local / password123');
 }
 
 main()

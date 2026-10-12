@@ -1,5 +1,5 @@
 import fp from 'fastify-plugin';
-import env from '@crane/config';
+import env from '@cota/config';
 
 const planDefinitions = [
   {

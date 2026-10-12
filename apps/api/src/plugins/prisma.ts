@@ -1,5 +1,5 @@
 import fp from 'fastify-plugin';
-import { prisma } from '@crane/db';
+import { prisma } from '@cota/db';
 
 declare module 'fastify' {
   interface FastifyInstance {

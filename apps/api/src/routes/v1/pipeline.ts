@@ -1,6 +1,6 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
-import { Prisma } from '@crane/db';
+import { Prisma } from '@cota/db';
 
 import { invalidateReportsOverviewCache } from '../../utils/cache.js';
 import { exigirPermissao } from '../../utils/permissions.js';

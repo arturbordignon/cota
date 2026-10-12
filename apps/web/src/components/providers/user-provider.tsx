@@ -50,9 +50,9 @@ interface UserContextValue {
   temPermissao: (modulo: authClient.PermissionModule, acao: 'view' | 'edit') => boolean;
 }
 
-const ACCESS_TOKEN_KEY = 'crane.accessToken';
-const REFRESH_TOKEN_KEY = 'crane.refreshToken';
-const ACCOUNT_SLUG_KEY = 'crane.accountSlug';
+const ACCESS_TOKEN_KEY = 'cota.accessToken';
+const REFRESH_TOKEN_KEY = 'cota.refreshToken';
+const ACCOUNT_SLUG_KEY = 'cota.accountSlug';
 
 const UserContext = createContext<UserContextValue | undefined>(undefined);
 

@@ -1,7 +1,7 @@
 import fp from 'fastify-plugin';
 import { Queue } from 'bullmq';
-import env from '@crane/config';
-import type { PdfJobData, PdfJobResult } from '@crane/pdf';
+import env from '@cota/config';
+import type { PdfJobData, PdfJobResult } from '@cota/pdf';
 
 declare module 'fastify' {
   interface FastifyInstance {

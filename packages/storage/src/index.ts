@@ -1,6 +1,6 @@
 import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import env from '@crane/config';
+import env from '@cota/config';
 
 const usePathStyle = !env.S3_ENDPOINT.includes('amazonaws.com');
 

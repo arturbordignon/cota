@@ -1,6 +1,6 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
-import { Prisma } from '@crane/db';
+import { Prisma } from '@cota/db';
 
 const listQuerySchema = z.object({
   search: z.string().optional(),

@@ -1,6 +1,6 @@
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
-import { createDownloadUrl } from '@crane/storage';
+import { createDownloadUrl } from '@cota/storage';
 
 import { buscarEmpresa, formatarMoeda, montarHtmlProposta } from '../../services/proposal-render.js';
 import { invalidateReportsOverviewCache, invalidateTeamRankingCache } from '../../utils/cache.js';
