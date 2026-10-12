@@ -283,7 +283,7 @@ export default function TemplatesPage() {
 
       <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as TabValue)}>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between sm:border-b sm:border-border">
-          <TabsList className="sm:border-b-0">
+          <TabsList className="sm:-mb-px">
             {tabItems.map((item) => (
               <TabsTrigger key={item.id} value={item.id} title={item.description}>
                 {item.label}

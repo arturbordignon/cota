@@ -57,8 +57,13 @@ interface TabsListProps {
 
 export function TabsList({ children, className }: TabsListProps) {
   return (
-    <div className={cn("overflow-x-auto border-b border-border", className)}>
-      <div role="tablist" className="-mb-px flex min-w-max items-end gap-6">
+    // The baseline is an inset shadow on the list, not a border with a -1px
+    // overlap, so nothing spills out of the scroll box and adds a scrollbar.
+    <div className={cn("overflow-x-auto overflow-y-hidden", className)}>
+      <div
+        role="tablist"
+        className="flex min-w-max items-end gap-6 shadow-[inset_0_-1px_0_rgb(var(--rgb-border))]"
+      >
         {children}
       </div>
     </div>
