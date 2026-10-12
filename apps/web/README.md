@@ -1,4 +1,4 @@
-# apps/web – Crane Proposals Frontend
+# apps/web – Cota frontend
 
 Next.js 14 (App Router) frontend for the crane proposal generator. Built with TypeScript, Tailwind CSS, next-intl, and TanStack Query. Layout follows the provided ServicePro/Proposteie references with a light, rounded visual system.
 

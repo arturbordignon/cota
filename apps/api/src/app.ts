@@ -98,8 +98,8 @@ export async function buildServer() {
   await app.register(swagger, {
     openapi: {
       info: {
-        title: 'CraneProposals API',
-        description: 'API for crane proposal SaaS',
+        title: 'Cota API',
+        description: 'API for Cota, proposals for heavy services',
         version: '0.1.0',
       },
     },

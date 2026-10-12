@@ -242,7 +242,7 @@ const craneTemplate = {
           {{#company.address}}<p class="muted">{{company.address}}</p>{{/company.address}}
         </div>
         <div>
-          <p class="muted">Documento gerado por Crane Proposals</p>
+          <p class="muted">Documento gerado por Cota</p>
         </div>
       </footer>
     </div>

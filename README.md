@@ -1,4 +1,4 @@
-# Crane Proposals Platform
+# Cota (proposals for heavy services)
 
 Mono-repo for the bilingual (pt-BR/en-US) crane services proposal SaaS. The workspace houses the Fastify API, BullMQ worker, shared packages, and the new Next.js frontend inspired by the provided layouts.
 

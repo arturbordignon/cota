@@ -181,7 +181,7 @@ export const ptBRMessages = {
     }
   },
   "common": {
-    "appName": "Propostas para Guindastes",
+    "appName": "Cota",
     "dashboard": {
       "title": "Painel de Controle",
       "welcome": "Bem-vindo de volta, {name}!",

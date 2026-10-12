@@ -181,7 +181,7 @@ export const enMessages = {
     }
   },
   "common": {
-    "appName": "Crane Proposals",
+    "appName": "Cota",
     "dashboard": {
       "title": "Control Panel",
       "welcome": "Welcome back, {name}!",

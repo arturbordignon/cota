@@ -33,7 +33,7 @@ export function MobileNav({ open, onOpenChange, usage }: MobileNavProps) {
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-40 bg-ink/45 data-[state=open]:animate-overlay-in" />
         <Dialog.Content className="fixed inset-y-0 left-0 z-50 flex w-[86vw] max-w-[300px] flex-col bg-white shadow-raised focus:outline-none data-[state=open]:animate-drawer-in">
-          <Dialog.Title className="sr-only">Crane Proposals</Dialog.Title>
+          <Dialog.Title className="sr-only">Cota</Dialog.Title>
           <Dialog.Description className="sr-only">{t("openMenu")}</Dialog.Description>
           <div className="flex h-16 shrink-0 items-center justify-between border-b border-border pl-5 pr-3">
             <Link href="/dashboard" onClick={fechar} className="rounded-lg">
