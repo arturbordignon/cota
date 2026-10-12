@@ -26,9 +26,8 @@ const baseStyles =
   "relative inline-flex shrink-0 select-none items-center justify-center gap-2 whitespace-nowrap rounded-lg font-semibold transition-[background-color,border-color,color,box-shadow,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-white disabled:cursor-not-allowed disabled:opacity-50 aria-disabled:opacity-50 [&_svg]:shrink-0";
 
 const variantStyles: Record<ButtonVariant, string> = {
-  // White label on crane yellow; the text shadow keeps the label readable on the light fill.
   primary:
-    "bg-primary text-primary-foreground shadow-press [text-shadow:0_1px_1px_rgb(110_66_0/0.45)] hover:bg-primary-hover active:translate-y-px active:shadow-none",
+    "bg-primary text-primary-foreground shadow-press hover:bg-primary-hover active:translate-y-px active:shadow-none",
   secondary:
     "border border-outline bg-white text-ink shadow-card hover:border-ink/25 hover:bg-surface-muted active:bg-surface-sunken",
   outline:

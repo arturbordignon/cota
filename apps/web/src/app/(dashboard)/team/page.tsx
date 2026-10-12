@@ -668,7 +668,7 @@ export default function TeamPage() {
                     className={cn(
                       'tabular flex h-8 w-8 shrink-0 items-center justify-center rounded-full font-display text-sm font-semibold',
                       index === 0
-                        ? 'bg-primary text-white shadow-press [text-shadow:0_1px_1px_rgb(110_66_0/0.45)]'
+                        ? 'bg-primary text-white'
                         : 'bg-surface-sunken text-ink-muted',
                     )}
                   >

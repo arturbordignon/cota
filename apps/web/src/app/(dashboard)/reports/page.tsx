@@ -70,8 +70,8 @@ const TONE_COLORS: Record<"neutral" | "info" | "warning" | "success" | "danger",
   danger: "var(--color-danger)",
 };
 
-// Funnel stages are ordinal, so they share one amber ramp (dark → light).
-const FUNNEL_RAMP = ["#7a5200", "#9a6800", "#c98700", "#e0a31a", "#edbe55", "#f4d488"];
+// Funnel stages are ordinal, so they share one petrol ramp (dark → light).
+const FUNNEL_RAMP = ["#0a3642", "#0f4c5c", "#00657e", "#00809f", "#3f9bb3", "#7ab8c9"];
 
 const axisTick = { fill: "var(--color-muted)", fontSize: 12 };
 

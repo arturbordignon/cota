@@ -21,13 +21,14 @@
   --rgb-ink-muted: 64 71 81; /* #404751 */
   --rgb-muted: 106 114 126; /* #6A727E */
 
-  /* Brand: crane yellow */
-  --rgb-primary: 242 169 0; /* #F2A900 */
-  --rgb-primary-hover: 224 155 0; /* #E09B00 */
-  --rgb-primary-strong: 143 95 0; /* #8F5F00, yellow-family text on white */
-  --rgb-primary-soft: 255 244 209; /* #FFF4D1 */
-  --rgb-primary-tint: 255 250 235; /* #FFFAEB */
+  /* Brand: Cota petrol. Yellow is reserved for the level mark in the logo. */
+  --rgb-primary: 15 76 92; /* #0F4C5C, white text 9.5:1 */
+  --rgb-primary-hover: 12 65 80; /* #0C4150 */
+  --rgb-primary-strong: 10 54 66; /* #0A3642, brand text on white and soft fills */
+  --rgb-primary-soft: 231 240 242; /* #E7F0F2 */
+  --rgb-primary-tint: 243 248 249; /* #F3F8F9 */
   --rgb-on-primary: 255 255 255;
+  --rgb-accent: 255 194 14; /* #FFC20E, logo only */
 
   /* Semantic */
   --rgb-success: 22 128 70; /* #168046 */
@@ -40,8 +41,8 @@
   --rgb-danger-soft: 253 236 234;
 
   /* Charts (validated for contrast and colour-blind separation on white) */
-  --chart-1: #c98700; /* amber */
-  --chart-2: #4a73b8; /* steel blue */
+  --chart-1: #00809f; /* petrol */
+  --chart-2: #b97a00; /* amber */
   --chart-neutral: #9aa2ad;
 
   --color-background: rgb(var(--rgb-background));

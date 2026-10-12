@@ -33,9 +33,9 @@ export function Stepper({ steps, activeStep }: StepperProps) {
               <span
                 className={cn(
                   "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold tabular transition-colors",
-                  status === "complete" && "bg-ink text-white",
+                  status === "complete" && "bg-primary-soft text-primary-strong",
                   status === "current" &&
-                    "bg-primary text-primary-foreground shadow-press [text-shadow:0_1px_1px_rgb(110_66_0/0.45)] ring-4 ring-primary/20",
+                    "bg-primary text-primary-foreground ring-4 ring-primary/15",
                   status === "upcoming" && "border border-outline bg-white text-muted"
                 )}
               >

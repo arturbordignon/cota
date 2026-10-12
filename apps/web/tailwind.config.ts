@@ -41,6 +41,7 @@ const config: Config = {
           tint: token("primary-tint"),
           foreground: token("on-primary"),
         },
+        accent: token("accent"),
         ink: {
           DEFAULT: token("ink"),
           muted: token("ink-muted"),
