@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "cota": {
+      "command": "pnpm",
+      "args": ["--filter", "mcp", "start"],
+      "cwd": "${workspaceFolder}"
+    }
+  }
+}
