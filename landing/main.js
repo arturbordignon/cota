@@ -8,6 +8,7 @@ const FAIXAS = [
 ];
 const PERGUNTA =
   "Leia {url} e me explique o que o Cota faz, como o cliente recebe a proposta e se serve para uma empresa de locação de guindaste.";
+const reduzido = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 function passoDe(progresso) {
   if (progresso < 0.1) {
@@ -66,7 +67,7 @@ function progressoAgora(secao, stick) {
 function mostrarPasso(blocos, passo) {
   blocos.forEach((bloco) => {
     const alvo = Number(bloco.getAttribute("data-passo"));
-    if (alvo === passo) {
+    if (alvo === passo || (reduzido && alvo === 0)) {
       bloco.classList.add("visivel");
       return;
     }
@@ -107,7 +108,6 @@ function iniciarCena() {
   let ultimoPasso = -1;
   let ultimoTrilho = -1;
 
-  const reduzido = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   let qualidade = "low";
   const memoria = navigator.deviceMemory;
   if (window.innerWidth >= 900) {
@@ -120,8 +120,11 @@ function iniciarCena() {
     reducedMotion: reduzido,
     quality: qualidade,
     paint: "#E7E8E4",
-    initialProgress: progressoAgora(secao, stick),
+    initialProgress: reduzido ? 1 : progressoAgora(secao, stick),
     getProgress: function () {
+      if (reduzido) {
+        return 1;
+      }
       return progressoAgora(secao, stick);
     },
     onProgress: function (progresso) {
