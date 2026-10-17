@@ -12,7 +12,7 @@ Publique só `landing/`. O Next em `apps/web` continua sendo o produto.
 | `icon.svg` | Ícone do app, copiado para cá. Favicon, cabeçalho, proposta e lista. |
 | `apple-touch-icon.png` | Ícone do app para a tela inicial do celular. |
 | `config.js` | Endereço do app. Entrar e Criar conta apontam para lá. |
-| `main.js` | Liga os botões e a rolagem da cena. |
+| `main.js` | Liga os botões, os links de perguntar ao Claude e ao ChatGPT e a rolagem da cena. |
 | `crane-scene.js` | A cena 3D. O three.js vem da CDN, não do app. |
 | `reference/landing-design.html` | Referência visual. Não é a página publicada. |
 

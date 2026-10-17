@@ -6,6 +6,8 @@ const FAIXAS = [
   [0.38, 0.64],
   [0.64, 0.9],
 ];
+const PERGUNTA =
+  "Leia {url} e me explique o que o Cota faz, como o cliente recebe a proposta e se serve para uma empresa de locação de guindaste.";
 
 function passoDe(progresso) {
   if (progresso < 0.1) {
@@ -31,6 +33,17 @@ function ligarLinks() {
   document.querySelectorAll("[data-app]").forEach((elemento) => {
     const caminho = elemento.getAttribute("data-app");
     elemento.setAttribute("href", base + caminho);
+  });
+}
+
+function ligarPerguntas() {
+  const origem = window.location.origin;
+  if (!origem.startsWith("http")) {
+    return;
+  }
+  const texto = encodeURIComponent(PERGUNTA.replace("{url}", origem));
+  document.querySelectorAll("[data-perguntar]").forEach((elemento) => {
+    elemento.setAttribute("href", elemento.getAttribute("data-perguntar") + texto);
   });
 }
 
@@ -128,4 +141,5 @@ function iniciarCena() {
 }
 
 ligarLinks();
+ligarPerguntas();
 iniciarCena();
