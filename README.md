@@ -6,6 +6,7 @@ Mono-repo for the bilingual (pt-BR/en-US) Cota proposal SaaS. The workspace hous
 - `apps/api` – Fastify REST API
 - `apps/worker` – BullMQ worker for background jobs (PDF generation, notifications)
 - `apps/web` – Next.js 14 (App Router) frontend with Tailwind design system & next-intl
+- `apps/mcp` – MCP server so an AI can list clients and save a full proposal from the user's words. See `docs/mcp.md`.
 - `packages/*` – shared configuration, database access, i18n, PDF stub, storage helpers
 - `docker-compose.yml` – local dev stack (Postgres, Redis, MinIO, Mailhog)
 - `Dockerfile.*` – production containers for API & worker
