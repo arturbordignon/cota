@@ -196,4 +196,74 @@ describe('sessions', () => {
       expect((await renovar(forjado)).statusCode).toBe(401);
     });
   });
+
+  describe('login', () => {
+    function entrar(accountSlug: string, email: string, password: string) {
+      return chamar(app, { method: 'POST', url: '/api/v1/auth/login', payload: { accountSlug, email, password } });
+    }
+
+    it('answers the same way for unknown accounts, unknown emails, wrong passwords and pending invites', async () => {
+      const conta = await registrarConta(app);
+      const convite = await chamar(app, {
+        method: 'POST',
+        url: '/api/v1/team/members',
+        token: conta.accessToken,
+        payload: { email: 'pendente@teste.local' },
+      });
+      expect(convite.statusCode).toBe(201);
+
+      const respostas = await Promise.all([
+        entrar('conta-que-nao-existe', conta.email, conta.password),
+        entrar(conta.slug, 'ninguem@teste.local', conta.password),
+        entrar(conta.slug, conta.email, 'senha-errada-123'),
+        entrar(conta.slug, 'pendente@teste.local', 'qualquer-senha-123'),
+      ]);
+      for (const resposta of respostas) {
+        expect(resposta.statusCode).toBe(401);
+        expect(resposta.json()).toEqual({ message: 'Invalid credentials' });
+      }
+    });
+
+    it('spends about as long on an unknown email as on a wrong password', async () => {
+      const conta = await registrarConta(app);
+      async function medir(email: string) {
+        const inicio = performance.now();
+        await entrar(conta.slug, email, 'senha-errada-123');
+        return performance.now() - inicio;
+      }
+      const desconhecido: number[] = [];
+      const senhaErrada: number[] = [];
+      for (let i = 0; i < 3; i += 1) {
+        desconhecido.push(await medir(`ninguem-${i}@teste.local`));
+        senhaErrada.push(await medir(conta.email));
+      }
+      const media = (valores: number[]) => valores.reduce((total, valor) => total + valor, 0) / valores.length;
+      expect(media(desconhecido) / media(senhaErrada)).toBeGreaterThan(0.5);
+    });
+
+    it('locks one account email after repeated failures from many addresses', async () => {
+      const conta = await registrarConta(app);
+      for (let i = 0; i < 10; i += 1) {
+        expect((await entrar(conta.slug, conta.email, `errada-${i}-123`)).statusCode).toBe(401);
+      }
+      const comSenhaCerta = await entrar(conta.slug, conta.email, conta.password);
+      expect(comSenhaCerta.statusCode).toBe(429);
+
+      const outraConta = await registrarConta(app);
+      expect((await entrar(outraConta.slug, outraConta.email, outraConta.password)).statusCode).toBe(200);
+
+      await app.redis.del(`cota:login-falhas:${conta.slug}:${conta.email}`);
+      expect((await entrar(conta.slug, conta.email, conta.password)).statusCode).toBe(200);
+    });
+
+    it('a successful login clears the failure count', async () => {
+      const conta = await registrarConta(app);
+      for (let i = 0; i < 9; i += 1) {
+        await entrar(conta.slug, conta.email, `errada-${i}-123`);
+      }
+      expect((await entrar(conta.slug, conta.email, conta.password)).statusCode).toBe(200);
+      expect((await entrar(conta.slug, conta.email, 'errada-de-novo-1')).statusCode).toBe(401);
+      expect((await entrar(conta.slug, conta.email, conta.password)).statusCode).toBe(200);
+    });
+  });
 });

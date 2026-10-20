@@ -71,6 +71,33 @@ const refreshBodySchema = z.object({
   refreshToken: z.string().min(1),
 });
 
+const PARAMETROS_ARGON = {
+  type: argon2.argon2id,
+  memoryCost: 2 ** 15,
+  timeCost: 2,
+  parallelism: 1,
+};
+
+// Compared against when the user doesn't exist, so a wrong email takes as long
+// as a wrong password and response times don't reveal who has an account.
+const hashFicticio = argon2.hash(randomUUID(), PARAMETROS_ARGON);
+
+const LIMITE_FALHAS_LOGIN = 10;
+const JANELA_FALHAS_LOGIN_SEGUNDOS = 15 * 60;
+
+// Counted per account and email, whatever the IP, so a botnet can't keep
+// guessing one person's password by spreading the attempts.
+function chaveFalhasLogin(accountSlug: string, email: string) {
+  return `cota:login-falhas:${accountSlug}:${email}`;
+}
+
+async function registrarFalhaLogin(app: FastifyInstance, chave: string) {
+  const falhas = await app.redis.incr(chave);
+  if (falhas === 1) {
+    await app.redis.expire(chave, JANELA_FALHAS_LOGIN_SEGUNDOS);
+  }
+}
+
 const authRoutes: FastifyPluginAsync = async (app) => {
   app.get('/me', { preHandler: app.authenticate }, async (request, reply) => {
     const payload = request.user;
@@ -135,12 +162,7 @@ const authRoutes: FastifyPluginAsync = async (app) => {
       attempt += 1;
     }
 
-    const hashedPassword = await argon2.hash(body.password, {
-      type: argon2.argon2id,
-      memoryCost: 2 ** 15,
-      timeCost: 2,
-      parallelism: 1,
-    });
+    const hashedPassword = await argon2.hash(body.password, PARAMETROS_ARGON);
 
     const result = await app.prisma.$transaction(async (tx) => {
       const account = await tx.account.create({
@@ -252,14 +274,18 @@ const authRoutes: FastifyPluginAsync = async (app) => {
       const body = loginBodySchema.parse(request.body);
 
       const accountSlug = toAccountSlug(body.accountSlug);
-      if (!accountSlug) {
-        return reply.status(401).send({ message: 'Invalid credentials' });
+      const email = body.email.toLowerCase();
+      const chaveFalhas = chaveFalhasLogin(accountSlug, email);
+
+      const falhas = Number(await app.redis.get(chaveFalhas));
+      if (falhas >= LIMITE_FALHAS_LOGIN) {
+        return reply.status(429).send({ message: 'Too many failed attempts. Try again in a few minutes.' });
       }
 
       const user = await app.prisma.user.findFirst({
         where: {
-          email: body.email.toLowerCase(),
-          account: { slug: accountSlug },
+          email,
+          account: { slug: accountSlug || '-' },
         },
         include: {
           account: {
@@ -281,17 +307,21 @@ const authRoutes: FastifyPluginAsync = async (app) => {
         },
       });
 
-      if (!user || !user.isActive) {
-        return reply.status(401).send({ message: 'Invalid credentials' });
+      let hashParaComparar = await hashFicticio;
+      if (user?.isActive) {
+        hashParaComparar = user.passwordHash;
       }
 
       const verifyStart = Date.now();
-      const validPassword = await argon2.verify(user.passwordHash, body.password);
+      const validPassword = await argon2.verify(hashParaComparar, body.password);
       app.log.info(`Argon2 verify took ${Date.now() - verifyStart}ms`);
 
-      if (!validPassword) {
+      if (!user || !user.isActive || !validPassword) {
+        await registrarFalhaLogin(app, chaveFalhas);
         return reply.status(401).send({ message: 'Invalid credentials' });
       }
+
+      await app.redis.del(chaveFalhas);
 
       const auditMetadata: Record<string, string | null> = { at: dayjs().toISOString() };
       const auditData: Parameters<typeof app.prisma.auditEvent.create>[0]['data'] = {
