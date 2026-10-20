@@ -7,7 +7,7 @@ import { toProposalSlug } from '../../utils/slug.js';
 import { resolveLocale } from '../../utils/locale.js';
 import { exigirPermissao } from '../../utils/permissions.js';
 import { montarHtmlProposta } from '../../services/proposal-render.js';
-import { ensureProposalCapacity, incrementProposalUsage } from '../../services/billing.js';
+import { reserveProposalSlot } from '../../services/billing.js';
 import { ProposalLimitError } from '../../errors/proposal-limit.js';
 import { invalidateReportsOverviewCache, invalidateTeamRankingCache } from '../../utils/cache.js';
 import { chaveDeFotoValida, verificarFotoEnviada } from '../../utils/fotos.js';
@@ -149,7 +149,7 @@ const proposalRoutes: FastifyPluginAsync = async (app) => {
 
     try {
       const proposal = await app.prisma.$transaction(async (tx) => {
-        await ensureProposalCapacity(tx, request.user.accountId);
+        await reserveProposalSlot(tx, request.user.accountId);
 
         const created = await tx.proposal.create({
           data: {
@@ -173,7 +173,6 @@ const proposalRoutes: FastifyPluginAsync = async (app) => {
           }
         });
 
-        await incrementProposalUsage(tx, request.user.accountId);
         return created;
       });
 

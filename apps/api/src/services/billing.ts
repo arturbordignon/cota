@@ -13,33 +13,9 @@ function getCurrentPeriodRange(): PeriodRange {
   return { start: start.toDate(), end: end.toDate() };
 }
 
-async function getOrCreateUsageRecord(
-  tx: Prisma.TransactionClient,
-  accountId: string,
-  period: PeriodRange
-) {
-  let usage = await tx.proposalUsage.findFirst({
-    where: {
-      accountId,
-      periodStart: period.start,
-      periodEnd: period.end
-    }
-  });
-
-  if (!usage) {
-    usage = await tx.proposalUsage.create({
-      data: {
-        accountId,
-        periodStart: period.start,
-        periodEnd: period.end
-      }
-    });
-  }
-
-  return usage;
-}
-
-export async function ensureProposalCapacity(
+// Uses one row per account and month. The reservation is a single conditional
+// UPDATE, so concurrent requests can't both take the last slot or lose a count.
+export async function reserveProposalSlot(
   tx: Prisma.TransactionClient,
   accountId: string
 ) {
@@ -52,35 +28,33 @@ export async function ensureProposalCapacity(
     throw new Error('Conta não encontrada.');
   }
 
-  const plan = account.currentPlan;
+  const period = getCurrentPeriodRange();
+  await tx.proposalUsage.createMany({
+    data: [{ accountId, periodStart: period.start, periodEnd: period.end }],
+    skipDuplicates: true
+  });
 
-  if (!plan || plan.isUnlimited || plan.proposalsPerMonth == null) {
-    return;
+  const plan = account.currentPlan;
+  const where: Prisma.ProposalUsageWhereInput = {
+    accountId,
+    periodStart: period.start,
+    periodEnd: period.end
+  };
+  const limited = plan && !plan.isUnlimited && plan.proposalsPerMonth != null;
+  if (limited) {
+    where.proposalsUsed = { lt: plan.proposalsPerMonth as number };
   }
 
-  const period = getCurrentPeriodRange();
-  const usage = await getOrCreateUsageRecord(tx, accountId, period);
+  const reserved = await tx.proposalUsage.updateMany({
+    where,
+    data: { proposalsUsed: { increment: 1 } }
+  });
 
-  if (usage.proposalsUsed >= plan.proposalsPerMonth) {
+  if (reserved.count === 0) {
     throw new ProposalLimitError(
-      `Você atingiu o limite de ${plan.proposalsPerMonth} propostas neste ciclo. Contrate um plano superior para continuar gerando propostas.`
+      `Você atingiu o limite de ${plan?.proposalsPerMonth} propostas neste ciclo. Contrate um plano superior para continuar gerando propostas.`
     );
   }
-}
-
-export async function incrementProposalUsage(
-  tx: Prisma.TransactionClient,
-  accountId: string
-) {
-  const period = getCurrentPeriodRange();
-  const usage = await getOrCreateUsageRecord(tx, accountId, period);
-
-  await tx.proposalUsage.update({
-    where: { id: usage.id },
-    data: {
-      proposalsUsed: usage.proposalsUsed + 1
-    }
-  });
 }
 
 export async function getBillingOverview(prisma: PrismaClient, accountId: string) {
