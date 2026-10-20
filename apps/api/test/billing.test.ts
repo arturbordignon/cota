@@ -210,3 +210,31 @@ describe('stripe subscription sync', () => {
     expect(consultas - antes).toBe(1);
   });
 });
+
+describe('stripe checkout', () => {
+  let app: FastifyInstance;
+  let conta: Conta;
+
+  beforeAll(async () => {
+    app = await criarApp();
+    conta = await registrarConta(app);
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  it.each([
+    'https://phish.example/obrigado',
+    'https://app.cota.test.phish.example/',
+    'javascript:alert(1)',
+  ])('refuses to send the customer back to %s', async (endereco) => {
+    const resposta = await chamar(app, {
+      method: 'POST',
+      url: '/api/v1/billing/checkout',
+      token: conta.accessToken,
+      payload: { planSlug: 'br-100', successUrl: endereco, cancelUrl: `${env.FRONTEND_BASE_URL}/plans` },
+    });
+    expect(resposta.statusCode).toBe(400);
+  });
+});

@@ -94,10 +94,22 @@ async function sincronizarAssinatura(app: FastifyInstance, subscriptionId: strin
   }
 }
 
+// Stripe sends the customer back to these addresses, so they must be pages of
+// this app and never a lookalike site passed in by a crafted request.
+function enderecoDoApp(endereco: string) {
+  try {
+    return new URL(endereco).origin === new URL(env.FRONTEND_BASE_URL).origin;
+  } catch {
+    return false;
+  }
+}
+
+const enderecoDeRetorno = z.string().url().refine(enderecoDoApp, 'must be a page of the app');
+
 const checkoutBodySchema = z.object({
   planSlug: z.string().min(1),
-  successUrl: z.string().url(),
-  cancelUrl: z.string().url(),
+  successUrl: enderecoDeRetorno,
+  cancelUrl: enderecoDeRetorno,
 });
 
 const billingRoutes: FastifyPluginAsync = async (app) => {
