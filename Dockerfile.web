@@ -23,6 +23,8 @@ FROM base AS runtime
 COPY . .
 ARG NEXT_PUBLIC_API_URL=http://localhost:3333/api/v1
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+# Read by next.config.mjs to allow direct photo uploads in the CSP.
+ARG S3_ENDPOINT=http://localhost:9000
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN pnpm --filter @cota/config --filter @cota/db --filter @cota/i18n --filter @cota/storage build \
  && pnpm --filter web build
