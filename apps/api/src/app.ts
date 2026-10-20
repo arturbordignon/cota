@@ -162,16 +162,32 @@ export async function buildServer() {
   await app.register(jwt, {
     secret: env.JWT_ACCESS_SECRET,
     sign: {
+      algorithm: 'HS256',
       expiresIn: '15m',
+    },
+    verify: {
+      algorithms: ['HS256'],
     },
   });
 
+  // The token only proves who signed in; whether they still have access, and
+  // with which role, comes from the database so deactivating or demoting a
+  // member takes effect on their next request.
   app.decorate('authenticate', async function (request, reply) {
     try {
       await request.jwtVerify();
     } catch (err) {
       return reply.status(401).send({ message: 'Unauthorized' });
     }
+
+    const usuario = await app.prisma.user.findUnique({
+      where: { id: request.user.sub },
+      select: { accountId: true, role: true, isActive: true },
+    });
+    if (!usuario || !usuario.isActive || usuario.accountId !== request.user.accountId) {
+      return reply.status(401).send({ message: 'Unauthorized' });
+    }
+    request.user.role = usuario.role;
   });
 
   app.setErrorHandler((erro, request, reply) => {

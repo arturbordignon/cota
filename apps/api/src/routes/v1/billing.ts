@@ -13,9 +13,7 @@ const checkoutBodySchema = z.object({
 });
 
 const billingRoutes: FastifyPluginAsync = async (app) => {
-  app.get('/overview', async (request, reply) => {
-    await request.jwtVerify();
-
+  app.get('/overview', { preHandler: app.authenticate }, async (request, reply) => {
     const overview = await getBillingOverview(app.prisma, request.user.accountId);
 
     return reply.send({ data: overview });
