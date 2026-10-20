@@ -133,6 +133,10 @@ export function UserProvider({ children }: PropsWithChildren) {
 
   const signOut = useCallback(
     (options?: { redirect?: boolean }) => {
+      const tokenAtual = readItem(REFRESH_TOKEN_KEY);
+      if (tokenAtual) {
+        authClient.logout(tokenAtual).catch(() => undefined);
+      }
       setUser(null);
       setStatus('unauthenticated');
       setAccessToken(null);
@@ -152,13 +156,15 @@ export function UserProvider({ children }: PropsWithChildren) {
       return refreshPromiseRef.current;
     }
 
-    if (!refreshToken) {
+    // Another tab may already have rotated the token, so prefer the stored one.
+    const tokenAtual = readItem(REFRESH_TOKEN_KEY) ?? refreshToken;
+    if (!tokenAtual) {
       signOut({ redirect: false });
       return Promise.reject(new Error('Refresh token not available'));
     }
 
     refreshPromiseRef.current = authClient
-      .refresh(refreshToken)
+      .refresh(tokenAtual)
       .then(async ({ tokens }) => {
         saveTokens(tokens);
         await loadProfile(tokens.accessToken);

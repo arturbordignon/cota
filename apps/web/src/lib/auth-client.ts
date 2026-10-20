@@ -118,6 +118,16 @@ export async function refresh(refreshToken: string): Promise<{ tokens: TokensRes
   return handleResponse<{ tokens: TokensResponse }>(response);
 }
 
+export async function logout(refreshToken: string): Promise<void> {
+  await fetch(`${API_BASE_URL}/auth/logout`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ refreshToken }),
+  });
+}
+
 export interface ProfileResponse {
   user: {
     id: string;
