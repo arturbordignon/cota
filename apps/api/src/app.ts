@@ -95,18 +95,21 @@ export async function buildServer() {
     limits: { files: 5, fileSize: 15 * 1024 * 1024 },
   });
 
-  await app.register(swagger, {
-    openapi: {
-      info: {
-        title: 'Cota API',
-        description: 'API for Cota, proposals for heavy services',
-        version: '0.1.0',
+  // The interactive docs list every route and payload, so they stay out of production.
+  if (env.NODE_ENV !== 'production') {
+    await app.register(swagger, {
+      openapi: {
+        info: {
+          title: 'Cota API',
+          description: 'API for Cota, proposals for heavy services',
+          version: '0.1.0',
+        },
       },
-    },
-  });
-  await app.register(swaggerUi, {
-    routePrefix: '/docs',
-  });
+    });
+    await app.register(swaggerUi, {
+      routePrefix: '/docs',
+    });
+  }
 
   await app.register(redis, {
     host: env.REDIS_HOST,
