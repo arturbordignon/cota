@@ -39,18 +39,30 @@ function formatarErroValidacao(erro: ZodError) {
   return mensagens.join('; ');
 }
 
-const corsOrigins = Array.from(
-  new Set(
-    [
-      'http://localhost:3000',
-      'http://127.0.0.1:3000',
-      'http://localhost:3001',
-      'http://127.0.0.1:3001',
-      env.FRONTEND_BASE_URL,
-      env.CDN_BASE_URL,
-    ].filter(Boolean)
-  )
-);
+const ORIGENS_LOCAIS = [
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+  'http://localhost:3001',
+  'http://127.0.0.1:3001',
+];
+
+function paraOrigem(endereco: string) {
+  try {
+    return new URL(endereco).origin;
+  } catch {
+    return null;
+  }
+}
+
+// Only the app's own frontends may call the API from a browser; the localhost
+// origins exist for development and are never trusted in production.
+function buscarOrigensPermitidas() {
+  const origens = [env.FRONTEND_BASE_URL, env.CDN_BASE_URL].map(paraOrigem);
+  if (env.NODE_ENV !== 'production') {
+    origens.push(...ORIGENS_LOCAIS);
+  }
+  return Array.from(new Set(origens.filter((origem): origem is string => Boolean(origem))));
+}
 
 export async function buildServer() {
   const app = fastify({
@@ -78,7 +90,7 @@ export async function buildServer() {
   });
 
   await app.register(cors, {
-    origin: corsOrigins,
+    origin: buscarOrigensPermitidas(),
     credentials: true,
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
     allowedHeaders: [
