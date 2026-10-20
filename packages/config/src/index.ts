@@ -73,6 +73,55 @@ const envSchema = z.object({
 
 type Env = z.infer<typeof envSchema>;
 
+const SEGREDOS_DE_EXEMPLO = [
+  'change-me',
+  'change-me-refresh',
+  'troque-este-segredo-de-acesso-local',
+  'troque-este-segredo-de-refresh-local',
+];
+
+const TAMANHO_MINIMO_SEGREDO = 32;
+
+// Production must never start with the sample secrets from .env.example or the
+// defaults above: anyone who reads the repo could forge tokens or reach storage.
+export function buscarProblemasDeProducao(valores: Env): string[] {
+  if (valores.NODE_ENV !== 'production') {
+    return [];
+  }
+
+  const problemas: string[] = [];
+
+  for (const chave of ['JWT_ACCESS_SECRET', 'JWT_REFRESH_SECRET'] as const) {
+    const segredo = valores[chave];
+    if (SEGREDOS_DE_EXEMPLO.includes(segredo)) {
+      problemas.push(`${chave} still has the sample value`);
+    } else if (segredo.length < TAMANHO_MINIMO_SEGREDO) {
+      problemas.push(`${chave} must have at least ${TAMANHO_MINIMO_SEGREDO} characters`);
+    }
+  }
+  if (valores.JWT_ACCESS_SECRET === valores.JWT_REFRESH_SECRET) {
+    problemas.push('JWT_ACCESS_SECRET and JWT_REFRESH_SECRET must be different');
+  }
+
+  if (valores.S3_ACCESS_KEY === 'minio' || valores.S3_SECRET_KEY === 'minio123') {
+    problemas.push('S3_ACCESS_KEY / S3_SECRET_KEY still have the local MinIO values');
+  }
+
+  if (/\/\/cota:cota@/.test(valores.DATABASE_URL)) {
+    problemas.push('DATABASE_URL still uses the local cota:cota password');
+  }
+
+  if (!valores.FRONTEND_BASE_URL.startsWith('https://')) {
+    problemas.push('FRONTEND_BASE_URL must be an https:// address');
+  }
+
+  if (valores.STRIPE_API_KEY && !valores.STRIPE_WEBHOOK_SECRET) {
+    problemas.push('STRIPE_WEBHOOK_SECRET is required when STRIPE_API_KEY is set');
+  }
+
+  return problemas;
+}
+
 const parsed = envSchema.safeParse(process.env);
 
 if (!parsed.success) {
@@ -81,6 +130,12 @@ if (!parsed.success) {
 }
 
 const env: Env = parsed.data;
+
+const problemasDeProducao = buscarProblemasDeProducao(env);
+if (problemasDeProducao.length > 0) {
+  console.error('Refusing to start in production:\n- ' + problemasDeProducao.join('\n- '));
+  process.exit(1);
+}
 
 export default env;
 export type { Env };
