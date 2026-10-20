@@ -137,7 +137,9 @@ const billingRoutes: FastifyPluginAsync = async (app) => {
       config: { rawBody: true },
     },
     async (request, reply) => {
-      if (!isStripeEnabled()) {
+      // Without a signing secret nothing can be verified, so refuse every event
+      // instead of trusting the body.
+      if (!isStripeEnabled() || !env.STRIPE_WEBHOOK_SECRET) {
         return reply.status(503).send({ message: 'Stripe não está configurado.' });
       }
 
