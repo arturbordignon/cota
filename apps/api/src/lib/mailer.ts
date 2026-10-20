@@ -11,9 +11,11 @@ interface InviteEmailPayload {
   logger?: FastifyBaseLogger;
 }
 
-let transporterPromise: Promise<nodemailer.Transporter | null> | null = null;
+type Transporter = ReturnType<typeof nodemailer.createTransport>;
 
-async function getTransporter(): Promise<nodemailer.Transporter | null> {
+let transporterPromise: Promise<Transporter | null> | null = null;
+
+async function getTransporter(): Promise<Transporter | null> {
   if (transporterPromise) {
     return transporterPromise;
   }
