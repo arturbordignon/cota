@@ -1,8 +1,7 @@
-import fastify from 'fastify';
+import fastify, { type FastifyError } from 'fastify';
 import rawBody from 'fastify-raw-body';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
-import multipart from '@fastify/multipart';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
 import rateLimit from '@fastify/rate-limit';
@@ -65,16 +64,13 @@ function buscarOrigensPermitidas() {
   return Array.from(new Set(origens.filter((origem): origem is string => Boolean(origem))));
 }
 
-function buscarConfiancaProxy(): boolean | number | string {
+function buscarConfiancaProxy(): boolean | string {
   const valor = env.TRUST_PROXY.trim();
   if (valor === '' || valor === 'false') {
     return false;
   }
   if (valor === 'true') {
     return true;
-  }
-  if (/^\d+$/.test(valor)) {
-    return Number(valor);
   }
   return valor;
 }
@@ -126,9 +122,6 @@ export async function buildServer() {
     exposedHeaders: ['Content-Language'],
   });
   await app.register(helmet);
-  await app.register(multipart, {
-    limits: { files: 5, fileSize: 15 * 1024 * 1024 },
-  });
 
   // The interactive docs list every route and payload, so they stay out of production.
   if (env.NODE_ENV !== 'production') {
@@ -189,14 +182,14 @@ export async function buildServer() {
     request.user.role = usuario.role;
   });
 
-  app.setErrorHandler((erro, request, reply) => {
+  app.setErrorHandler((erro: FastifyError | ZodError, request, reply) => {
     if (erro instanceof ZodError) {
       return reply.status(400).send({
         message: formatarErroValidacao(erro),
         issues: erro.issues,
       });
     }
-    if (erro.statusCode && erro.statusCode < 500) {
+    if ('statusCode' in erro && erro.statusCode && erro.statusCode < 500) {
       return reply.status(erro.statusCode).send({ message: erro.message });
     }
     request.log.error({ err: erro }, 'Unhandled error');

@@ -30,9 +30,9 @@ const envSchema = z.object({
   PORT: z.coerce.number().default(3333),
   HOST: z.string().default('0.0.0.0'),
   LOG_LEVEL: z.string().default('info'),
-  // How many reverse proxies sit in front of the API (1 behind an ALB), "true"
-  // to trust all of them, or a list of proxy addresses. Off by default so a
-  // client can't pick its own IP with X-Forwarded-For.
+  // Addresses of the reverse proxies allowed to set X-Forwarded-For: a comma
+  // list of IPs/CIDRs, or "uniquelocal" for a load balancer on private subnets.
+  // Off by default so a client can't pick its own IP.
   TRUST_PROXY: z.string().default('false'),
   RATE_LIMIT_MAX: z.coerce.number().int().positive().default(200),
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),

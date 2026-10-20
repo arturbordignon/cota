@@ -71,11 +71,12 @@ describe('rate limits without a trusted proxy', () => {
   });
 });
 
-describe('rate limits behind one trusted proxy', () => {
+describe('rate limits behind a trusted load balancer', () => {
   let app: FastifyInstance;
 
   beforeAll(async () => {
-    app = await criarAppComProxy('1');
+    // The helpers give every fake client a 10.x address, like an ALB on private subnets.
+    app = await criarAppComProxy('uniquelocal');
   });
 
   afterAll(async () => {
@@ -154,5 +155,27 @@ describe('limits on sensitive endpoints', () => {
       chamar(app, { method: 'POST', url: '/api/v1/auth/refresh', ip, payload: { refreshToken: 'x' } }),
     );
     expect(codigos[30]).toBe(429);
+  });
+});
+
+describe('forwarded addresses from untrusted peers', () => {
+  let app: FastifyInstance;
+
+  beforeAll(async () => {
+    app = await criarAppComProxy('uniquelocal');
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  it('ignores X-Forwarded-For sent from a public address', async () => {
+    const atacante = `203.0.113.${Math.floor(Math.random() * 250) + 1}`;
+    const slug = `alvo-${sufixo()}`;
+    let ultimo = 0;
+    for (let i = 0; i < 11; i += 1) {
+      ultimo = (await tentarLogin(app, slug, { ip: atacante, xff: ipAleatorio(), email: `x${i}@teste.local` })).statusCode;
+    }
+    expect(ultimo).toBe(429);
   });
 });
