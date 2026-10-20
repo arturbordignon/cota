@@ -7,7 +7,10 @@ import { invalidateReportsOverviewCache, invalidateTeamRankingCache } from '../.
 
 const STATUS_PUBLICOS = ['SENT', 'ACCEPTED', 'DECLINED', 'EXPIRED'] as const;
 
-const paramsSchema = z.object({ slug: z.string().min(1) });
+const paramsSchema = z.object({ slug: z.string().min(1).max(200) });
+
+const LIMITE_LEITURA = { rateLimit: { max: 60, timeWindow: '1 minute' } };
+const LIMITE_RESPOSTA = { rateLimit: { max: 10, timeWindow: '1 minute' } };
 
 async function buscarPropostaPublica(app: FastifyInstance, slug: string) {
   const proposta = await app.prisma.proposal.findFirst({
@@ -41,7 +44,7 @@ async function buscarPropostaPublica(app: FastifyInstance, slug: string) {
 }
 
 const publicRoutes: FastifyPluginAsync = async (app) => {
-  app.get('/proposals/:slug', async (request, reply) => {
+  app.get('/proposals/:slug', { config: LIMITE_LEITURA }, async (request, reply) => {
     const params = paramsSchema.parse(request.params);
 
     const proposta = await buscarPropostaPublica(app, params.slug);
@@ -81,7 +84,7 @@ const publicRoutes: FastifyPluginAsync = async (app) => {
     });
   });
 
-  app.post('/proposals/:slug/accept', async (request, reply) => {
+  app.post('/proposals/:slug/accept', { config: LIMITE_RESPOSTA }, async (request, reply) => {
     const params = paramsSchema.parse(request.params);
 
     const proposta = await buscarPropostaPublica(app, params.slug);
@@ -106,7 +109,7 @@ const publicRoutes: FastifyPluginAsync = async (app) => {
     return reply.send({ data: { status: 'ACCEPTED' } });
   });
 
-  app.post('/proposals/:slug/decline', async (request, reply) => {
+  app.post('/proposals/:slug/decline', { config: LIMITE_RESPOSTA }, async (request, reply) => {
     const params = paramsSchema.parse(request.params);
 
     const proposta = await buscarPropostaPublica(app, params.slug);

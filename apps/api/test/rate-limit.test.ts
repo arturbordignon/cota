@@ -14,13 +14,13 @@ async function criarAppComProxy(valor: string) {
   }
 }
 
-function tentarLogin(app: FastifyInstance, slug: string, opcoes: { ip?: string; xff?: string } = {}) {
+function tentarLogin(app: FastifyInstance, slug: string, opcoes: { ip?: string; xff?: string; email?: string } = {}) {
   return chamar(app, {
     method: 'POST',
     url: '/api/v1/auth/login',
     ip: opcoes.ip,
     headers: opcoes.xff ? { 'x-forwarded-for': opcoes.xff } : undefined,
-    payload: { accountSlug: slug, email: 'ninguem@teste.local', password: 'senha-errada-123' },
+    payload: { accountSlug: slug, email: opcoes.email ?? 'ninguem@teste.local', password: 'senha-errada-123' },
   });
 }
 
@@ -90,6 +90,69 @@ describe('rate limits behind one trusted proxy', () => {
       await tentarLogin(app, slug, { ip: balanceador, xff: primeiro });
     }
     expect((await tentarLogin(app, slug, { ip: balanceador, xff: primeiro })).statusCode).toBe(429);
-    expect((await tentarLogin(app, slug, { ip: balanceador, xff: ipAleatorio() })).statusCode).toBe(401);
+    // Another email, so the per-account lockout doesn't kick in.
+    const outroCliente = await tentarLogin(app, slug, { ip: balanceador, xff: ipAleatorio(), email: 'outra@teste.local' });
+    expect(outroCliente.statusCode).toBe(401);
+  });
+});
+
+describe('limits on sensitive endpoints', () => {
+  let app: FastifyInstance;
+
+  beforeAll(async () => {
+    app = await criarApp();
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  async function rajada(quantidade: number, pedido: (ip: string) => Promise<{ statusCode: number }>) {
+    const ip = ipAleatorio();
+    const codigos: number[] = [];
+    for (let i = 0; i < quantidade; i += 1) {
+      codigos.push((await pedido(ip)).statusCode);
+    }
+    return codigos;
+  }
+
+  it('limits account sign-ups per address', async () => {
+    const codigos = await rajada(11, (ip) =>
+      chamar(app, {
+        method: 'POST',
+        url: '/api/v1/auth/register',
+        ip,
+        payload: { accountName: `Spam ${sufixo()}`, email: `spam-${sufixo()}@teste.local`, password: 'senha-forte-123' },
+      }),
+    );
+    expect(codigos.slice(0, 10).every((codigo) => codigo === 201)).toBe(true);
+    expect(codigos[10]).toBe(429);
+  });
+
+  it('limits invite token guessing', async () => {
+    const codigos = await rajada(11, (ip) =>
+      chamar(app, {
+        method: 'POST',
+        url: '/api/v1/team/invite/accept',
+        ip,
+        payload: { token: 'f'.repeat(64), password: 'senha-forte-123' },
+      }),
+    );
+    expect(codigos.slice(0, 10).every((codigo) => codigo === 404)).toBe(true);
+    expect(codigos[10]).toBe(429);
+  });
+
+  it('limits answers to public proposals', async () => {
+    const codigos = await rajada(11, (ip) =>
+      chamar(app, { method: 'POST', url: '/api/v1/public/proposals/nao-existe/accept', ip }),
+    );
+    expect(codigos[10]).toBe(429);
+  });
+
+  it('limits token refreshes', async () => {
+    const codigos = await rajada(31, (ip) =>
+      chamar(app, { method: 'POST', url: '/api/v1/auth/refresh', ip, payload: { refreshToken: 'x' } }),
+    );
+    expect(codigos[30]).toBe(429);
   });
 });

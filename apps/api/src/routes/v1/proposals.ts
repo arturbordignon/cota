@@ -297,7 +297,8 @@ const proposalRoutes: FastifyPluginAsync = async (app) => {
     return reply.send({ data: updated });
   });
 
-  app.post('/:id/generate', async (request, reply) => {
+  // Each call starts a headless browser in the worker.
+  app.post('/:id/generate', { config: { rateLimit: { max: 20, timeWindow: '1 minute' } } }, async (request, reply) => {
     const params = paramsSchema.parse(request.params);
 
     const proposal = await app.prisma.proposal.findFirst({

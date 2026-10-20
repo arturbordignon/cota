@@ -150,7 +150,7 @@ const authRoutes: FastifyPluginAsync = async (app) => {
     };
   });
 
-  app.post('/register', async (request, reply) => {
+  app.post('/register', { config: { rateLimit: { max: 10, timeWindow: '1 hour' } } }, async (request, reply) => {
     const locale = resolveLocale(request);
     const body = registerBodySchema.parse(request.body);
 
@@ -391,7 +391,7 @@ const authRoutes: FastifyPluginAsync = async (app) => {
     },
   );
 
-  app.post('/refresh', async (request, reply) => {
+  app.post('/refresh', { config: { rateLimit: { max: 30, timeWindow: '1 minute' } } }, async (request, reply) => {
     const body = refreshBodySchema.parse(request.body);
 
     const payload = lerRefreshToken(app, body.refreshToken);
@@ -425,7 +425,7 @@ const authRoutes: FastifyPluginAsync = async (app) => {
     return reply.send({ tokens });
   });
 
-  app.post('/logout', async (request, reply) => {
+  app.post('/logout', { config: { rateLimit: { max: 30, timeWindow: '1 minute' } } }, async (request, reply) => {
     const body = refreshBodySchema.parse(request.body);
 
     const payload = lerRefreshToken(app, body.refreshToken);

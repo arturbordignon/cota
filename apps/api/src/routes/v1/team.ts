@@ -589,7 +589,7 @@ const teamRoutes: FastifyPluginAsync = async (app) => {
     return reply.status(204).send();
   });
 
-  app.get('/invite/preview', async (request, reply) => {
+  app.get('/invite/preview', { config: { rateLimit: { max: 30, timeWindow: '1 minute' } } }, async (request, reply) => {
     const query = invitePreviewSchema.parse(request.query);
 
     const tokenHash = hashInviteToken(query.token);
@@ -627,7 +627,7 @@ const teamRoutes: FastifyPluginAsync = async (app) => {
     });
   });
 
-  app.post('/invite/accept', async (request, reply) => {
+  app.post('/invite/accept', { config: { rateLimit: { max: 10, timeWindow: '15 minutes' } } }, async (request, reply) => {
     const body = acceptInviteSchema.parse(request.body);
 
     const tokenHash = hashInviteToken(body.token);
