@@ -792,7 +792,7 @@ const teamRoutes: FastifyPluginAsync = async (app) => {
       }),
     );
 
-    request.log.info({ invitee: member.email, emailSent }, 'Invitation generated');
+    request.log.info({ inviteeId: member.id, emailSent }, 'Invitation generated');
 
     return reply.code(201).send({
       data: {

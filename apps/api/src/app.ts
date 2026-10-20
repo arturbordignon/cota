@@ -30,6 +30,7 @@ import auditEventRoutes from './routes/v1/audit-events.js';
 import pipelineRoutes from './routes/v1/pipeline.js';
 import accountRoutes from './routes/v1/account.js';
 import publicRoutes from './routes/v1/public.js';
+import { criarOpcoesDeLog } from './utils/logs.js';
 
 function formatarErroValidacao(erro: ZodError) {
   const mensagens = erro.issues.map((issue) => {
@@ -80,9 +81,7 @@ function buscarConfiancaProxy(): boolean | number | string {
 
 export async function buildServer() {
   const app = fastify({
-    logger: {
-      level: env.LOG_LEVEL,
-    },
+    logger: criarOpcoesDeLog(env.LOG_LEVEL),
     trustProxy: buscarConfiancaProxy(),
   });
 

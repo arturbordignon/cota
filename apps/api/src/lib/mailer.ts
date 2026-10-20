@@ -90,7 +90,7 @@ export async function sendInviteEmail({
 
     return true;
   } catch (error) {
-    logger?.error({ err: error, to }, 'Failed to send invite email');
+    logger?.error({ err: error }, 'Failed to send invite email');
     return false;
   }
 }
