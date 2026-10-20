@@ -7,6 +7,7 @@ declare module '@fastify/jwt' {
       accountId: string;
       role: string;
       tipo?: 'refresh';
+      jti?: string;
     };
     user: {
       sub: string;

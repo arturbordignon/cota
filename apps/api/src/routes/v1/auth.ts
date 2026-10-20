@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import argon2 from 'argon2';
@@ -14,15 +15,43 @@ type TokenPayload = {
   role: string;
 };
 
+type RefreshPayload = TokenPayload & { tipo?: string; jti?: string };
+
+const PREFIXO_REFRESH = 'cota:refresh:';
+const VALIDADE_REFRESH_SEGUNDOS = 7 * 24 * 60 * 60;
+// After a refresh the old token still works for a few seconds, so two tabs
+// refreshing at the same time don't sign each other out.
+const TOLERANCIA_ROTACAO_SEGUNDOS = 30;
+
+function chaveRefresh(jti: string) {
+  return `${PREFIXO_REFRESH}${jti}`;
+}
+
+// Every refresh token has an id kept in Redis. Using it rotates it, and signing
+// out deletes it, so a leaked refresh token stops working.
 async function generateTokens(app: FastifyInstance, payload: TokenPayload) {
+  const jti = randomUUID();
   const [accessToken, refreshToken] = await Promise.all([
     app.jwt.sign(payload, { expiresIn: '15m' }),
-    app.jwt.sign({ ...payload, tipo: 'refresh' }, {
+    app.jwt.sign({ ...payload, tipo: 'refresh', jti }, {
       expiresIn: '7d',
       key: env.JWT_REFRESH_SECRET,
     }),
   ]);
+  await app.redis.set(chaveRefresh(jti), payload.sub, 'EX', VALIDADE_REFRESH_SEGUNDOS);
   return { accessToken, refreshToken };
+}
+
+function lerRefreshToken(app: FastifyInstance, token: string) {
+  try {
+    const payload = app.jwt.verify<RefreshPayload>(token, { key: env.JWT_REFRESH_SECRET });
+    if (payload.tipo !== 'refresh' || !payload.jti) {
+      return null;
+    }
+    return payload;
+  } catch {
+    return null;
+  }
 }
 
 const registerBodySchema = z.object({
@@ -335,30 +364,46 @@ const authRoutes: FastifyPluginAsync = async (app) => {
   app.post('/refresh', async (request, reply) => {
     const body = refreshBodySchema.parse(request.body);
 
-    try {
-      const payload = app.jwt.verify<TokenPayload & { tipo?: string }>(body.refreshToken, {
-        key: env.JWT_REFRESH_SECRET,
-      });
-      if (payload.tipo !== 'refresh') {
-        return reply.status(401).send({ message: 'Invalid refresh token' });
-      }
-
-      const user = await app.prisma.user.findUnique({ where: { id: payload.sub } });
-      if (!user || !user.isActive) {
-        return reply.status(401).send({ message: 'Invalid refresh token' });
-      }
-
-      const tokens = await generateTokens(app, {
-        sub: user.id,
-        accountId: user.accountId,
-        role: user.role,
-      });
-
-      return reply.send({ tokens });
-    } catch (err) {
-      request.log.error({ err }, 'Failed to refresh token');
+    const payload = lerRefreshToken(app, body.refreshToken);
+    if (!payload?.jti) {
       return reply.status(401).send({ message: 'Invalid refresh token' });
     }
+
+    const chave = chaveRefresh(payload.jti);
+    const dono = await app.redis.get(chave);
+    if (dono !== payload.sub) {
+      return reply.status(401).send({ message: 'Invalid refresh token' });
+    }
+
+    const restante = await app.redis.ttl(chave);
+    if (restante > TOLERANCIA_ROTACAO_SEGUNDOS) {
+      await app.redis.expire(chave, TOLERANCIA_ROTACAO_SEGUNDOS);
+    }
+
+    const user = await app.prisma.user.findUnique({ where: { id: payload.sub } });
+    if (!user || !user.isActive) {
+      await app.redis.del(chave);
+      return reply.status(401).send({ message: 'Invalid refresh token' });
+    }
+
+    const tokens = await generateTokens(app, {
+      sub: user.id,
+      accountId: user.accountId,
+      role: user.role,
+    });
+
+    return reply.send({ tokens });
+  });
+
+  app.post('/logout', async (request, reply) => {
+    const body = refreshBodySchema.parse(request.body);
+
+    const payload = lerRefreshToken(app, body.refreshToken);
+    if (payload?.jti) {
+      await app.redis.del(chaveRefresh(payload.jti));
+    }
+
+    return reply.status(204).send();
   });
 };
 

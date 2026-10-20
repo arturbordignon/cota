@@ -138,4 +138,62 @@ describe('sessions', () => {
     expect((await chamar(app, { method: 'GET', url: '/api/v1/team', token: tokenDeDono })).statusCode).toBe(403);
     expect((await chamar(app, { method: 'GET', url: '/api/v1/audit-events', token: tokenDeDono })).statusCode).toBe(403);
   });
+
+  describe('refresh tokens', () => {
+    function renovar(refreshToken: string) {
+      return chamar(app, { method: 'POST', url: '/api/v1/auth/refresh', payload: { refreshToken } });
+    }
+
+    function lerJti(token: string) {
+      return JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString()).jti as string;
+    }
+
+    it('rotates on use and the old token only survives a short grace window', async () => {
+      const conta = await registrarConta(app);
+      const primeira = await renovar(conta.refreshToken);
+      expect(primeira.statusCode).toBe(200);
+      const novo = primeira.json().tokens.refreshToken as string;
+      expect(novo).not.toBe(conta.refreshToken);
+
+      const restante = await app.redis.ttl(`cota:refresh:${lerJti(conta.refreshToken)}`);
+      expect(restante).toBeGreaterThan(0);
+      expect(restante).toBeLessThanOrEqual(30);
+
+      // Simulate the grace window running out.
+      await app.redis.del(`cota:refresh:${lerJti(conta.refreshToken)}`);
+      expect((await renovar(conta.refreshToken)).statusCode).toBe(401);
+      expect((await renovar(novo)).statusCode).toBe(200);
+    });
+
+    it('lets two tabs refresh with the same token at once', async () => {
+      const conta = await registrarConta(app);
+      const [a, b] = await Promise.all([renovar(conta.refreshToken), renovar(conta.refreshToken)]);
+      expect(a.statusCode).toBe(200);
+      expect(b.statusCode).toBe(200);
+    });
+
+    it('logout revokes the refresh token', async () => {
+      const conta = await registrarConta(app);
+      const sair = await chamar(app, {
+        method: 'POST',
+        url: '/api/v1/auth/logout',
+        payload: { refreshToken: conta.refreshToken },
+      });
+      expect(sair.statusCode).toBe(204);
+      expect((await renovar(conta.refreshToken)).statusCode).toBe(401);
+    });
+
+    it('logout with a garbage token is harmless', async () => {
+      const sair = await chamar(app, { method: 'POST', url: '/api/v1/auth/logout', payload: { refreshToken: 'lixo' } });
+      expect(sair.statusCode).toBe(204);
+    });
+
+    it('rejects a validly signed refresh token that was never issued', async () => {
+      const forjado = app.jwt.sign(
+        { sub: dono.userId, accountId: dono.accountId, role: 'OWNER', tipo: 'refresh', jti: 'inventado' },
+        { key: env.JWT_REFRESH_SECRET, expiresIn: '7d' },
+      );
+      expect((await renovar(forjado)).statusCode).toBe(401);
+    });
+  });
 });
