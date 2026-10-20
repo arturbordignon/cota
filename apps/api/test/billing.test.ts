@@ -3,7 +3,7 @@ import type { FastifyInstance } from 'fastify';
 import Stripe from 'stripe';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
-import { chamar, criarApp } from './helpers.js';
+import { chamar, criarApp, registrarConta, sufixo, type Conta } from './helpers.js';
 
 const stripeFalso = vi.hoisted(() => ({ instancia: null as unknown as import('stripe').default }));
 
@@ -82,4 +82,131 @@ describe('stripe webhook signature', () => {
   });
 });
 
-export { enviarEvento, SEGREDO, stripeFalso };
+describe('stripe subscription sync', () => {
+  let app: FastifyInstance;
+  const segredoAnterior = env.STRIPE_WEBHOOK_SECRET;
+  const estados = new Map<string, { status: string; price: string; customer: string }>();
+  let consultas = 0;
+
+  beforeAll(async () => {
+    env.STRIPE_WEBHOOK_SECRET = SEGREDO;
+    app = await criarApp();
+    vi.spyOn(stripeFalso.instancia.subscriptions, 'retrieve').mockImplementation((async (id: string) => {
+      consultas += 1;
+      const estado = estados.get(id);
+      if (!estado) throw new Error(`unknown subscription ${id}`);
+      return {
+        id,
+        status: estado.status,
+        customer: estado.customer,
+        items: { data: [{ price: { id: estado.price } }] },
+        current_period_end: Math.floor(Date.now() / 1000) + 86400 * 30,
+        cancel_at_period_end: false,
+      };
+    }) as never);
+  });
+
+  afterAll(async () => {
+    env.STRIPE_WEBHOOK_SECRET = segredoAnterior;
+    vi.restoreAllMocks();
+    await app.close();
+  });
+
+  async function prepararConta() {
+    const conta = await registrarConta(app);
+    const customer = `cus_${sufixo()}`;
+    await app.prisma.account.update({ where: { id: conta.accountId }, data: { stripeCustomerId: customer } });
+    const preco = `price_${sufixo()}`;
+    const plano = await app.prisma.plan.create({
+      data: {
+        slug: `teste-ilimitado-${sufixo()}`,
+        name: 'Ilimitado de teste',
+        currency: 'BRL',
+        amountCents: 14900,
+        isUnlimited: true,
+        stripePriceId: preco,
+      },
+    });
+    const padrao = await app.prisma.plan.findUniqueOrThrow({ where: { slug: 'br-50' } });
+    return { conta, customer, preco, plano, padrao };
+  }
+
+  async function planoAtual(conta: Conta) {
+    const account = await app.prisma.account.findUniqueOrThrow({ where: { id: conta.accountId } });
+    return account.currentPlanId;
+  }
+
+  function evento(tipo: string, subscriptionId: string, statusNoCorpo = 'active') {
+    return {
+      id: `evt_${sufixo()}`,
+      type: tipo,
+      data: { object: { id: subscriptionId, status: statusNoCorpo } },
+    };
+  }
+
+  it('grants the plan when Stripe confirms the subscription is active', async () => {
+    const { conta, customer, preco, plano } = await prepararConta();
+    const sub = `sub_${sufixo()}`;
+    estados.set(sub, { status: 'active', price: preco, customer });
+    expect((await enviarEvento(app, evento('customer.subscription.created', sub))).statusCode).toBe(200);
+    expect(await planoAtual(conta)).toBe(plano.id);
+  });
+
+  it('does not grant the plan when the body says active but Stripe says unpaid', async () => {
+    const { conta, customer, preco, padrao } = await prepararConta();
+    const sub = `sub_${sufixo()}`;
+    estados.set(sub, { status: 'incomplete', price: preco, customer });
+    await enviarEvento(app, evento('customer.subscription.updated', sub, 'active'));
+    expect(await planoAtual(conta)).toBe(padrao.id);
+  });
+
+  it('drops back to the default plan when the subscription is canceled', async () => {
+    const { conta, customer, preco, plano, padrao } = await prepararConta();
+    const sub = `sub_${sufixo()}`;
+    estados.set(sub, { status: 'active', price: preco, customer });
+    await enviarEvento(app, evento('customer.subscription.created', sub));
+    expect(await planoAtual(conta)).toBe(plano.id);
+
+    estados.set(sub, { status: 'canceled', price: preco, customer });
+    await enviarEvento(app, evento('customer.subscription.deleted', sub, 'canceled'));
+    expect(await planoAtual(conta)).toBe(padrao.id);
+
+    // A stale "updated" event arriving late must not bring the paid plan back.
+    await enviarEvento(app, evento('customer.subscription.updated', sub, 'active'));
+    expect(await planoAtual(conta)).toBe(padrao.id);
+  });
+
+  it('drops the plan when payments stop', async () => {
+    const { conta, customer, preco, padrao } = await prepararConta();
+    const sub = `sub_${sufixo()}`;
+    estados.set(sub, { status: 'active', price: preco, customer });
+    await enviarEvento(app, evento('customer.subscription.created', sub));
+    estados.set(sub, { status: 'unpaid', price: preco, customer });
+    await enviarEvento(app, evento('customer.subscription.updated', sub, 'unpaid'));
+    expect(await planoAtual(conta)).toBe(padrao.id);
+  });
+
+  it('keeps the plan of another paid subscription when an old one is canceled', async () => {
+    const { conta, customer, preco, plano } = await prepararConta();
+    const antiga = `sub_${sufixo()}`;
+    const nova = `sub_${sufixo()}`;
+    estados.set(antiga, { status: 'active', price: preco, customer });
+    estados.set(nova, { status: 'active', price: preco, customer });
+    await enviarEvento(app, evento('customer.subscription.created', antiga));
+    await enviarEvento(app, evento('customer.subscription.created', nova));
+    estados.set(antiga, { status: 'canceled', price: preco, customer });
+    await enviarEvento(app, evento('customer.subscription.deleted', antiga, 'canceled'));
+    expect(await planoAtual(conta)).toBe(plano.id);
+  });
+
+  it('processes a redelivered event only once', async () => {
+    const { customer, preco } = await prepararConta();
+    const sub = `sub_${sufixo()}`;
+    estados.set(sub, { status: 'active', price: preco, customer });
+    const repetido = evento('customer.subscription.updated', sub);
+    const antes = consultas;
+    await enviarEvento(app, repetido);
+    await enviarEvento(app, repetido);
+    expect(consultas - antes).toBe(1);
+  });
+});

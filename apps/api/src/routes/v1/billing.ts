@@ -1,10 +1,98 @@
-import type { FastifyPluginAsync } from 'fastify';
+import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import type Stripe from 'stripe';
 import env from '@cota/config';
 import { getStripe, isStripeEnabled } from '../../lib/stripe.js';
-import { getBillingOverview } from '../../services/billing.js';
+import { getBillingOverview, getDefaultPlanSlug } from '../../services/billing.js';
 import { exigirPermissao } from '../../utils/permissions.js';
+
+const STATUS_PAGOS = ['active', 'trialing'];
+// Stripe retries for up to three days; remembering ids a bit longer is enough.
+const VALIDADE_EVENTO_SEGUNDOS = 4 * 24 * 60 * 60;
+
+// Webhook bodies can arrive late or out of order, so the subscription is read
+// back from Stripe and the account gets a paid plan only while it is paid.
+async function sincronizarAssinatura(app: FastifyInstance, subscriptionId: string) {
+  const assinatura = await getStripe().subscriptions.retrieve(subscriptionId);
+  const customerId =
+    typeof assinatura.customer === 'string' ? assinatura.customer : assinatura.customer?.id;
+  if (!customerId) return;
+
+  const account = await app.prisma.account.findFirst({
+    where: { stripeCustomerId: customerId },
+    include: { currentPlan: true },
+  });
+  if (!account) return;
+
+  const priceId = assinatura.items.data[0]?.price?.id;
+  let plan = null;
+  if (priceId) {
+    plan = await app.prisma.plan.findFirst({ where: { stripePriceId: priceId } });
+  }
+
+  const dados = {
+    status: assinatura.status,
+    currentPeriodEnd: assinatura.current_period_end
+      ? new Date(assinatura.current_period_end * 1000)
+      : null,
+    cancelAtPeriodEnd: assinatura.cancel_at_period_end ?? false,
+  };
+
+  if (plan) {
+    await app.prisma.subscription.upsert({
+      where: { stripeSubscriptionId: assinatura.id },
+      update: { ...dados, planId: plan.id },
+      create: {
+        ...dados,
+        accountId: account.id,
+        planId: plan.id,
+        stripeCustomerId: customerId,
+        stripeSubscriptionId: assinatura.id,
+      },
+    });
+  } else {
+    await app.prisma.subscription.updateMany({
+      where: { stripeSubscriptionId: assinatura.id },
+      data: dados,
+    });
+  }
+
+  if (plan && STATUS_PAGOS.includes(assinatura.status)) {
+    await app.prisma.account.update({
+      where: { id: account.id },
+      data: { currentPlanId: plan.id },
+    });
+    return;
+  }
+
+  // This subscription no longer pays: fall back to another paid subscription of
+  // the account, or to the default plan new accounts start on.
+  const outraPaga = await app.prisma.subscription.findFirst({
+    where: {
+      accountId: account.id,
+      status: { in: STATUS_PAGOS },
+      stripeSubscriptionId: { not: assinatura.id },
+    },
+    orderBy: { updatedAt: 'desc' },
+  });
+
+  let planoSeguinte = outraPaga?.planId;
+  if (!planoSeguinte) {
+    let localePadrao = 'pt-BR';
+    if ((plan ?? account.currentPlan)?.currency === 'USD') {
+      localePadrao = 'en';
+    }
+    const padrao = await app.prisma.plan.findUnique({ where: { slug: getDefaultPlanSlug(localePadrao) } });
+    planoSeguinte = padrao?.id;
+  }
+
+  if (planoSeguinte && planoSeguinte !== account.currentPlanId) {
+    await app.prisma.account.update({
+      where: { id: account.id },
+      data: { currentPlanId: planoSeguinte },
+    });
+  }
+}
 
 const checkoutBodySchema = z.object({
   planSlug: z.string().min(1),
@@ -163,82 +251,24 @@ const billingRoutes: FastifyPluginAsync = async (app) => {
         return reply.status(400).send({ message: 'Webhook inválido.' });
       }
 
+      const chaveEvento = `cota:stripe-evento:${event.id}`;
+      if (await app.redis.get(chaveEvento)) {
+        return reply.send({ received: true });
+      }
+
       switch (event.type) {
         case 'customer.subscription.created':
-        case 'customer.subscription.updated': {
-          const subscription = event.data.object as Stripe.Subscription;
-          const customerId =
-            typeof subscription.customer === 'string'
-              ? subscription.customer
-              : subscription.customer?.id;
-          if (!customerId) break;
-
-          const account = await app.prisma.account.findFirst({
-            where: { stripeCustomerId: customerId },
-          });
-          if (!account) break;
-
-          const priceId = subscription.items.data[0]?.price?.id;
-          if (!priceId) break;
-
-          const plan = await app.prisma.plan.findFirst({ where: { stripePriceId: priceId } });
-          if (!plan) break;
-
-          await app.prisma.$transaction([
-            app.prisma.subscription.upsert({
-              where: { stripeSubscriptionId: subscription.id },
-              update: {
-                planId: plan.id,
-                status: subscription.status,
-                currentPeriodEnd: subscription.current_period_end
-                  ? new Date(subscription.current_period_end * 1000)
-                  : null,
-                cancelAtPeriodEnd: subscription.cancel_at_period_end ?? false,
-              },
-              create: {
-                accountId: account.id,
-                planId: plan.id,
-                stripeCustomerId: customerId,
-                stripeSubscriptionId: subscription.id,
-                status: subscription.status,
-                currentPeriodEnd: subscription.current_period_end
-                  ? new Date(subscription.current_period_end * 1000)
-                  : null,
-                cancelAtPeriodEnd: subscription.cancel_at_period_end ?? false,
-              },
-            }),
-            app.prisma.account.update({
-              where: { id: account.id },
-              data: {
-                currentPlanId: plan.id,
-              },
-            }),
-          ]);
-
-          break;
-        }
+        case 'customer.subscription.updated':
         case 'customer.subscription.deleted': {
           const subscription = event.data.object as Stripe.Subscription;
-          const customerId =
-            typeof subscription.customer === 'string'
-              ? subscription.customer
-              : subscription.customer?.id;
-          if (!customerId) break;
-          const account = await app.prisma.account.findFirst({
-            where: { stripeCustomerId: customerId },
-          });
-          if (!account) break;
-
-          await app.prisma.subscription.updateMany({
-            where: { stripeSubscriptionId: subscription.id },
-            data: { status: subscription.status },
-          });
-
+          await sincronizarAssinatura(app, subscription.id);
           break;
         }
         default:
           request.log.info({ type: event.type }, 'Evento Stripe ignorado');
       }
+
+      await app.redis.set(chaveEvento, '1', 'EX', VALIDADE_EVENTO_SEGUNDOS);
 
       return reply.send({ received: true });
     },
