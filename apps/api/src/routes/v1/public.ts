@@ -1,5 +1,6 @@
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
+import type { Prisma } from '@cota/db';
 import { createDownloadUrl } from '@cota/storage';
 
 import { buscarEmpresa, formatarMoeda, montarHtmlProposta } from '../../services/proposal-render.js';
@@ -41,6 +42,16 @@ async function buscarPropostaPublica(app: FastifyInstance, slug: string) {
       account: { select: { name: true, settingsJson: true } },
     },
   });
+}
+
+// Only a proposal still marked as sent changes, so a double click or an accept
+// racing a decline records a single answer.
+async function responderUmaVez(app: FastifyInstance, id: string, dados: Prisma.ProposalUpdateManyMutationInput) {
+  const resultado = await app.prisma.proposal.updateMany({
+    where: { id, status: 'SENT' },
+    data: dados,
+  });
+  return resultado.count === 1;
 }
 
 const publicRoutes: FastifyPluginAsync = async (app) => {
@@ -96,10 +107,10 @@ const publicRoutes: FastifyPluginAsync = async (app) => {
       return reply.status(409).send({ message: 'Proposal can no longer be answered', status: proposta.status });
     }
 
-    await app.prisma.proposal.update({
-      where: { id: proposta.id },
-      data: { status: 'ACCEPTED', acceptedAt: new Date() },
-    });
+    const respondida = await responderUmaVez(app, proposta.id, { status: 'ACCEPTED', acceptedAt: new Date() });
+    if (!respondida) {
+      return reply.status(409).send({ message: 'Proposal can no longer be answered' });
+    }
 
     await Promise.all([
       invalidateReportsOverviewCache(app, proposta.accountId),
@@ -121,10 +132,10 @@ const publicRoutes: FastifyPluginAsync = async (app) => {
       return reply.status(409).send({ message: 'Proposal can no longer be answered', status: proposta.status });
     }
 
-    await app.prisma.proposal.update({
-      where: { id: proposta.id },
-      data: { status: 'DECLINED', declinedAt: new Date() },
-    });
+    const respondida = await responderUmaVez(app, proposta.id, { status: 'DECLINED', declinedAt: new Date() });
+    if (!respondida) {
+      return reply.status(409).send({ message: 'Proposal can no longer be answered' });
+    }
 
     await Promise.all([
       invalidateReportsOverviewCache(app, proposta.accountId),
