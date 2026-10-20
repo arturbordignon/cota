@@ -64,11 +64,26 @@ function buscarOrigensPermitidas() {
   return Array.from(new Set(origens.filter((origem): origem is string => Boolean(origem))));
 }
 
+function buscarConfiancaProxy(): boolean | number | string {
+  const valor = env.TRUST_PROXY.trim();
+  if (valor === '' || valor === 'false') {
+    return false;
+  }
+  if (valor === 'true') {
+    return true;
+  }
+  if (/^\d+$/.test(valor)) {
+    return Number(valor);
+  }
+  return valor;
+}
+
 export async function buildServer() {
   const app = fastify({
     logger: {
       level: env.LOG_LEVEL,
     },
+    trustProxy: buscarConfiancaProxy(),
   });
 
   await app.register(rawBody, {
@@ -78,10 +93,19 @@ export async function buildServer() {
     runFirst: true,
   });
 
+  await app.register(redis, {
+    host: env.REDIS_HOST,
+    port: env.REDIS_PORT,
+    password: env.REDIS_PASSWORD || undefined,
+  });
+
+  // Counters live in Redis so every API replica shares the same limits.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await app.register(rateLimit as any, {
-    max: 200,
+    max: env.RATE_LIMIT_MAX,
     timeWindow: '1 minute',
+    redis: app.redis,
+    nameSpace: 'cota-rate-limit:',
     addHeaders: {
       'x-ratelimit-limit': false,
       'x-ratelimit-remaining': false,
@@ -122,12 +146,6 @@ export async function buildServer() {
       routePrefix: '/docs',
     });
   }
-
-  await app.register(redis, {
-    host: env.REDIS_HOST,
-    port: env.REDIS_PORT,
-    password: env.REDIS_PASSWORD || undefined,
-  });
 
   await app.register(cachePlugin);
 
