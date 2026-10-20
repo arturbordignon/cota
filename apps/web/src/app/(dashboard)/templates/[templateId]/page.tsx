@@ -183,10 +183,14 @@ export default function TemplateDetailPage() {
               <CardTitle>{t("preview.title")}</CardTitle>
               <span className="text-xs text-muted">{t("preview.subtitle")}</span>
             </header>
-            <div className="max-h-[75vh] overflow-auto bg-surface-muted p-4 sm:p-8">
-              <div
-                className="mx-auto max-w-[820px] rounded-lg border border-border bg-white px-6 py-8 text-sm text-ink shadow-card sm:px-10"
-                dangerouslySetInnerHTML={{ __html: template.htmlBody }}
+            <div className="bg-surface-muted p-4 sm:p-8">
+              {/* Template HTML is written by account members: render it in a sandbox
+                  with no scripts and no access to this page or its stored session. */}
+              <iframe
+                title={t("preview.title")}
+                srcDoc={template.htmlBody}
+                sandbox=""
+                className="mx-auto block h-[75vh] w-full max-w-[820px] rounded-lg border border-border bg-white shadow-card"
               />
             </div>
           </Card>
