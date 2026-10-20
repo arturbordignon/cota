@@ -1,7 +1,7 @@
 import type { FastifyPluginAsync, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import type { Prisma } from '@cota/db';
-import { createDownloadUrl } from '@cota/storage';
+import { apagarObjeto, createDownloadUrl } from '@cota/storage';
 
 import { toProposalSlug } from '../../utils/slug.js';
 import { resolveLocale } from '../../utils/locale.js';
@@ -10,6 +10,7 @@ import { montarHtmlProposta } from '../../services/proposal-render.js';
 import { ensureProposalCapacity, incrementProposalUsage } from '../../services/billing.js';
 import { ProposalLimitError } from '../../errors/proposal-limit.js';
 import { invalidateReportsOverviewCache, invalidateTeamRankingCache } from '../../utils/cache.js';
+import { chaveDeFotoValida, verificarFotoEnviada } from '../../utils/fotos.js';
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const isUuid = (value: string) => UUID_REGEX.test(value);
@@ -232,9 +233,22 @@ const proposalRoutes: FastifyPluginAsync = async (app) => {
       return reply.status(404).send({ message: 'Proposal not found' });
     }
 
-    const prefixoFotos = `accounts/${request.user.accountId}/proposals/${proposal.id}/`;
-    if (body.assets && body.assets.some((asset) => !asset.s3ObjectKey.startsWith(prefixoFotos))) {
-      return reply.status(400).send({ message: 'Invalid asset key' });
+    // Photos already attached keep their stored type; new ones must be a key
+    // issued for this proposal and an actual image within the size limit.
+    const tiposDasFotos = new Map(proposal.assets.map((asset) => [asset.s3ObjectKey, asset.mimeType]));
+    for (const asset of body.assets ?? []) {
+      if (tiposDasFotos.has(asset.s3ObjectKey)) {
+        continue;
+      }
+      if (!chaveDeFotoValida(asset.s3ObjectKey, request.user.accountId, proposal.id)) {
+        return reply.status(400).send({ message: 'Invalid asset key' });
+      }
+      const tipo = await verificarFotoEnviada(asset.s3ObjectKey);
+      if (!tipo) {
+        await apagarObjeto(asset.s3ObjectKey).catch(() => undefined);
+        return reply.status(400).send({ message: 'Photos must be PNG, JPEG or WebP images up to 5MB.' });
+      }
+      tiposDasFotos.set(asset.s3ObjectKey, tipo);
     }
 
     const dados: Prisma.ProposalUpdateInput = {};
@@ -271,7 +285,7 @@ const proposalRoutes: FastifyPluginAsync = async (app) => {
             accountId: request.user.accountId,
             proposalId: proposal.id,
             s3ObjectKey: asset.s3ObjectKey,
-            mimeType: asset.mimeType,
+            mimeType: tiposDasFotos.get(asset.s3ObjectKey) ?? asset.mimeType,
             position: asset.position
           }))
         });

@@ -368,6 +368,7 @@ export default function NewProposalPage() {
       const destino = await api.post<{ key: string; uploadUrl: string }>("/assets/upload-url", {
         proposalId,
         contentType: arquivo.type,
+        size: arquivo.size,
       });
       const envio = await fetch(destino.uploadUrl, {
         method: "PUT",

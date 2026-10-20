@@ -200,7 +200,7 @@ describe('tenant isolation', () => {
       method: 'POST',
       url: '/api/v1/assets/upload-url',
       token: b.accessToken,
-      payload: { proposalId: ids.proposal, contentType: 'image/png' },
+      payload: { proposalId: ids.proposal, contentType: 'image/png', size: 1000 },
     });
     expect(resposta.statusCode).toBe(404);
   });
