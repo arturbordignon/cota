@@ -42,9 +42,6 @@ importers:
       '@cota/i18n':
         specifier: workspace:*
         version: link:../../packages/i18n
-      '@cota/pdf':
-        specifier: workspace:*
-        version: link:../../packages/pdf
       '@cota/storage':
         specifier: workspace:*
         version: link:../../packages/storage
@@ -121,6 +118,9 @@ importers:
         specifier: ^3.23.8
         version: 3.25.76
     devDependencies:
+      '@cota/pdf':
+        specifier: workspace:*
+        version: link:../../packages/pdf
       '@types/mustache':
         specifier: ^4.2.3
         version: 4.2.6

@@ -15,7 +15,6 @@
     "@cota/config": "workspace:*",
     "@cota/db": "workspace:*",
     "@cota/i18n": "workspace:*",
-    "@cota/pdf": "workspace:*",
     "@cota/storage": "workspace:*",
     "@fastify/cors": "^11.3.1",
     "@fastify/helmet": "^13.2.0",
@@ -43,6 +42,7 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@cota/pdf": "workspace:*",
     "@types/mustache": "^4.2.3",
     "@types/node": "^20.11.30",
     "@typescript-eslint/eslint-plugin": "^6.21.0",

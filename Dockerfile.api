@@ -2,7 +2,7 @@
 FROM node:22-alpine AS base
 WORKDIR /app
 RUN apk add --no-cache libc6-compat openssl && corepack enable
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 COPY apps/api/package.json apps/api/package.json
 COPY apps/web/package.json apps/web/package.json
 COPY apps/worker/package.json apps/worker/package.json
@@ -21,15 +21,28 @@ CMD ["sh", "-c", "pnpm --filter @cota/config --filter @cota/db --filter @cota/i1
 FROM base AS build
 COPY . .
 RUN pnpm --filter api... build
+# A self-contained copy of the API with production dependencies only. The
+# Prisma client generated at install time (same schema, same OS) is placed
+# next to @prisma/client, where it is loaded from. The checks stop the build if
+# a workspace package came without its compiled dist or the client is missing.
+RUN pnpm --filter api deploy --prod --ignore-scripts --config.node-linker=isolated /out \
+ && for pacote in config db i18n storage; do test -f /out/node_modules/.pnpm/file+packages+$pacote/node_modules/@cota/$pacote/dist/index.js; done \
+ && for cliente in /out/node_modules/.pnpm/@prisma+client@*/node_modules; do cp -R node_modules/.prisma "$cliente/"; done \
+ && test -f /out/node_modules/.pnpm/@prisma+client@*/node_modules/.prisma/client/index.js \
+ && rm -rf /out/src /out/test /out/vitest.config.ts /out/tsconfig.json
+
+# One-off task that applies pending migrations: docker compose run --rm migrate
+FROM base AS migrate
+WORKDIR /app/packages/db
+CMD ["../../node_modules/.bin/prisma", "migrate", "deploy"]
 
 FROM node:22-alpine AS runtime
 WORKDIR /app
-RUN apk add --no-cache libc6-compat && corepack enable
+RUN apk add --no-cache libc6-compat openssl
 ENV NODE_ENV=production
-COPY --from=base /app/node_modules ./node_modules
-COPY --from=build /app/apps/api/dist ./apps/api/dist
-COPY --from=build /app/packages ./packages
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY apps/api/package.json apps/api/package.json
+COPY --from=build --chown=node:node /out ./
+USER node
 EXPOSE 3333
-CMD ["node", "apps/api/dist/main.js"]
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+  CMD wget -qO- http://127.0.0.1:3333/health >/dev/null || exit 1
+CMD ["node", "dist/main.js"]
