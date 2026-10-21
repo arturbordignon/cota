@@ -1,6 +1,5 @@
 import {
   DeleteObjectCommand,
-  DeleteObjectsCommand,
   GetObjectCommand,
   HeadObjectCommand,
   ListObjectsV2Command,
@@ -101,6 +100,11 @@ export async function apagarObjeto(key: string) {
   await s3Client.send(new DeleteObjectCommand({ Bucket: env.S3_BUCKET, Key: key }));
 }
 
+const EXCLUSOES_SIMULTANEAS = 10;
+
+// Deletes one object at a time (10 in parallel) instead of DeleteObjects: the
+// bulk call needs a checksum header that S3-compatible stores such as MinIO
+// and the current AWS SDK don't agree on.
 export async function apagarPrefixo(prefixo: string) {
   let continuacao: string | undefined;
   let apagados = 0;
@@ -108,11 +112,11 @@ export async function apagarPrefixo(prefixo: string) {
     const pagina = await s3Client.send(
       new ListObjectsV2Command({ Bucket: env.S3_BUCKET, Prefix: prefixo, ContinuationToken: continuacao })
     );
-    const chaves = (pagina.Contents ?? []).flatMap((objeto) => (objeto.Key ? [{ Key: objeto.Key }] : []));
-    if (chaves.length > 0) {
-      await s3Client.send(new DeleteObjectsCommand({ Bucket: env.S3_BUCKET, Delete: { Objects: chaves } }));
-      apagados += chaves.length;
+    const chaves = (pagina.Contents ?? []).flatMap((objeto) => (objeto.Key ? [objeto.Key] : []));
+    for (let inicio = 0; inicio < chaves.length; inicio += EXCLUSOES_SIMULTANEAS) {
+      await Promise.all(chaves.slice(inicio, inicio + EXCLUSOES_SIMULTANEAS).map((chave) => apagarObjeto(chave)));
     }
+    apagados += chaves.length;
     continuacao = pagina.NextContinuationToken;
   } while (continuacao);
   return apagados;
