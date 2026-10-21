@@ -67,7 +67,8 @@ async function gerarPdf(html: string) {
       requisicao.abort();
     });
 
-    await pagina.setContent(html, { waitUntil: 'networkidle0', timeout: env.PDF_RENDER_TIMEOUT_MS });
+    // "load" waits for every image (including the signed photo URLs) before printing.
+    await pagina.setContent(html, { waitUntil: 'load', timeout: env.PDF_RENDER_TIMEOUT_MS });
     return await pagina.pdf({ format: 'A4', printBackground: true });
   } finally {
     await navegador.close();
