@@ -116,7 +116,14 @@ export function useApi() {
     [request, prepareBody],
   );
 
-  const del = useCallback(<T>(path: string) => request<T>(path, { method: 'DELETE' }), [request]);
+  const del = useCallback(
+    <T>(path: string, body?: unknown) =>
+      request<T>(path, {
+        method: 'DELETE',
+        ...(body === undefined ? {} : { body: prepareBody(body) }),
+      }),
+    [request, prepareBody],
+  );
 
   return {
     baseUrl: API_BASE_URL,

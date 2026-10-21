@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { SignOut } from "@phosphor-icons/react";
 
 import { CompanyForm } from "@/components/account/company-form";
+import { DeleteAccountCard } from "@/components/account/delete-account-card";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
@@ -64,6 +65,8 @@ export default function AccountPage() {
               <PortalButton label={t("upsell.cta")} variant="secondary" />
             </div>
           </Card>
+
+          <DeleteAccountCard />
         </div>
       </div>
     </section>
