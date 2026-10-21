@@ -13,7 +13,7 @@ Mono-repo for the bilingual (pt-BR/en-US) Cota proposal SaaS. The workspace hous
 - `docs/backend_overview.md` / `docs/frontend_overview.md` – architecture notes
 
 ## Prerequisites
-- Node.js 20 (use `nvm use 20` or `.nvmrc`). The frontend build requires ≥ 18.17.
+- Node.js 22 LTS (use `nvm use 22` or `.nvmrc`). The frontend build requires ≥ 18.17.
 - pnpm 8+ (`corepack enable pnpm`)
 - Docker Desktop (for local database/cache/object storage)
 
