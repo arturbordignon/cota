@@ -22,7 +22,7 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const locale = resolveLocale();
+  const locale = await resolveLocale();
   const messages = await loadMessages(locale);
 
   return (

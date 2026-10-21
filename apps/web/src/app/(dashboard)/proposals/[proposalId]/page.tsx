@@ -1,9 +1,10 @@
 import { ProposalDetailView } from "@/components/proposals/proposal-detail-view";
 
 interface ProposalDetailPageProps {
-  params: { proposalId: string };
+  params: Promise<{ proposalId: string }>;
 }
 
-export default function ProposalDetailPage({ params }: ProposalDetailPageProps) {
-  return <ProposalDetailView proposalId={params.proposalId} />;
+export default async function ProposalDetailPage({ params }: ProposalDetailPageProps) {
+  const { proposalId } = await params;
+  return <ProposalDetailView proposalId={proposalId} />;
 }

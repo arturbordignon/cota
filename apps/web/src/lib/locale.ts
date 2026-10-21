@@ -24,13 +24,13 @@ function fromAcceptLanguage(header: string | null): AppLocale | null {
   return null;
 }
 
-export function resolveLocale(): AppLocale {
-  const cookieLocale = cookies().get(COOKIE_NAME)?.value;
+export async function resolveLocale(): Promise<AppLocale> {
+  const cookieLocale = (await cookies()).get(COOKIE_NAME)?.value;
   if (cookieLocale && isLocale(cookieLocale)) {
     return cookieLocale;
   }
 
-  const headerLocale = fromAcceptLanguage(headers().get("accept-language"));
+  const headerLocale = fromAcceptLanguage((await headers()).get("accept-language"));
   if (headerLocale) {
     return headerLocale;
   }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, DownloadSimple } from "@phosphor-icons/react";
 
@@ -11,10 +12,6 @@ import { Notice } from "@/components/ui/notice";
 import { Skeleton } from "@/components/ui/skeleton";
 import { buscarPropostaPublica, responderPropostaPublica } from "@/lib/public-client";
 import type { PublicProposal } from "@/types/api";
-
-interface PublicProposalPageProps {
-  params: { slug: string };
-}
 
 function descreverSituacao(proposta: PublicProposal) {
   switch (proposta.status) {
@@ -36,7 +33,8 @@ function descreverValidade(proposta: PublicProposal) {
   return ` · Válida até ${new Date(proposta.expiresAt).toLocaleDateString(proposta.locale)}`;
 }
 
-export default function PublicProposalPage({ params }: PublicProposalPageProps) {
+export default function PublicProposalPage() {
+  const params = useParams<{ slug: string }>();
   const queryClient = useQueryClient();
   const [confirmarRecusa, setConfirmarRecusa] = useState(false);
 

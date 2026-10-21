@@ -4,7 +4,7 @@ import { resolveLocale } from "@/lib/locale";
 import { locales, type SupportedLocale } from "@/messages/locales";
 
 export default getRequestConfig(async () => {
-  const locale = resolveLocale();
+  const locale = await resolveLocale();
 
   return {
     locale,

@@ -81,9 +81,7 @@ function montarCabecalhosDeSeguranca() {
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   poweredByHeader: false,
-  experimental: {
-    typedRoutes: true,
-  },
+  typedRoutes: true,
   async headers() {
     return [{ source: "/:path*", headers: montarCabecalhosDeSeguranca() }];
   },
