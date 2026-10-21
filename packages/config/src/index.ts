@@ -51,6 +51,13 @@ const envSchema = z.object({
   QUEUE_PREFIX: z.string().default('cota'),
   PDF_RENDER_TIMEOUT_MS: z.coerce.number().default(120000),
   CHROMIUM_EXECUTABLE_PATH: z.string().default(''),
+  // Chromium's own sandbox needs user namespaces, which the hardened worker
+  // container (non-root, no capabilities, no-new-privileges) doesn't allow;
+  // there the container is the sandbox and the image turns this off.
+  PDF_CHROMIUM_SANDBOX: z
+    .union([z.literal('true'), z.literal('false')])
+    .default('true')
+    .transform((value) => value === 'true'),
   AUDIT_LOG_STORE_IP: z
     .union([z.literal('true'), z.literal('false')])
     .default('true')

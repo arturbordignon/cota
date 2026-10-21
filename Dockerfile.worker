@@ -2,7 +2,7 @@
 FROM node:22-alpine AS base
 WORKDIR /app
 RUN apk add --no-cache libc6-compat openssl && corepack enable
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 COPY apps/api/package.json apps/api/package.json
 COPY apps/web/package.json apps/web/package.json
 COPY apps/worker/package.json apps/worker/package.json
@@ -21,14 +21,26 @@ CMD ["sh", "-c", "pnpm --filter @cota/config --filter @cota/db --filter @cota/i1
 FROM base AS build
 COPY . .
 RUN pnpm --filter worker... build
+# Same layout as the API image: production dependencies only, compiled
+# workspace packages and the Prisma client generated at install time.
+RUN pnpm --filter worker deploy --prod --ignore-scripts --config.node-linker=isolated /out \
+ && for pacote in config db pdf storage; do test -f /out/node_modules/.pnpm/file+packages+$pacote/node_modules/@cota/$pacote/dist/index.js; done \
+ && for cliente in /out/node_modules/.pnpm/@prisma+client@*/node_modules; do cp -R node_modules/.prisma "$cliente/"; done \
+ && test -f /out/node_modules/.pnpm/@prisma+client@*/node_modules/.prisma/client/index.js \
+ && rm -rf /out/src /out/tsconfig.json
 
 FROM node:22-alpine AS runtime
 WORKDIR /app
-RUN apk add --no-cache libc6-compat && corepack enable
-ENV NODE_ENV=production
-COPY --from=base /app/node_modules ./node_modules
-COPY --from=build /app/apps/worker/dist ./apps/worker/dist
-COPY --from=build /app/packages ./packages
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY apps/worker/package.json apps/worker/package.json
-CMD ["node", "apps/worker/dist/main.js"]
+# The Lambda Chromium build bundled with @sparticuz/chromium needs glibc, so
+# the image uses Alpine's Chromium. Liberation (metric-compatible with Arial
+# and Times) and DejaVu cover the Latin text of the proposals.
+RUN apk add --no-cache libc6-compat openssl chromium nss freetype harfbuzz font-liberation font-dejavu
+# Chromium's sandbox needs user namespaces, which this non-root container
+# without capabilities doesn't have: the container isolates it instead, and
+# pages print with JavaScript off and only public https requests allowed.
+ENV NODE_ENV=production \
+    CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium-browser \
+    PDF_CHROMIUM_SANDBOX=false
+COPY --from=build --chown=node:node /out ./
+USER node
+CMD ["node", "dist/main.js"]

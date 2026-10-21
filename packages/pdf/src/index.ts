@@ -29,10 +29,13 @@ async function buscarCaminhoNavegador() {
 }
 
 function buscarArgumentosNavegador() {
-  if (env.CHROMIUM_EXECUTABLE_PATH) {
+  if (!env.CHROMIUM_EXECUTABLE_PATH) {
+    return chromium.args;
+  }
+  if (env.PDF_CHROMIUM_SANDBOX) {
     return [];
   }
-  return chromium.args;
+  return ['--no-sandbox', '--disable-dev-shm-usage'];
 }
 
 const FAIXAS_PRIVADAS_IPV4 = [/^10\./, /^127\./, /^169\.254\./, /^172\.(1[6-9]|2\d|3[01])\./, /^192\.168\./, /^0\./, /^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./];
