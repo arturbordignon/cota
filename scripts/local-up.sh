@@ -70,7 +70,7 @@ find_available_port() {
         const server = net.createServer();
         server.unref();
         server.on("error", () => resolve(false));
-        server.listen({ port, host: "0.0.0.0" }, () => {
+        server.listen({ port, host: "127.0.0.1" }, () => {
           server.close(() => resolve(true));
         });
       });
@@ -91,6 +91,7 @@ find_available_port() {
 
 postgres_port="$(resolve_port POSTGRES_PORT 5433 postgres Postgres)"
 api_port="$(resolve_port API_PORT 3333 api API)"
+minio_port="$(resolve_port MINIO_API_PORT 9000 minio MinIO)"
 web_port="$(get_env_var WEB_PORT || true)"
 if [ -z "$web_port" ]; then
   web_port="3001"
@@ -99,6 +100,7 @@ set_env_var WEB_PORT "$web_port"
 
 set_env_var DATABASE_URL "postgresql://cota:cota@localhost:$postgres_port/cota?schema=public&options=-c%20TimeZone%3DAmerica%2FSao_Paulo"
 set_env_var NEXT_PUBLIC_API_URL "http://localhost:$api_port/api/v1"
+set_env_var S3_ENDPOINT "http://localhost:$minio_port"
 set_env_var FRONTEND_BASE_URL "http://localhost:$web_port"
 set_env_var CDN_BASE_URL "http://localhost:$web_port"
 
