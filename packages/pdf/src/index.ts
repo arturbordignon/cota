@@ -35,17 +35,39 @@ function buscarArgumentosNavegador() {
   return chromium.args;
 }
 
-function requisicaoPermitida(url: string) {
+const FAIXAS_PRIVADAS_IPV4 = [/^10\./, /^127\./, /^169\.254\./, /^172\.(1[6-9]|2\d|3[01])\./, /^192\.168\./, /^0\./, /^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./];
+
+// Template HTML is written by users, so the browser that prints it may only
+// load inline data, the bucket and public https addresses: never loopback,
+// private networks, cloud metadata or internal names.
+function enderecoInterno(hostname: string) {
+  const nome = hostname.toLowerCase();
+  if (nome === 'localhost' || nome.endsWith('.localhost') || nome.endsWith('.internal') || nome.endsWith('.local')) {
+    return true;
+  }
+  if (nome.startsWith('[')) {
+    return true;
+  }
+  return FAIXAS_PRIVADAS_IPV4.some((faixa) => faixa.test(nome));
+}
+
+export function requisicaoPermitida(url: string) {
   if (url.startsWith('data:')) {
     return true;
   }
-  if (url.startsWith(env.S3_ENDPOINT)) {
+  if (url.startsWith(`${env.S3_ENDPOINT.replace(/\/$/, '')}/`)) {
     return true;
   }
-  if (url.startsWith('https://')) {
-    return true;
+  let endereco: URL;
+  try {
+    endereco = new URL(url);
+  } catch {
+    return false;
   }
-  return false;
+  if (endereco.protocol !== 'https:') {
+    return false;
+  }
+  return !enderecoInterno(endereco.hostname);
 }
 
 async function gerarPdf(html: string) {
