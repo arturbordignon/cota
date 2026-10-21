@@ -81,6 +81,9 @@ function montarCabecalhosDeSeguranca() {
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   poweredByHeader: false,
+  // A self-contained server for the Docker image instead of the whole workspace.
+  output: "standalone",
+  outputFileTracingRoot: workspaceRoot,
   typedRoutes: true,
   async headers() {
     return [{ source: "/:path*", headers: montarCabecalhosDeSeguranca() }];
