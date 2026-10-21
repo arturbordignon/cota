@@ -1,3 +1,5 @@
+# Local development stack. Every port is bound to 127.0.0.1: these services
+# use development passwords and must not be reachable from the network.
 services:
   api:
     build:
@@ -20,7 +22,7 @@ services:
       FRONTEND_BASE_URL: http://localhost:${WEB_PORT:-3001}
       CDN_BASE_URL: http://localhost:${WEB_PORT:-3001}
     ports:
-      - "${API_PORT:-3333}:3333"
+      - "127.0.0.1:${API_PORT:-3333}:3333"
     depends_on:
       - postgres
       - redis
@@ -41,7 +43,7 @@ services:
       NODE_ENV: production
       NEXT_PUBLIC_API_URL: http://localhost:${API_PORT:-3333}/api/v1
     ports:
-      - "${WEB_PORT:-3001}:3001"
+      - "127.0.0.1:${WEB_PORT:-3001}:3001"
     depends_on:
       - api
 
@@ -71,7 +73,7 @@ services:
       POSTGRES_PASSWORD: cota
       POSTGRES_DB: cota
     ports:
-      - "${POSTGRES_PORT:-5433}:5432"
+      - "127.0.0.1:${POSTGRES_PORT:-5433}:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
 
@@ -81,7 +83,7 @@ services:
     restart: unless-stopped
     command: redis-server --save 60 1 --loglevel warning
     ports:
-      - "${REDIS_PORT:-6379}:6379"
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
     volumes:
       - redis-data:/data
 
@@ -94,8 +96,8 @@ services:
       MINIO_ROOT_PASSWORD: minio123
       MINIO_DEFAULT_BUCKETS: ${S3_BUCKET:-cota-dev}
     ports:
-      - "${MINIO_API_PORT:-9000}:9000"
-      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+      - "127.0.0.1:${MINIO_API_PORT:-9000}:9000"
+      - "127.0.0.1:${MINIO_CONSOLE_PORT:-9001}:9001"
     volumes:
       - minio-data:/bitnami/minio/data
 
@@ -104,17 +106,20 @@ services:
     container_name: cota-mailhog
     restart: unless-stopped
     ports:
-      - "${MAILHOG_SMTP_PORT:-1025}:1025"
-      - "${MAILHOG_UI_PORT:-8025}:8025"
+      - "127.0.0.1:${MAILHOG_SMTP_PORT:-1025}:1025"
+      - "127.0.0.1:${MAILHOG_UI_PORT:-8025}:8025"
 
+  # Database UI for local work only: started by scripts/local-up.sh or with
+  # docker compose --profile tools up adminer.
   adminer:
     image: adminer:4.8.1
+    profiles: ["tools"]
     container_name: cota-adminer
     restart: unless-stopped
     environment:
       ADMINER_DEFAULT_SERVER: postgres
     ports:
-      - "${ADMINER_PORT:-5555}:8080"
+      - "127.0.0.1:${ADMINER_PORT:-5555}:8080"
     depends_on:
       - postgres
 
