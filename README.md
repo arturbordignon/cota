@@ -8,8 +8,9 @@ Mono-repo for the bilingual (pt-BR/en-US) Cota proposal SaaS. The workspace hous
 - `apps/web` – Next.js 14 (App Router) frontend with Tailwind design system & next-intl
 - `apps/mcp` – MCP server so an AI can list clients and save a full proposal from the user's words. See `docs/mcp.md`.
 - `packages/*` – shared configuration, database access, i18n, PDF stub, storage helpers
-- `docker-compose.yml` – local dev stack (Postgres, Redis, MinIO, Mailhog)
-- `Dockerfile.*` – production containers for API & worker
+- `docker-compose.yml` – local dev stack (Postgres, Redis, MinIO, Mailhog), bound to 127.0.0.1
+- `docker-compose.aws.yml` – production stack (see "Production stack" below)
+- `Dockerfile.*` – production containers for the API, worker and web app
 - `docs/backend_overview.md` / `docs/frontend_overview.md` – architecture notes
 
 ## Prerequisites
@@ -58,21 +59,40 @@ pnpm --filter web exec next dev -p 3001
 ## Testing & linting
 ```bash
 pnpm lint     # eslint across packages + frontend
-pnpm build    # compiles all packages (requires Node >= 18.17 for Next.js)
+pnpm build    # compiles all packages
+pnpm test     # API security suite (needs the Docker Postgres, Redis and MinIO running)
 ```
-_Vitest, Playwright, and Storybook are planned as the UI matures._
+The API suite in `apps/api/test` covers tenant isolation, sessions, rate limits, uploads, Stripe webhooks,
+the proposal limit, public proposals and account deletion. It talks to the real services from
+`docker compose up -d postgres redis minio`.
 
 ## Docker builds
+The images run as the unprivileged `node` user and contain only production dependencies:
+`Dockerfile.api` (API), `Dockerfile.worker` (PDF worker with Alpine Chromium) and `Dockerfile.web`
+(Next.js standalone server). `Dockerfile.api` also has a `migrate` target that applies Prisma migrations.
+
 ```bash
-# API image
 docker build -f Dockerfile.api -t cota-api .
-# Worker image
 docker build -f Dockerfile.worker -t cota-worker .
+docker build -f Dockerfile.web --build-arg NEXT_PUBLIC_API_URL=https://api.example.com/api/v1 -t cota-web .
 ```
-Spin up the stack (API + worker + Postgres + Redis) with:
-```bash
-docker compose -f docker-compose.aws.yml up --build
-```
+
+### Production stack
+1. Copy `.env.production.example` to `.env.production` and fill every value. The API refuses to start in
+   production with sample or short secrets, the local MinIO/database passwords, a non-https frontend, or
+   Stripe without a webhook secret.
+2. Build, migrate and start:
+   ```bash
+   docker compose -f docker-compose.aws.yml --env-file .env.production build
+   docker compose -f docker-compose.aws.yml --env-file .env.production run --rm migrate
+   docker compose -f docker-compose.aws.yml --env-file .env.production up -d
+   ```
+3. Put a TLS-terminating proxy or load balancer in front: the API and web publish only on `127.0.0.1`.
+   Set `TRUST_PROXY` to the proxy addresses (`uniquelocal` for an ALB on private subnets) so rate limits
+   see the real client IP.
+
+Postgres and Redis are never published; Redis requires `REDIS_PASSWORD`. The S3 bucket must stay private:
+photos and PDFs are always served through signed URLs.
 
 ## Frontend notes
 - See `docs/frontend_overview.md` for navigation map, design tokens, and component strategy.
