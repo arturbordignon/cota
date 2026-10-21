@@ -44,7 +44,8 @@ function CreateTemplateDialog({
 }) {
   const t = useTranslations("templates.dialog");
   const currentLocale = useLocale();
-  const defaultHtml = t("defaultHtml");
+  // Raw: the starter template is HTML, which next-intl would parse as rich-text tags.
+  const defaultHtml = t.raw("defaultHtml") as string;
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");

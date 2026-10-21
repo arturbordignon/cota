@@ -140,6 +140,7 @@ export const ptBRMessages = {
     "dialog": {
       "title": "Adicionar cliente",
       "description": "Informe os dados principais para cadastrar um novo contato.",
+      "close": "Fechar",
       "fields": {
         "name": "Nome completo",
         "company": "Razão social",

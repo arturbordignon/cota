@@ -140,6 +140,7 @@ export const enMessages = {
     "dialog": {
       "title": "Add client",
       "description": "Provide the main information to create a new contact.",
+      "close": "Close",
       "fields": {
         "name": "Full name",
         "company": "Company name",

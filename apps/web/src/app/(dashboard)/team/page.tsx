@@ -211,7 +211,7 @@ function AddMemberDialog({
       <ModalFooter>
         <ModalClose asChild>
           <Button type="button" variant="ghost">
-            {t('dialog.actions.cancel')}
+            {t('actions.cancel')}
           </Button>
         </ModalClose>
         <Button
