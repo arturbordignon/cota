@@ -137,6 +137,10 @@ export const ptBRMessages = {
         "noEmail": "E-mail não informado"
       }
     },
+    "newPage": {
+      "title": "Cadastrar cliente",
+      "description": "Salve os dados do cliente para preencher propostas em segundos."
+    },
     "dialog": {
       "title": "Adicionar cliente",
       "description": "Informe os dados principais para cadastrar um novo contato.",

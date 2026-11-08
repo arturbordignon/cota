@@ -137,6 +137,10 @@ export const enMessages = {
         "noEmail": "Email not provided"
       }
     },
+    "newPage": {
+      "title": "Add client",
+      "description": "Save the client details to fill in proposals in seconds."
+    },
     "dialog": {
       "title": "Add client",
       "description": "Provide the main information to create a new contact.",

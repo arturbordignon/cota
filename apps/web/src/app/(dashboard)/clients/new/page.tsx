@@ -1,50 +1,66 @@
+"use client";
+
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useForm } from "react-hook-form";
+
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Field } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
-import { Select, SelectItem } from "@/components/ui/select";
+import { Notice } from "@/components/ui/notice";
+import {
+  ClientFormFields,
+  clientFormSchema,
+  emptyClientForm,
+  toClientPayload,
+  type ClientFormValues,
+} from "@/components/clients/client-form-fields";
+import { useApi } from "@/hooks/use-api";
 
 export default function NewClientPage() {
+  const t = useTranslations("clients.newPage");
+  const tDialog = useTranslations("clients.dialog");
+  const api = useApi();
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const form = useForm<ClientFormValues>({
+    resolver: zodResolver(clientFormSchema),
+    defaultValues: emptyClientForm,
+  });
+
+  const createClient = useMutation({
+    mutationFn: (values: ClientFormValues) => api.post("/clients", toClientPayload(values)),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["clients"] });
+      router.push("/clients");
+    },
+  });
+
   return (
     <section className="space-y-6">
-      <PageHeader
-        title="Cadastrar cliente"
-        description="Armazene dados completos para preencher propostas em segundos e manter o histórico sempre atualizado."
-      />
-      <Card className="max-w-3xl space-y-6 p-5 sm:p-6">
-        <div className="grid gap-5 sm:grid-cols-2">
-          <Field label="Nome/Razão social" htmlFor="client-name">
-            <Input id="client-name" placeholder="Empresa Exemplo LTDA" />
-          </Field>
-          <Field label="CNPJ/CPF" htmlFor="cnpj">
-            <Input id="cnpj" placeholder="00.000.000/0000-00" />
-          </Field>
-          <Field label="E-mail" htmlFor="email">
-            <Input id="email" type="email" placeholder="contato@empresa.com" />
-          </Field>
-          <Field label="Telefone" htmlFor="phone">
-            <Input id="phone" placeholder="(11) 91234-5678" />
-          </Field>
-          <Field label="Segmento" htmlFor="segment">
-            <Select id="segment" defaultValue="construcao">
-              <SelectItem value="construcao">Construção</SelectItem>
-              <SelectItem value="logistica">Logística</SelectItem>
-              <SelectItem value="industrial">Industrial</SelectItem>
-            </Select>
-          </Field>
-          <Field label="Limite de crédito interno" htmlFor="credit">
-            <Select id="credit" defaultValue="padrao">
-              <SelectItem value="padrao">Padrão (R$ 50.000)</SelectItem>
-              <SelectItem value="alto">Alto (R$ 150.000)</SelectItem>
-              <SelectItem value="sob-demanda">Sob demanda</SelectItem>
-            </Select>
-          </Field>
-        </div>
+      <PageHeader title={t("title")} description={t("description")} />
+      <Card className="max-w-3xl p-5 sm:p-6">
+        <form
+          className="space-y-5"
+          onSubmit={form.handleSubmit((values) => createClient.mutate(values))}
+          noValidate
+        >
+          <ClientFormFields form={form} disabled={createClient.isPending} autoFocus />
 
-        <div className="flex justify-end border-t border-border pt-5">
-          <Button>Salvar cliente</Button>
-        </div>
+          {createClient.error ? <Notice tone="danger">{createClient.error.message}</Notice> : null}
+
+          <div className="flex justify-end gap-2 border-t border-border pt-5">
+            <Button asChild variant="ghost">
+              <Link href="/clients">{tDialog("cancel")}</Link>
+            </Button>
+            <Button type="submit" loading={createClient.isPending} loadingText={tDialog("saving")}>
+              {tDialog("save")}
+            </Button>
+          </div>
+        </form>
       </Card>
     </section>
   );
