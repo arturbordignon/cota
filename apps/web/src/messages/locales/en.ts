@@ -980,7 +980,7 @@ export const enMessages = {
       },
       "overview": {
         "viewOnly": "You have view-only access. Request edit permissions to move stages or create new leads.",
-        "dragHint": "Drag and drop cards to move leads between stages. Custom stages will be saved per workspace in a future update."
+        "dragHint": "Drag and drop cards to move leads between stages."
       },
       "stageColors": {
         "info": "Informational",

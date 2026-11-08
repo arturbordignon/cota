@@ -980,7 +980,7 @@ export const ptBRMessages = {
       },
       "overview": {
         "viewOnly": "Você possui acesso de visualização. Solicite permissões de edição para movimentar etapas ou criar novos leads.",
-        "dragHint": "Arraste e solte cards para movimentar leads entre etapas. Etapas personalizadas serão salvas por workspace em uma próxima atualização."
+        "dragHint": "Arraste e solte cards para movimentar leads entre etapas."
       },
       "stageColors": {
         "info": "Informativo",
