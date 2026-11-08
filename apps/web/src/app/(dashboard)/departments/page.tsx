@@ -23,6 +23,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Toggle } from "@/components/ui/toggle";
 import { permissionModules, type PermissionModuleKey } from "@/config/permission-modules";
 import { useApi } from "@/hooks/use-api";
+import { useErrorMessage } from "@/hooks/use-error-message";
 import {
   clonePermissionMap,
   createPermissionMap,
@@ -105,6 +106,7 @@ type FieldKey = `${string}:${"name" | "description"}`;
 export default function DepartmentsPage() {
   const { isOwner } = useCurrentUser();
   const t = useTranslations("departments");
+  const mensagemDeErro = useErrorMessage();
   const tNav = useTranslations("navigation");
 
   const api = useApi();
@@ -181,7 +183,7 @@ export default function DepartmentsPage() {
       invalidateTeamOverview();
     },
     onError: (error) => {
-      const message = error instanceof Error ? error.message : t("errors.saveFailed");
+      const message = mensagemDeErro(error, { padrao: t("errors.saveFailed") });
       setPageError(message);
     },
     onSettled: () => {
@@ -209,7 +211,7 @@ export default function DepartmentsPage() {
       setDraft(createDraft("view"));
     },
     onError: (error) => {
-      const message = error instanceof Error ? error.message : t("errors.createFailed");
+      const message = mensagemDeErro(error, { padrao: t("errors.createFailed") });
       setDialogError(message);
     },
   });
@@ -290,7 +292,7 @@ export default function DepartmentsPage() {
       invalidateTeamOverview();
     },
     onError: (error) => {
-      setDeleteError(error instanceof Error ? error.message : t("errors.deleteFailed"));
+      setDeleteError(mensagemDeErro(error, { padrao: t("errors.deleteFailed") }));
     },
   });
 
