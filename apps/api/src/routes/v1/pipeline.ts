@@ -18,6 +18,22 @@ const reorderStagesSchema = z.object({
   stages: z.array(z.object({ id: z.string().uuid() })).min(1),
 });
 
+// Stages a new account starts with, in its own language.
+const ETAPAS_PADRAO = {
+  'pt-BR': [
+    { name: 'Descoberta', color: 'info' },
+    { name: 'Qualificação', color: 'warning' },
+    { name: 'Proposta enviada', color: 'info' },
+    { name: 'Fechado', color: 'success' },
+  ],
+  en: [
+    { name: 'Discovery', color: 'info' },
+    { name: 'Qualification', color: 'warning' },
+    { name: 'Proposal sent', color: 'info' },
+    { name: 'Closed', color: 'success' },
+  ],
+} as const;
+
 const pipelineRoutes: FastifyPluginAsync = async (app) => {
   app.addHook('preHandler', app.authenticate);
   app.addHook('preHandler', exigirPermissao('crm'));
@@ -39,25 +55,29 @@ const pipelineRoutes: FastifyPluginAsync = async (app) => {
     });
 
     if (stages.length === 0) {
-      const defaults = [
-        { name: 'Descoberta', color: 'info', position: 0 },
-        { name: 'Qualificação', color: 'warning', position: 1 },
-        { name: 'Proposta enviada', color: 'info', position: 2 },
-        { name: 'Fechado', color: 'success', position: 3 }
-      ];
+      const conta = await app.prisma.account.findUnique({
+        where: { id: request.user.accountId },
+        select: { defaultLocale: true },
+      });
+      const defaults = ETAPAS_PADRAO[conta?.defaultLocale === 'en' ? 'en' : 'pt-BR'];
 
-      await app.prisma.$transaction(
-        defaults.map((stage) =>
-          app.prisma.pipelineStage.create({
-            data: {
-              accountId: request.user.accountId,
-              name: stage.name,
-              color: stage.color,
-              position: stage.position
-            }
-          })
-        )
-      );
+      // Two first visits at once would both find no stages; the lock makes the
+      // second one wait and see the stages the first one created.
+      await app.prisma.$transaction(async (tx) => {
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${request.user.accountId}))`;
+        const existentes = await tx.pipelineStage.count({ where: { accountId: request.user.accountId } });
+        if (existentes > 0) {
+          return;
+        }
+        await tx.pipelineStage.createMany({
+          data: defaults.map((stage, position) => ({
+            accountId: request.user.accountId,
+            name: stage.name,
+            color: stage.color,
+            position,
+          })),
+        });
+      });
 
       stages = await app.prisma.pipelineStage.findMany({
         where: { accountId: request.user.accountId },
