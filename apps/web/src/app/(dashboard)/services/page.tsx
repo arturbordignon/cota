@@ -19,6 +19,7 @@ import { Notice } from "@/components/ui/notice";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { useApi } from "@/hooks/use-api";
+import { useCurrentUser } from "@/components/providers/user-provider";
 import { EquipmentResponse, EquipmentSummary } from "@/types/api";
 
 interface ServicePayload {
@@ -224,7 +225,9 @@ export default function ServicesPage() {
   );
   const isTokenMissing = !api.token;
   const loadError = equipmentQuery.error as Error | null;
-  const canCreate = Boolean(api.token);
+  // Members who can only view services don't get create, edit or delete.
+  const { temPermissao } = useCurrentUser();
+  const canCreate = Boolean(api.token) && temPermissao("services", "edit");
 
   const updateService = useMutation({
     mutationFn: ({ id, payload }: { id: string; payload: ServicePayload }) =>
@@ -340,21 +343,23 @@ export default function ServicesPage() {
                       {formattedRate ?? "—"}
                     </p>
                   </div>
-                  <div className="flex gap-1">
-                    <Button variant="secondary" size="sm" onClick={() => setEditingService(service)}>
-                      <PencilSimple size={14} weight="bold" />
-                      Editar
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      onClick={() => setDeleteTarget(service)}
-                      aria-label={`Excluir ${service.name}`}
-                      className="hover:bg-danger-soft hover:text-danger"
-                    >
-                      <Trash size={16} />
-                    </Button>
-                  </div>
+                  {canCreate ? (
+                    <div className="flex gap-1">
+                      <Button variant="secondary" size="sm" onClick={() => setEditingService(service)}>
+                        <PencilSimple size={14} weight="bold" />
+                        Editar
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        onClick={() => setDeleteTarget(service)}
+                        aria-label={`Excluir ${service.name}`}
+                        className="hover:bg-danger-soft hover:text-danger"
+                      >
+                        <Trash size={16} />
+                      </Button>
+                    </div>
+                  ) : null}
                 </div>
               </Card>
             );
