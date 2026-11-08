@@ -20,6 +20,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { useApi } from "@/hooks/use-api";
+import { useCurrentUser } from "@/components/providers/user-provider";
 import { TemplateSummary, TemplatesResponse } from "@/types/api";
 
 interface CreateTemplatePayload {
@@ -283,6 +284,9 @@ export default function TemplatesPage() {
 
   const showUpload = activeTab === "upload";
   const isTokenMissing = !api.token;
+  // Members who can only view templates don't get create, import or the builder.
+  const { temPermissao } = useCurrentUser();
+  const podeEditar = !isTokenMissing && temPermissao("templates", "edit");
 
   const createTemplate = useMutation({
     mutationFn: (payload: CreateTemplatePayload) =>
@@ -314,18 +318,20 @@ export default function TemplatesPage() {
         title={t("header.title")}
         description={t("header.description")}
         action={
-          <>
-            <Button asChild variant="secondary">
-              <Link href="/templates/builder">
-                <PaintBrush size={16} />
-                {t("actions.openBuilder")}
-              </Link>
-            </Button>
-            <Button onClick={() => setDialogOpen(true)} disabled={isTokenMissing}>
-              <Plus size={16} weight="bold" />
-              {t("actions.new")}
-            </Button>
-          </>
+          podeEditar ? (
+            <>
+              <Button asChild variant="secondary">
+                <Link href="/templates/builder">
+                  <PaintBrush size={16} />
+                  {t("actions.openBuilder")}
+                </Link>
+              </Button>
+              <Button onClick={() => setDialogOpen(true)}>
+                <Plus size={16} weight="bold" />
+                {t("actions.new")}
+              </Button>
+            </>
+          ) : undefined
         }
       />
 
@@ -334,11 +340,13 @@ export default function TemplatesPage() {
       <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as TabValue)}>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between sm:border-b sm:border-border">
           <TabsList className="sm:-mb-px">
-            {tabItems.map((item) => (
-              <TabsTrigger key={item.id} value={item.id} title={item.description}>
-                {item.label}
-              </TabsTrigger>
-            ))}
+            {tabItems
+              .filter((item) => item.id !== "upload" || podeEditar)
+              .map((item) => (
+                <TabsTrigger key={item.id} value={item.id} title={item.description}>
+                  {item.label}
+                </TabsTrigger>
+              ))}
           </TabsList>
           {activeTab !== "upload" ? (
             <div className="flex w-full flex-col gap-2 pb-2 sm:max-w-[460px] sm:flex-row">
@@ -454,17 +462,19 @@ export default function TemplatesPage() {
               title={t("empty.title")}
               description={t("empty.description")}
               action={
-                <Button onClick={() => setDialogOpen(true)} disabled={isTokenMissing}>
-                  <Plus size={16} weight="bold" />
-                  {t("empty.action")}
-                </Button>
+                podeEditar ? (
+                  <Button onClick={() => setDialogOpen(true)}>
+                    <Plus size={16} weight="bold" />
+                    {t("empty.action")}
+                  </Button>
+                ) : undefined
               }
             />
           )}
         </div>
       )}
 
-      {!isTokenMissing ? (
+      {podeEditar ? (
         <CreateTemplateDialog
           open={dialogOpen}
           onOpenChange={(aberto) => {

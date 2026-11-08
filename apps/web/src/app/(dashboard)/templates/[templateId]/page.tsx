@@ -15,6 +15,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Notice } from "@/components/ui/notice";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useApi } from "@/hooks/use-api";
+import { useCurrentUser } from "@/components/providers/user-provider";
 import type { TemplateDetailResponse } from "@/types/api";
 
 type FeedbackState =
@@ -30,6 +31,8 @@ export default function TemplateDetailPage() {
   const formatter = useFormatter();
   const router = useRouter();
   const [feedback, setFeedback] = useState<FeedbackState>(null);
+  const { temPermissao } = useCurrentUser();
+  const podeEditar = temPermissao("templates", "edit");
 
   const templateQuery = useQuery({
     queryKey: ["template", templateId],
@@ -114,15 +117,17 @@ export default function TemplateDetailPage() {
                 {t("backButton")}
               </Link>
             </Button>
-            <Button
-              onClick={handleDuplicate}
-              disabled={!template}
-              loading={duplicateMutation.isPending}
-              loadingText={t("actions.duplicating")}
-            >
-              <Copy size={16} />
-              {t("actions.duplicate")}
-            </Button>
+            {podeEditar ? (
+              <Button
+                onClick={handleDuplicate}
+                disabled={!template}
+                loading={duplicateMutation.isPending}
+                loadingText={t("actions.duplicating")}
+              >
+                <Copy size={16} />
+                {t("actions.duplicate")}
+              </Button>
+            ) : null}
           </>
         }
       />
