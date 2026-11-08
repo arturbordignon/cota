@@ -25,4 +25,17 @@ describe('invite email', () => {
     expect(text).toContain('Você foi convidado para colaborar.');
     expect(text).toContain('https://app.cota.test/accept-invite?token=abc');
   });
+
+  it('writes the email in English for English workspaces', () => {
+    const { subject, text, html } = montarEmailConvite({
+      inviteUrl: 'https://app.cota.test/accept-invite?token=abc',
+      accountName: 'Horizon Cranes',
+      invitedBy: 'Ana',
+      locale: 'en',
+    });
+    expect(subject).toBe('Invitation to join the Horizon Cranes workspace');
+    expect(text).toContain('Ana invited you to collaborate.');
+    expect(html).toContain('Accept invite');
+    expect(html).not.toMatch(/Aceitar|convidou/);
+  });
 });

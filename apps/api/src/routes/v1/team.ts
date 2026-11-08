@@ -771,7 +771,7 @@ const teamRoutes: FastifyPluginAsync = async (app) => {
       },
       include: {
         account: {
-          select: { name: true },
+          select: { name: true, defaultLocale: true },
         },
       },
     });
@@ -804,7 +804,8 @@ const teamRoutes: FastifyPluginAsync = async (app) => {
     const emailSent = await sendInviteEmail({
       to: member.email,
       inviteUrl,
-      accountName: member.account?.name ?? 'Seu workspace',
+      accountName: member.account?.name ?? 'Cota',
+      locale: member.account?.defaultLocale,
       invitedBy: inviter?.fullName ?? null,
       logger: request.log,
     });
@@ -850,7 +851,7 @@ const teamRoutes: FastifyPluginAsync = async (app) => {
       },
       include: {
         account: {
-          select: { name: true },
+          select: { name: true, defaultLocale: true },
         },
       },
     });
@@ -889,7 +890,8 @@ const teamRoutes: FastifyPluginAsync = async (app) => {
       emailSent = await sendInviteEmail({
         to: member.email,
         inviteUrl,
-        accountName: member.account?.name ?? 'Seu workspace',
+        accountName: member.account?.name ?? 'Cota',
+        locale: member.account?.defaultLocale,
         invitedBy: inviter?.fullName ?? null,
         logger: request.log,
       });

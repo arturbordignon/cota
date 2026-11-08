@@ -7,6 +7,7 @@ interface InviteEmailPayload {
   inviteUrl: string;
   accountName: string;
   invitedBy?: string | null;
+  locale?: string | null;
   logger?: FastifyBaseLogger;
 }
 
@@ -60,17 +61,45 @@ function escaparHtml(texto: string) {
 
 // The account and inviter names are typed by users, so they are escaped before
 // going into the HTML: otherwise anyone could send links or markup from our domain.
+const TEXTOS_CONVITE = {
+  'pt-BR': {
+    subject: (conta: string) => `Convite para acessar o workspace ${conta}`,
+    someone: 'Você foi convidado para colaborar.',
+    invitedBy: (nome: string) => `${nome} convidou você para colaborar.`,
+    intro: 'Acesse o link abaixo para concluir seu cadastro:',
+    ignore: 'Caso não reconheça este convite, ignore este e-mail.',
+    button: 'Aceitar convite',
+    fallback: 'Se o botão não funcionar, copie e cole o link abaixo no navegador:',
+    footer: 'Ignorar se não foi você quem solicitou.',
+  },
+  en: {
+    subject: (conta: string) => `Invitation to join the ${conta} workspace`,
+    someone: 'You were invited to collaborate.',
+    invitedBy: (nome: string) => `${nome} invited you to collaborate.`,
+    intro: 'Open the link below to finish setting up your access:',
+    ignore: "If you don't recognize this invite, ignore this email.",
+    button: 'Accept invite',
+    fallback: "If the button doesn't work, copy and paste the link below into your browser:",
+    footer: "Ignore it if you didn't ask for it.",
+  },
+};
+
+// The account and inviter names are typed by users, so they are escaped before
+// going into the HTML: otherwise anyone could send links or markup from our domain.
+// The email is written in the workspace's language.
 export function montarEmailConvite({
   inviteUrl,
   accountName,
   invitedBy,
-}: Pick<InviteEmailPayload, 'inviteUrl' | 'accountName' | 'invitedBy'>) {
-  const subject = `Convite para acessar o workspace ${accountName}`;
-  let inviterLine = 'Você foi convidado para colaborar.';
+  locale,
+}: Pick<InviteEmailPayload, 'inviteUrl' | 'accountName' | 'invitedBy' | 'locale'>) {
+  const textos = locale === 'en' ? TEXTOS_CONVITE.en : TEXTOS_CONVITE['pt-BR'];
+  const subject = textos.subject(accountName);
+  let inviterLine = textos.someone;
   if (invitedBy) {
-    inviterLine = `${invitedBy} convidou você para colaborar.`;
+    inviterLine = textos.invitedBy(invitedBy);
   }
-  const text = `${inviterLine}\n\nAcesse o link abaixo para concluir seu cadastro:\n${inviteUrl}\n\nCaso não reconheça este convite, ignore este e-mail.`;
+  const text = `${inviterLine}\n\n${textos.intro}\n${inviteUrl}\n\n${textos.ignore}`;
   const link = escaparHtml(inviteUrl);
   const html = `
       <div style="font-family: Arial, sans-serif; line-height: 1.6; max-width: 480px;">
@@ -78,12 +107,12 @@ export function montarEmailConvite({
         <p><strong>Workspace:</strong> ${escaparHtml(accountName)}</p>
         <p>
           <a href="${link}" style="display:inline-block;padding:12px 18px;background:#0f172a;color:#fff;border-radius:8px;text-decoration:none;">
-            Aceitar convite
+            ${textos.button}
           </a>
         </p>
-        <p>Se o botão não funcionar, copie e cole o link abaixo no navegador:</p>
+        <p>${escaparHtml(textos.fallback)}</p>
         <p><a href="${link}">${link}</a></p>
-        <p style="color:#64748b;font-size:12px;">Ignorar se não foi você quem solicitou.</p>
+        <p style="color:#64748b;font-size:12px;">${escaparHtml(textos.footer)}</p>
       </div>
     `;
   return { subject, text, html };
@@ -94,6 +123,7 @@ export async function sendInviteEmail({
   inviteUrl,
   accountName,
   invitedBy,
+  locale,
   logger,
 }: InviteEmailPayload): Promise<boolean> {
   try {
@@ -103,7 +133,7 @@ export async function sendInviteEmail({
       return false;
     }
 
-    const { subject, text, html } = montarEmailConvite({ inviteUrl, accountName, invitedBy });
+    const { subject, text, html } = montarEmailConvite({ inviteUrl, accountName, invitedBy, locale });
 
     await transporter.sendMail({
       from: env.EMAIL_FROM,
