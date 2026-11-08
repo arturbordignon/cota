@@ -88,6 +88,30 @@ export const enMessages = {
         "tooMany": "Too many attempts. Wait a few minutes and try again.",
         "generic": "We couldn't sign you in. Try again."
       }
+    },
+    "signUp": {
+      "title": "Create account",
+      "description": "Set up your workspace, choose the default language and invite the team to work on proposals.",
+      "fields": {
+        "company": "Company name",
+        "email": "Work email",
+        "password": "Password",
+        "passwordHint": "Use at least 8 characters.",
+        "locale": "Default language"
+      },
+      "placeholders": {
+        "company": "Horizon Cranes",
+        "email": "contact@company.com"
+      },
+      "submit": "Create free account",
+      "submitting": "Creating account...",
+      "hasAccount": "Already have an account?",
+      "signIn": "Sign in",
+      "errors": {
+        "invalid": "Check the company name, email and password.",
+        "tooMany": "Too many accounts created from this network. Try again later.",
+        "generic": "We couldn't create the account. Try again."
+      }
     }
   },
   "clients": {

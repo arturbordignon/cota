@@ -88,6 +88,30 @@ export const ptBRMessages = {
         "tooMany": "Muitas tentativas. Aguarde alguns minutos e tente novamente.",
         "generic": "Não foi possível entrar. Tente novamente."
       }
+    },
+    "signUp": {
+      "title": "Criar conta",
+      "description": "Monte seu ambiente, defina o idioma padrão e convide a equipe para colaborar nas propostas.",
+      "fields": {
+        "company": "Nome da empresa",
+        "email": "E-mail profissional",
+        "password": "Senha",
+        "passwordHint": "Use pelo menos 8 caracteres.",
+        "locale": "Idioma padrão"
+      },
+      "placeholders": {
+        "company": "Guindastes Horizonte",
+        "email": "contato@empresa.com.br"
+      },
+      "submit": "Criar conta gratuita",
+      "submitting": "Criando conta...",
+      "hasAccount": "Já possui uma conta?",
+      "signIn": "Entrar",
+      "errors": {
+        "invalid": "Confira o nome da empresa, o e-mail e a senha.",
+        "tooMany": "Muitas contas criadas a partir desta rede. Tente novamente mais tarde.",
+        "generic": "Não foi possível criar a conta. Tente novamente."
+      }
     }
   },
   "clients": {
