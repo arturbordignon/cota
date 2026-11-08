@@ -791,6 +791,8 @@ export const enMessages = {
     "dialog": {
       "title": "Create template",
       "description": "Define a layout you can reuse across your team's proposals.",
+      "editTitle": "Edit template",
+      "editDescription": "Change the name, description or HTML of this template.",
       "close": "Close",
       "fields": {
         "name": "Template name",
@@ -811,6 +813,7 @@ export const enMessages = {
       },
       "actions": {
         "cancel": "Cancel",
+        "save": "Save changes",
         "submit": "Create template",
         "saving": "Creating..."
       },

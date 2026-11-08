@@ -27,6 +27,7 @@ export function CreateTemplateDialog({
   isSubmitting,
   errorMessage,
   importado,
+  editando,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -34,6 +35,8 @@ export function CreateTemplateDialog({
   isSubmitting: boolean;
   errorMessage?: string;
   importado?: { name: string; htmlBody: string } | null;
+  /** An existing template: the form starts with its values and saves changes. */
+  editando?: CreateTemplatePayload | null;
 }) {
   const t = useTranslations("templates.dialog");
   const currentLocale = useLocale();
@@ -61,6 +64,15 @@ export function CreateTemplateDialog({
     setHtmlBody(importado.htmlBody);
   }, [importado]);
 
+  useEffect(() => {
+    if (!editando || !open) return;
+    setName(editando.name);
+    setDescription(editando.description ?? "");
+    setCategory(editando.category ?? "");
+    setLocale(editando.locale);
+    setHtmlBody(editando.htmlBody);
+  }, [editando, open]);
+
   const handleOpenChange = (next: boolean) => {
     if (!next) resetForm();
     onOpenChange(next);
@@ -83,8 +95,8 @@ export function CreateTemplateDialog({
     <Modal
       open={open}
       onOpenChange={handleOpenChange}
-      title={t("title")}
-      description={t("description")}
+      title={editando ? t("editTitle") : t("title")}
+      description={editando ? t("editDescription") : t("description")}
       closeLabel={t("close")}
       size="lg"
       onSubmit={handleSubmit}
@@ -155,7 +167,7 @@ export function CreateTemplateDialog({
           loading={isSubmitting}
           loadingText={t("actions.saving")}
         >
-          {t("actions.submit")}
+          {editando ? t("actions.save") : t("actions.submit")}
         </Button>
       </ModalFooter>
     </Modal>

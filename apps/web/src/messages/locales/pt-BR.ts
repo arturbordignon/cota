@@ -791,6 +791,8 @@ export const ptBRMessages = {
     "dialog": {
       "title": "Criar modelo",
       "description": "Defina um layout que possa ser reutilizado nas propostas da equipe.",
+      "editTitle": "Editar modelo",
+      "editDescription": "Altere o nome, a descrição ou o HTML deste modelo.",
       "close": "Fechar",
       "fields": {
         "name": "Nome do modelo",
@@ -811,6 +813,7 @@ export const ptBRMessages = {
       },
       "actions": {
         "cancel": "Cancelar",
+        "save": "Salvar alterações",
         "submit": "Criar modelo",
         "saving": "Criando..."
       },
