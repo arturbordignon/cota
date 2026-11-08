@@ -67,9 +67,14 @@ services:
       REDIS_PORT: 6379
       # .env holds the host's addresses; inside Docker the bucket is minio:9000.
       S3_ENDPOINT: http://minio:9000
+      # The image's Chromium, not a path from your machine's .env. It runs as
+      # root here, where Chromium's own sandbox can't start.
+      CHROMIUM_EXECUTABLE_PATH: /usr/bin/chromium-browser
+      PDF_CHROMIUM_SANDBOX: "false"
     depends_on:
       - postgres
       - redis
+      - minio
 
   postgres:
     image: postgres:15-alpine
