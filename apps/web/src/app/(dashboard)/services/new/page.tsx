@@ -4,6 +4,7 @@ import type { Route } from "next";
 import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { PageHeader } from "@/components/layout/page-header";
@@ -28,6 +29,7 @@ function numeroOuNulo(valor: string) {
 
 export default function NovoServicoPage() {
   const api = useApi();
+  const t = useTranslations("services");
   const router = useRouter();
   const queryClient = useQueryClient();
   const [nome, setNome] = useState("");
@@ -50,19 +52,13 @@ export default function NovoServicoPage() {
       await queryClient.invalidateQueries({ queryKey: ["equipment"] });
       router.push("/services" as Route);
     },
-    onError: (error: unknown) => {
-      if (error instanceof Error) {
-        setErro(error.message);
-        return;
-      }
-      setErro("Não foi possível salvar o serviço.");
-    },
+    onError: () => setErro(t("form.saveError")),
   });
 
   const salvar = (event: FormEvent) => {
     event.preventDefault();
     if (!nome.trim()) {
-      setErro("Informe o nome do serviço.");
+      setErro(t("form.nameRequired"));
       return;
     }
     setErro(null);
@@ -72,70 +68,70 @@ export default function NovoServicoPage() {
   return (
     <section className="space-y-6">
       <PageHeader
-        title="Novo serviço"
-        description="Cadastre um equipamento ou pacote para reutilizar nas propostas."
+        title={t("newPage.title")}
+        description={t("newPage.description")}
       />
       <Card className="max-w-3xl p-5 sm:p-6">
         <form className="space-y-5" onSubmit={salvar}>
-          <Field label="Nome" htmlFor="service-name">
+          <Field label={t("form.name")} htmlFor="service-name">
             <Input
               id="service-name"
               value={nome}
               onChange={(event) => setNome(event.target.value)}
-              placeholder="Ex.: Guindaste 50t"
+              placeholder={t("form.placeholders.name")}
               required
               disabled={registrar.isPending}
             />
           </Field>
           <div className="grid gap-5 md:grid-cols-2">
-            <Field label="Capacidade (t)" htmlFor="service-capacity">
+            <Field label={t("form.capacity")} htmlFor="service-capacity">
               <Input
                 id="service-capacity"
                 inputMode="decimal"
                 value={capacidade}
                 onChange={(event) => setCapacidade(event.target.value)}
-                placeholder="Ex.: 50"
+                placeholder={t("form.placeholders.capacity")}
                 disabled={registrar.isPending}
               />
             </Field>
-            <Field label="Valor diário (BRL)" htmlFor="service-rate">
+            <Field label={t("form.rate")} htmlFor="service-rate">
               <Input
                 id="service-rate"
                 inputMode="decimal"
                 value={diaria}
                 onChange={(event) => setDiaria(event.target.value)}
-                placeholder="Ex.: 2500"
+                placeholder={t("form.placeholders.rate")}
                 disabled={registrar.isPending}
               />
             </Field>
           </div>
-          <Field label="Descrição" htmlFor="service-description">
+          <Field label={t("form.description")} htmlFor="service-description">
             <Textarea
               id="service-description"
               rows={3}
               value={descricao}
               onChange={(event) => setDescricao(event.target.value)}
-              placeholder="Resumo do serviço ou equipamento"
+              placeholder={t("form.placeholders.description")}
               disabled={registrar.isPending}
             />
           </Field>
-          <Field label="Observações internas" htmlFor="service-notes">
+          <Field label={t("form.notes")} htmlFor="service-notes">
             <Textarea
               id="service-notes"
               rows={2}
               value={observacoes}
               onChange={(event) => setObservacoes(event.target.value)}
-              placeholder="Links, restrições ou observações"
+              placeholder={t("form.placeholders.notes")}
               disabled={registrar.isPending}
             />
           </Field>
           {erro ? <Notice tone="danger">{erro}</Notice> : null}
           <div className="flex flex-col-reverse gap-2 border-t border-border pt-5 sm:flex-row sm:justify-end">
             <Button type="button" variant="ghost" asChild>
-              <Link href={"/services" as Route}>Cancelar</Link>
+              <Link href={"/services" as Route}>{t("form.cancel")}</Link>
             </Button>
-            <Button type="submit" disabled={registrar.isPending || !nome.trim()} loading={registrar.isPending} loadingText="Salvando...">
-              Salvar serviço
+            <Button type="submit" disabled={registrar.isPending || !nome.trim()} loading={registrar.isPending} loadingText={t("form.saving")}>
+              {t("form.save")}
             </Button>
           </div>
         </form>

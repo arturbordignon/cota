@@ -213,6 +213,60 @@ export const ptBRMessages = {
     "limit": "{count} propostas por mês",
     "noPermission": "Somente quem administra o plano pode contratar outro plano."
   },
+  "services": {
+    "page": {
+      "title": "Catálogo de serviços",
+      "description": "Organize equipamentos, pacotes e valores para montar propostas consistentes.",
+      "loginNeeded": "Faça login para visualizar o catálogo.",
+      "loadError": "Não foi possível carregar os serviços.",
+      "newService": "Novo serviço",
+      "capacity": "Capacidade {value} t",
+      "noDetails": "Sem detalhes adicionais",
+      "dailyRate": "Diária",
+      "edit": "Editar",
+      "deleteLabel": "Excluir {name}",
+      "empty": {
+        "title": "Nenhum serviço cadastrado ainda.",
+        "description": "Adicione seus equipamentos e pacotes principais para reutilizar os valores nas propostas."
+      }
+    },
+    "form": {
+      "name": "Nome",
+      "capacity": "Capacidade (t)",
+      "rate": "Valor diário",
+      "description": "Descrição",
+      "notes": "Observações internas",
+      "placeholders": {
+        "name": "Ex.: Guindaste 50t",
+        "capacity": "Ex.: 50",
+        "rate": "Ex.: 2500",
+        "description": "Resumo do serviço ou equipamento",
+        "notes": "Links, restrições ou observações"
+      },
+      "cancel": "Cancelar",
+      "save": "Salvar serviço",
+      "saving": "Salvando...",
+      "nameRequired": "Informe o nome do serviço.",
+      "saveError": "Não foi possível salvar o serviço."
+    },
+    "newPage": {
+      "title": "Novo serviço",
+      "description": "Cadastre um equipamento ou pacote para reutilizar nas propostas."
+    },
+    "editDialog": {
+      "title": "Editar serviço",
+      "description": "Atualize as informações e elas serão refletidas nas próximas propostas.",
+      "submit": "Salvar alterações"
+    },
+    "deleteDialog": {
+      "title": "Remover serviço",
+      "description": "Tem certeza que deseja remover “{name}”? Essa ação não pode ser desfeita.",
+      "cancel": "Cancelar",
+      "confirm": "Remover",
+      "confirming": "Removendo...",
+      "error": "Não foi possível remover o serviço."
+    }
+  },
   "clients": {
     "title": "Clientes",
     "description": "Centralize dados fiscais, limites de crédito e histórico para negociar com mais confiança.",

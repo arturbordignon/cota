@@ -213,6 +213,60 @@ export const enMessages = {
     "limit": "{count} proposals per month",
     "noPermission": "Only people who manage the plan can switch to another plan."
   },
+  "services": {
+    "page": {
+      "title": "Service catalog",
+      "description": "Organize equipment, packages and rates to build consistent proposals.",
+      "loginNeeded": "Sign in to see the catalog.",
+      "loadError": "We couldn't load the services.",
+      "newService": "New service",
+      "capacity": "Capacity {value} t",
+      "noDetails": "No extra details",
+      "dailyRate": "Daily rate",
+      "edit": "Edit",
+      "deleteLabel": "Delete {name}",
+      "empty": {
+        "title": "No services yet.",
+        "description": "Add your main equipment and packages to reuse their rates in proposals."
+      }
+    },
+    "form": {
+      "name": "Name",
+      "capacity": "Capacity (t)",
+      "rate": "Daily rate",
+      "description": "Description",
+      "notes": "Internal notes",
+      "placeholders": {
+        "name": "E.g. 50 t crane",
+        "capacity": "E.g. 50",
+        "rate": "E.g. 2500",
+        "description": "Summary of the service or equipment",
+        "notes": "Links, restrictions or notes"
+      },
+      "cancel": "Cancel",
+      "save": "Save service",
+      "saving": "Saving...",
+      "nameRequired": "Enter the service name.",
+      "saveError": "We couldn't save the service."
+    },
+    "newPage": {
+      "title": "New service",
+      "description": "Add equipment or a package to reuse in proposals."
+    },
+    "editDialog": {
+      "title": "Edit service",
+      "description": "Update the details; the next proposals will use them.",
+      "submit": "Save changes"
+    },
+    "deleteDialog": {
+      "title": "Remove service",
+      "description": "Are you sure you want to remove “{name}”? This can't be undone.",
+      "cancel": "Cancel",
+      "confirm": "Remove",
+      "confirming": "Removing...",
+      "error": "We couldn't remove the service."
+    }
+  },
   "clients": {
     "title": "Clients",
     "description": "Centralize tax data, credit limits, and history to negotiate with confidence.",
