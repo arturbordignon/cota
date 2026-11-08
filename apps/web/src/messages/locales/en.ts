@@ -1218,6 +1218,20 @@ export const enMessages = {
       "saved": "Company details updated.",
       "error": "We couldn't save the company details.",
       "ownerOnly": "Only the account owner can change these details."
+    },
+    "deleteAccount": {
+      "title": "Delete account",
+      "description": "Deletes the workspace, the team, clients, proposals, photos and PDFs, and cancels the subscription. This can't be undone.",
+      "confirmLabel": "Type {slug} to confirm",
+      "password": "Your password",
+      "submit": "Delete the account and all data",
+      "submitting": "Deleting...",
+      "errors": {
+        "slug": "The confirmation doesn't match the account address.",
+        "password": "Wrong password.",
+        "billing": "We couldn't cancel the subscription. Try again.",
+        "generic": "We couldn't delete the account. Try again."
+      }
     }
   },
   "team": {

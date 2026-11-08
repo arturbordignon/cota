@@ -1218,6 +1218,20 @@ export const ptBRMessages = {
       "saved": "Dados da empresa atualizados.",
       "error": "Não foi possível salvar os dados da empresa.",
       "ownerOnly": "Somente o proprietário da conta pode alterar estes dados."
+    },
+    "deleteAccount": {
+      "title": "Excluir conta",
+      "description": "Apaga o workspace, a equipe, os clientes, as propostas, as fotos e os PDFs, e cancela a assinatura. Não é possível desfazer.",
+      "confirmLabel": "Digite {slug} para confirmar",
+      "password": "Sua senha",
+      "submit": "Excluir conta e todos os dados",
+      "submitting": "Excluindo...",
+      "errors": {
+        "slug": "A confirmação não corresponde ao endereço da conta.",
+        "password": "Senha incorreta.",
+        "billing": "Não foi possível cancelar a assinatura. Tente novamente.",
+        "generic": "Não foi possível excluir a conta. Tente novamente."
+      }
     }
   },
   "team": {
