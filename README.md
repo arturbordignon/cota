@@ -37,7 +37,10 @@ pnpm local:up    # starts local Docker services, runs Prisma setup, starts API +
 pnpm local:down  # stops the local Docker services
 ```
 
-The helper starts Postgres on host port `5433` by default and automatically tries the next ports if that one is already in use. It keeps `DATABASE_URL` and `NEXT_PUBLIC_API_URL` in `.env` aligned with the selected ports.
+Every service gets its usual host port (Postgres `5433`, Redis `6379`, API `3333`, web `3001`, MinIO `9000`/`9001`,
+Mailhog `1025`/`8025`, Adminer `5555`); when one is already taken by something else on your machine, the helper
+picks the next free port, saves it in `.env` and prints the final URLs at the end. It keeps `DATABASE_URL`,
+`REDIS_PORT`, `S3_ENDPOINT`, `SMTP_PORT` and `NEXT_PUBLIC_API_URL` in `.env` aligned with the selected ports.
 
 ## Local development
 ```bash
