@@ -40,4 +40,26 @@ describe('pipeline stages', () => {
     );
     expect(nomes).toEqual(['Discovery', 'Qualification', 'Proposal sent', 'Closed']);
   });
+
+  it('keeps stages that still have leads and refuses an incomplete reorder', async () => {
+    const conta = await registrarConta(app);
+    const etapasIniciais = (await etapas(conta.accessToken)).json().data as { id: string }[];
+    await chamar(app, {
+      method: 'POST',
+      url: '/api/v1/pipeline/leads',
+      token: conta.accessToken,
+      payload: { stageId: etapasIniciais[0].id, companyName: 'Lead que segura a etapa' },
+    });
+
+    const apagar = await chamar(app, { method: 'DELETE', url: `/api/v1/pipeline/stages/${etapasIniciais[0].id}`, token: conta.accessToken });
+    expect(apagar.statusCode).toBe(400);
+
+    const reordenar = await chamar(app, {
+      method: 'PATCH',
+      url: '/api/v1/pipeline/stages/reorder',
+      token: conta.accessToken,
+      payload: { stages: etapasIniciais.slice(1).map((etapa) => ({ id: etapa.id })) },
+    });
+    expect(reordenar.statusCode).toBe(400);
+  });
 });
