@@ -29,6 +29,7 @@ import auditEventRoutes from './routes/v1/audit-events.js';
 import pipelineRoutes from './routes/v1/pipeline.js';
 import accountRoutes from './routes/v1/account.js';
 import publicRoutes from './routes/v1/public.js';
+import notificationRoutes from './routes/v1/notifications.js';
 import { criarOpcoesDeLog } from './utils/logs.js';
 
 function formatarErroValidacao(erro: ZodError) {
@@ -217,6 +218,7 @@ export async function buildServer() {
   app.register(auditEventRoutes, { prefix: '/api/v1/audit-events' });
   app.register(accountRoutes, { prefix: '/api/v1/account' });
   app.register(publicRoutes, { prefix: '/api/v1/public' });
+  app.register(notificationRoutes, { prefix: '/api/v1/notifications' });
 
   return app;
 }
