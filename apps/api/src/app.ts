@@ -1,4 +1,4 @@
-import fastify, { type FastifyError } from 'fastify';
+import Fastify, { type FastifyError } from 'fastify';
 import rawBody from 'fastify-raw-body';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
@@ -8,8 +8,8 @@ import rateLimit from '@fastify/rate-limit';
 import jwt from '@fastify/jwt';
 import redis from '@fastify/redis';
 import { ZodError } from 'zod';
-
 import env from '@cota/config';
+
 import i18nPlugin from './plugins/i18n.js';
 import prismaPlugin from './plugins/prisma.js';
 import queuesPlugin from './plugins/queues.js';
@@ -77,7 +77,7 @@ function buscarConfiancaProxy(): boolean | string {
 }
 
 export async function buildServer() {
-  const app = fastify({
+  const app = Fastify({
     logger: criarOpcoesDeLog(env.LOG_LEVEL),
     trustProxy: buscarConfiancaProxy(),
   });
