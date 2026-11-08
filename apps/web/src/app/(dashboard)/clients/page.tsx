@@ -19,6 +19,7 @@ import { Notice } from "@/components/ui/notice";
 import { Select, SelectItem } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useApi } from "@/hooks/use-api";
+import { useCurrentUser } from "@/components/providers/user-provider";
 import {
   ClientFormFields,
   clientFormSchema,
@@ -291,7 +292,9 @@ export default function ClientsPage() {
 
   const isLoading = api.token ? clientsQuery.isLoading : false;
   const error = api.token ? clientsQuery.error : undefined;
-  const canCreate = Boolean(api.token);
+  // Members who can only view clients don't get add, edit or delete.
+  const { temPermissao } = useCurrentUser();
+  const canCreate = Boolean(api.token) && temPermissao("clients", "edit");
 
   const filteredClients = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
@@ -389,10 +392,12 @@ export default function ClientsPage() {
         title={t("title")}
         description={t("description")}
         action={
-          <Button onClick={() => setDialogOpen(true)} disabled={!canCreate}>
-            <Plus size={16} weight="bold" />
-            {t("actions.add")}
-          </Button>
+          canCreate ? (
+            <Button onClick={() => setDialogOpen(true)}>
+              <Plus size={16} weight="bold" />
+              {t("actions.add")}
+            </Button>
+          ) : undefined
         }
       />
 
@@ -529,15 +534,17 @@ export default function ClientsPage() {
                                 role="menu"
                                 className="absolute right-0 top-9 z-20 w-60 rounded-xl border border-border bg-white p-1.5 text-left shadow-raised animate-pop-in"
                               >
-                                <Link
-                                  href={`/proposals/new?clientId=${client.id}`}
-                                  role="menuitem"
-                                  className={menuItemClass}
-                                  onClick={() => setOpenMenuId(null)}
-                                >
-                                  <PaperPlaneTilt size={16} />
-                                  {t("table.actions.sendProposal")}
-                                </Link>
+                                {temPermissao("proposals", "edit") ? (
+                                  <Link
+                                    href={`/proposals/new?clientId=${client.id}`}
+                                    role="menuitem"
+                                    className={menuItemClass}
+                                    onClick={() => setOpenMenuId(null)}
+                                  >
+                                    <PaperPlaneTilt size={16} />
+                                    {t("table.actions.sendProposal")}
+                                  </Link>
+                                ) : null}
                                 <button
                                   type="button"
                                   role="menuitem"
