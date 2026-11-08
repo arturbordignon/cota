@@ -250,33 +250,124 @@ const cotaTemplate = {
 </html>`,
 };
 
+// English version of the same layout: same markup, English labels and sample data.
+const COTA_TEMPLATE_EN_ID = '5f0d6c1e-2b8a-4c3e-9a71-7d4e2c9b8f10';
+
+const TRADUCOES_EN: Array<[string, string]> = [
+  ['<html lang="pt-BR">', '<html lang="en">'],
+  ['<title>Proposta de Serviço de Guindaste</title>', '<title>Crane Service Proposal</title>'],
+  ['Proposta técnica & comercial', 'Technical & commercial proposal'],
+  ['>Destinatário<', '>Prepared for<'],
+  ['Visão geral da operação', 'Job overview'],
+  ['<p class="muted">Projeto</p>', '<p class="muted">Project</p>'],
+  ['<p class="muted">Local</p>', '<p class="muted">Site</p>'],
+  ['Período estimado', 'Estimated period'],
+  ['<p class="muted">Contato</p>', '<p class="muted">Contact</p>'],
+  ['Escopo proposto', 'Proposed scope'],
+  [
+    'Baseado nas informações compartilhadas, estruturamos a operação com foco em segurança, produtividade e conformidade com normas vigentes.',
+    'Based on the information you shared, we planned the job around safety, productivity and compliance with current standards.',
+  ],
+  ['Recursos técnicos', 'Technical resources'],
+  ['Equipamentos principais', 'Main equipment'],
+  ['<th>Equipamento</th>', '<th>Equipment</th>'],
+  ['<th>Capacidade</th>', '<th>Capacity</th>'],
+  ['<th>Detalhes</th>', '<th>Details</th>'],
+  ['Equipe envolvida', 'Crew'],
+  ['Investimento proposto', 'Proposed investment'],
+  ['Mobilização e desmobilização', 'Mobilization and demobilization'],
+  ['Diária operacional', 'Daily rate'],
+  ['dia(s) de operação', 'working day(s)'],
+  ['Investimento total estimado', 'Estimated total investment'],
+  ['Registro fotográfico', 'Job photos'],
+  ['alt="Foto da operação"', 'alt="Job photo"'],
+  ['Condições gerais', 'Terms'],
+  ['>CNPJ {{company.cnpj}}<', '>Tax ID {{company.cnpj}}<'],
+  ['Documento gerado por Cota', 'Document created with Cota'],
+];
+
+function traduzirHtml(html: string) {
+  return TRADUCOES_EN.reduce((texto, [de, para]) => texto.split(de).join(para), html);
+}
+
+const cotaTemplateEn = {
+  id: COTA_TEMPLATE_EN_ID,
+  name: 'Template - Crane Service Proposal',
+  description: 'Base layout for crane lifting proposals, covering scope, crew and pricing.',
+  locale: 'en',
+  category: 'Services',
+  inputSchemaJson: cotaTemplate.inputSchemaJson,
+  defaultDataJson: {
+    company: {
+      name: 'Cota Heavy Services',
+      cnpj: '12.345.678/0001-90',
+      phone: '+1 555 0100',
+      email: 'contact@cota.example',
+      tagline: 'Industrial lifting with safety, experience and precision.',
+    },
+    job: {
+      projectName: 'Steel Structure Assembly - Logistics Warehouse',
+      siteLocation: 'Port of Santos, SP',
+      schedule: 'Planned: July 22 to 26 (5 working days)',
+      scope: [
+        'Lifting and placing steel trusses up to 48 meters.',
+        'Support for aligning and bracing the secondary structures.',
+        'Technical supervisor on site for the whole shift.',
+      ],
+    },
+    equipment: [
+      {
+        name: 'Liebherr LTM 1100-5.2 all-terrain crane',
+        capacity: 'Rated capacity 100 t',
+        reach: 'Main boom 52 m + 19 m jib',
+        notes: 'Equipment with an up-to-date inspection certificate.',
+      },
+      {
+        name: '30 t boom truck',
+        capacity: 'Logistics support and rigging gear handling',
+        notes: 'Includes aerial basket and extra tooling.',
+      },
+    ],
+    team: [
+      'Certified crane operator.',
+      'Lead rigger with an approved lift plan.',
+      'Signal person and rigging crew (2 people).',
+      'Safety technician on site during the job.',
+    ],
+    pricing: {
+      mobilization: '$12,800.00',
+      dailyRate: '$18,750.00',
+      total: '$106,550.00',
+      validity: 'Prices valid for 15 calendar days.',
+    },
+    terms: [
+      'Work subject to good weather and the final review of the lift plan.',
+      'The client provides level ground and clear access for heavy equipment.',
+      'Includes liability insurance and equipment coverage for the contracted period.',
+      'Payment: 40% on confirmation + 60% within 5 days after completion.',
+    ],
+  } satisfies Prisma.InputJsonValue,
+  pdfLayoutOptionsJson: cotaTemplate.pdfLayoutOptionsJson,
+  htmlBody: traduzirHtml(cotaTemplate.htmlBody),
+};
+
 export default fp(async (app) => {
-  await app.prisma.proposalTemplate.upsert({
-    where: { id: cotaTemplate.id },
-    create: {
-      id: cotaTemplate.id,
-      accountId: null,
-      name: cotaTemplate.name,
-      description: cotaTemplate.description,
-      locale: cotaTemplate.locale,
-      category: cotaTemplate.category,
-      inputSchemaJson: cotaTemplate.inputSchemaJson,
-      defaultDataJson: cotaTemplate.defaultDataJson,
-      pdfLayoutOptionsJson: cotaTemplate.pdfLayoutOptionsJson,
-      htmlBody: cotaTemplate.htmlBody,
+  for (const modelo of [cotaTemplate, cotaTemplateEn]) {
+    const dados = {
+      name: modelo.name,
+      description: modelo.description,
+      locale: modelo.locale,
+      category: modelo.category,
+      inputSchemaJson: modelo.inputSchemaJson,
+      defaultDataJson: modelo.defaultDataJson,
+      pdfLayoutOptionsJson: modelo.pdfLayoutOptionsJson,
+      htmlBody: modelo.htmlBody,
       isActive: true,
-    },
-    update: {
-      name: cotaTemplate.name,
-      description: cotaTemplate.description,
-      locale: cotaTemplate.locale,
-      category: cotaTemplate.category,
-      inputSchemaJson: cotaTemplate.inputSchemaJson,
-      defaultDataJson: cotaTemplate.defaultDataJson,
-      pdfLayoutOptionsJson: cotaTemplate.pdfLayoutOptionsJson,
-      htmlBody: cotaTemplate.htmlBody,
-      isActive: true,
-      accountId: null,
-    },
-  });
+    };
+    await app.prisma.proposalTemplate.upsert({
+      where: { id: modelo.id },
+      create: { id: modelo.id, accountId: null, ...dados },
+      update: { ...dados, accountId: null },
+    });
+  }
 });

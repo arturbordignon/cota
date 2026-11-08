@@ -79,4 +79,19 @@ describe('templates', () => {
     });
     expect(resposta.statusCode).toBe(404);
   });
+
+  it('offers the crane template in English with no Portuguese left', async () => {
+    const lista = await chamar(app, { method: 'GET', url: '/api/v1/templates?scope=system&locale=en', token: dono.accessToken });
+    const modelos = lista.json().data as { id: string; locale: string }[];
+    expect(modelos).toHaveLength(1);
+
+    const previa = await chamar(app, {
+      method: 'GET',
+      url: `/api/v1/templates/${modelos[0].id}/preview`,
+      token: dono.accessToken,
+    });
+    const html = previa.json().data.html as string;
+    expect(html).toContain('Proposed investment');
+    expect(html).not.toMatch(/Proposta|Investimento|Equipe|Condições|Destinatário|operação/);
+  });
 });
