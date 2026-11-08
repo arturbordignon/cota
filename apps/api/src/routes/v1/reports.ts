@@ -113,7 +113,19 @@ const reportsRoutes: FastifyPluginAsync = async (app) => {
           if (p.status === 'ACCEPTED') acc[key].aceitas += 1;
           return acc;
         }, {});
-        const propostasPorMembro = Object.values(propostasPorMembroMap);
+        // Charts label each consultant by name, never by the raw user id.
+        const idsMembros = Object.values(propostasPorMembroMap)
+          .map((membro) => membro.createdById)
+          .filter((id): id is string => Boolean(id));
+        const membros = await app.prisma.user.findMany({
+          where: { id: { in: idsMembros }, accountId: request.user.accountId },
+          select: { id: true, fullName: true, email: true },
+        });
+        const nomes = new Map(membros.map((membro) => [membro.id, membro.fullName || membro.email]));
+        const propostasPorMembro = Object.values(propostasPorMembroMap).map((membro) => ({
+          ...membro,
+          createdByName: membro.createdById ? (nomes.get(membro.createdById) ?? null) : null,
+        }));
 
         function buscarCidade(payloadJson: unknown) {
           const payload = payloadJson as { job?: { siteLocation?: unknown } } | null;
