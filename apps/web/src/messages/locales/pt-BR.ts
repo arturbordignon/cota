@@ -585,6 +585,8 @@ export const ptBRMessages = {
         "team": {
           "title": "Propostas por consultor",
           "badge": "Total vs Aceitas",
+          "legendTotal": "Propostas",
+          "legendAccepted": "Aceitas",
           "empty": "Nenhuma proposta atribuída a membros."
         },
         "cityRevenue": {

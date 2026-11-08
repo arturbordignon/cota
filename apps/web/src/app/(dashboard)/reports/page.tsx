@@ -727,7 +727,12 @@ export default function ReportsPage() {
                   <CardTitle>{tOverview("team.title")}</CardTitle>
                 </CardHeader>
                 {teamChartData.length > 0 ? (
-                  <TeamBarChart data={teamChartData} height={320} className="mt-2" />
+                  <TeamBarChart
+                    data={teamChartData}
+                    labels={{ total: tOverview("team.legendTotal"), aceitas: tOverview("team.legendAccepted") }}
+                    height={320}
+                    className="mt-2"
+                  />
                 ) : (
                   <p className="mt-4 text-sm text-muted">{tOverview("team.empty")}</p>
                 )}

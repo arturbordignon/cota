@@ -585,6 +585,8 @@ export const enMessages = {
         "team": {
           "title": "Proposals per consultant",
           "badge": "Total vs. accepted",
+          "legendTotal": "Proposals",
+          "legendAccepted": "Accepted",
           "empty": "No proposals assigned to teammates."
         },
         "cityRevenue": {

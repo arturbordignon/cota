@@ -20,6 +20,7 @@ type TeamBarChartDatum = {
 
 type TeamBarChartProps = {
   data: TeamBarChartDatum[];
+  labels: { total: string; aceitas: string };
   height?: number;
   stacked?: boolean;
   className?: string;
@@ -62,6 +63,7 @@ function TooltipContent({
 
 export function TeamBarChart({
   data,
+  labels,
   height = 256,
   stacked = false,
   className,
@@ -98,14 +100,14 @@ export function TeamBarChart({
 
           <Bar
             dataKey="total"
-            name="Propostas"
+            name={labels.total}
             stackId={stacked ? "a" : undefined}
             fill="var(--chart-2)"
             radius={[4, 4, 0, 0]}
           />
           <Bar
             dataKey="aceitas"
-            name="Aceitas"
+            name={labels.aceitas}
             stackId={stacked ? "a" : undefined}
             fill="var(--chart-1)"
             radius={[4, 4, 0, 0]}
