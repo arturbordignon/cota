@@ -131,6 +131,7 @@ export const ptBRMessages = {
       "view": "Ver detalhes",
       "actions": {
         "openMenu": "Abrir ações",
+        "edit": "Editar",
         "sendProposal": "Enviar proposta",
         "copyEmail": "Copiar e-mail",
         "copied": "Copiado",
@@ -144,6 +145,8 @@ export const ptBRMessages = {
     "dialog": {
       "title": "Adicionar cliente",
       "description": "Informe os dados principais para cadastrar um novo contato.",
+      "editTitle": "Editar cliente",
+      "editDescription": "Atualize os dados de contato deste cliente.",
       "close": "Fechar",
       "fields": {
         "name": "Nome completo",

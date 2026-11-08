@@ -131,6 +131,7 @@ export const enMessages = {
       "view": "View details",
       "actions": {
         "openMenu": "Open actions",
+        "edit": "Edit",
         "sendProposal": "Send proposal",
         "copyEmail": "Copy email",
         "copied": "Copied",
@@ -144,6 +145,8 @@ export const enMessages = {
     "dialog": {
       "title": "Add client",
       "description": "Provide the main information to create a new contact.",
+      "editTitle": "Edit client",
+      "editDescription": "Update this client's contact details.",
       "close": "Close",
       "fields": {
         "name": "Full name",

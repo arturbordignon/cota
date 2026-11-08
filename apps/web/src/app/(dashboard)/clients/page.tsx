@@ -7,7 +7,7 @@ import { useFormatter, useTranslations } from "next-intl";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
-import { Check, Copy, DotsThreeVertical, PaperPlaneTilt, Plus, UserCircle, UsersThree } from "@phosphor-icons/react";
+import { Check, Copy, DotsThreeVertical, PaperPlaneTilt, PencilSimple, Plus, UserCircle, UsersThree } from "@phosphor-icons/react";
 
 import { FilterBar } from "@/components/layout/filter-bar";
 import { PageHeader } from "@/components/layout/page-header";
@@ -67,18 +67,27 @@ function AddClientDialog({
   onSubmit,
   isLoading,
   errorMessage,
+  initialValues,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (values: ClientFormValues) => Promise<void>;
   isLoading: boolean;
   errorMessage?: string;
+  initialValues?: ClientFormValues;
 }) {
   const t = useTranslations("clients.dialog");
+  const editando = Boolean(initialValues);
   const form = useForm<ClientFormValues>({
     resolver: zodResolver(clientFormSchema),
     defaultValues: emptyClientForm,
   });
+
+  useEffect(() => {
+    if (open) {
+      form.reset(initialValues ?? emptyClientForm);
+    }
+  }, [form, initialValues, open]);
 
   const handleSubmit = form.handleSubmit(async (values) => {
     if (isLoading) return;
@@ -99,8 +108,8 @@ function AddClientDialog({
         }
         onOpenChange(next);
       }}
-      title={t("title")}
-      description={t("description")}
+      title={editando ? t("editTitle") : t("title")}
+      description={editando ? t("editDescription") : t("description")}
       closeLabel={t("close")}
       onSubmit={handleSubmit}
     >
@@ -216,6 +225,7 @@ export default function ClientsPage() {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const menuContainerRef = useRef<HTMLDivElement | null>(null);
   const [copiedClientId, setCopiedClientId] = useState<string | null>(null);
+  const [editingClient, setEditingClient] = useState<Client | null>(null);
 
   // The global search lands here with ?search=.
   const termoDaUrl = useSearchParams().get("search");
@@ -240,6 +250,24 @@ export default function ClientsPage() {
     queryKey: ["clients"],
     queryFn: () => api.get<ClientsResponse>("/clients"),
     enabled: Boolean(api.token),
+  });
+
+  const updateClient = useMutation<{ data: Client }, Error, { id: string; values: ClientFormValues }>({
+    mutationFn: async ({ id, values }) => {
+      const dados = toClientPayload(values);
+      // A field emptied while editing is cleared, not left as it was.
+      return api.put<{ data: Client }>(`/clients/${id}`, {
+        name: dados.name,
+        companyName: dados.companyName ?? null,
+        email: dados.email ?? null,
+        phone: dados.phone ?? null,
+        notes: dados.notes ?? null,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["clients"] });
+      setEditingClient(null);
+    },
   });
 
   const createClient = useMutation<{ data: Client }, Error, ClientFormValues>({
@@ -513,6 +541,20 @@ export default function ClientsPage() {
                                   <UserCircle size={16} />
                                   {t("table.view")}
                                 </button>
+                                {canCreate ? (
+                                  <button
+                                    type="button"
+                                    role="menuitem"
+                                    className={menuItemClass}
+                                    onClick={() => {
+                                      setEditingClient(client);
+                                      setOpenMenuId(null);
+                                    }}
+                                  >
+                                    <PencilSimple size={16} />
+                                    {t("table.actions.edit")}
+                                  </button>
+                                ) : null}
                                 {client.email ? (
                                   <button
                                     type="button"
@@ -583,6 +625,32 @@ export default function ClientsPage() {
           }}
           isLoading={createClient.isPending}
           errorMessage={createClient.error?.message}
+        />
+      ) : null}
+
+      {canCreate ? (
+        <AddClientDialog
+          open={Boolean(editingClient)}
+          onOpenChange={(aberto) => {
+            if (!aberto) setEditingClient(null);
+          }}
+          initialValues={
+            editingClient
+              ? {
+                  name: editingClient.name,
+                  companyName: editingClient.companyName ?? "",
+                  email: editingClient.email ?? "",
+                  phone: editingClient.phone ?? "",
+                  notes: editingClient.notes ?? "",
+                }
+              : undefined
+          }
+          onSubmit={async (values) => {
+            if (!editingClient) return;
+            await updateClient.mutateAsync({ id: editingClient.id, values });
+          }}
+          isLoading={updateClient.isPending}
+          errorMessage={updateClient.error?.message}
         />
       ) : null}
 
