@@ -682,6 +682,8 @@ const teamRoutes: FastifyPluginAsync = async (app) => {
         entityId: invitee.id,
         summary: `Convite aceito por ${invitee.email}`,
         metadataJson: {
+          summaryKey: 'inviteAccepted',
+          summaryParams: { email: invitee.email },
           inviteeEmail: invitee.email,
           inviteAcceptedAt: new Date().toISOString(),
           invitedById: invitee.invitedById,
@@ -784,6 +786,8 @@ const teamRoutes: FastifyPluginAsync = async (app) => {
         entityId: member.id,
         summary: `Convite enviado para ${member.email}`,
         metadataJson: {
+          summaryKey: 'userInvited',
+          summaryParams: { email: member.email },
           inviteeEmail: member.email,
           fullName: member.fullName,
           departmentId: member.departmentId,
@@ -940,6 +944,8 @@ const teamRoutes: FastifyPluginAsync = async (app) => {
           summary: `Convite removido para ${member.email}`,
           metadataJson: {
             inviteeEmail: member.email,
+            summaryKey: 'inviteDeleted',
+            summaryParams: { email: member.email },
           },
         },
       }),
@@ -1047,6 +1053,8 @@ const teamRoutes: FastifyPluginAsync = async (app) => {
         summary: `Dados do membro ${updated.email} atualizados`,
         metadataJson: {
           updatedFields: Object.keys(updateData),
+          summaryKey: 'memberUpdated',
+          summaryParams: { email: updated.email },
         },
       },
     });
