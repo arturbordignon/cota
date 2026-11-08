@@ -7,6 +7,7 @@ import { verificarConta } from './account.mjs';
 import { verificarClientes } from './clients.mjs';
 import { verificarServicos } from './services.mjs';
 import { verificarModelos } from './templates.mjs';
+import { verificarPropostas } from './proposals.mjs';
 
 const contexto = {};
 
@@ -21,5 +22,6 @@ await verificarConta(contexto);
 await verificarClientes(contexto);
 await verificarServicos(contexto);
 await verificarModelos(contexto);
+await verificarPropostas(contexto);
 
 process.exitCode = resumo() ? 0 : 1;
