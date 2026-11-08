@@ -25,6 +25,10 @@ export default fp(async (app) => {
     }
   );
 
+  // Closing a queue whose Redis connection is still opening rejects with
+  // "Connection is closed" after shutdown; start only once it is connected.
+  await pdfQueue.waitUntilReady();
+
   app.decorate('pdfQueue', pdfQueue);
 
   app.addHook('onClose', async () => {
