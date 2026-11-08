@@ -3,6 +3,8 @@ import { z } from 'zod';
 
 import { CACHE_RESOURCES } from '../../constants/cache.js';
 import { exigirPermissao } from '../../utils/permissions.js';
+import { renderProposalHtml } from '../../utils/render.js';
+import { buscarEmpresa } from '../../services/proposal-render.js';
 
 const templatePayloadSchema = z.object({
   name: z.string().min(2),
@@ -35,6 +37,22 @@ function buildTemplatesCacheKey(
     params: { scope, locale: locale ?? 'any' },
   });
 }
+
+// Stand-in client for previews, so the recipient block isn't empty.
+const CLIENTE_EXEMPLO = {
+  'pt-BR': {
+    name: 'Cliente exemplo',
+    companyName: 'Construtora Exemplo Ltda',
+    email: 'compras@exemplo.com.br',
+    phone: '(11) 90000-0000',
+  },
+  en: {
+    name: 'Sample client',
+    companyName: 'Sample Builders Inc.',
+    email: 'purchasing@example.com',
+    phone: '+1 555 0100',
+  },
+} as const;
 
 async function invalidateTemplateCache(app: FastifyInstance, accountId: string) {
   const scopes = ['all', 'system', 'custom'];
@@ -122,6 +140,44 @@ const templateRoutes: FastifyPluginAsync = async (app) => {
     }
 
     return reply.send({ data: template });
+  });
+
+  // The template filled with its own sample data and this account's company,
+  // so the preview looks like a real proposal instead of raw {{variables}}.
+  app.get('/:id/preview', async (request, reply) => {
+    const params = z.object({ id: z.string().uuid() }).parse(request.params);
+
+    const template = await app.prisma.proposalTemplate.findFirst({
+      where: {
+        id: params.id,
+        OR: [{ accountId: request.user.accountId }, { accountId: null }],
+      },
+    });
+    if (!template) {
+      return reply.status(404).send({ message: 'Template not found' });
+    }
+
+    const conta = await app.prisma.account.findUnique({
+      where: { id: request.user.accountId },
+      select: { name: true, settingsJson: true },
+    });
+
+    let exemplo: Record<string, unknown> = {};
+    if (template.defaultDataJson && typeof template.defaultDataJson === 'object') {
+      exemplo = template.defaultDataJson as Record<string, unknown>;
+    }
+    const cliente = template.locale === 'en' ? CLIENTE_EXEMPLO.en : CLIENTE_EXEMPLO['pt-BR'];
+
+    const html = renderProposalHtml(template.htmlBody, {
+      ...exemplo,
+      title: template.name,
+      company: conta ? buscarEmpresa(conta) : exemplo.company,
+      client: cliente,
+      photos: [],
+      hasPhotos: false,
+    });
+
+    return reply.send({ data: { html } });
   });
 
   app.put('/:id', async (request, reply) => {

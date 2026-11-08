@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { chamar, criarApp, registrarConta, type Conta } from './helpers.js';
+import { chamar, criarApp, primeiroModelo, registrarConta, type Conta } from './helpers.js';
 
 describe('templates', () => {
   let app: FastifyInstance;
@@ -41,5 +41,42 @@ describe('templates', () => {
 
     expect(await listar('custom')).not.toContain(modelo.id);
     expect(await listar('all')).not.toContain(modelo.id);
+  });
+
+  it('previews a template filled with the company and a sample client', async () => {
+    const modelo = await criarModelo('Modelo de prévia');
+
+    const resposta = await chamar(app, {
+      method: 'GET',
+      url: `/api/v1/templates/${modelo.id}/preview`,
+      token: dono.accessToken,
+    });
+
+    expect(resposta.statusCode).toBe(200);
+    const html = resposta.json().data.html as string;
+    expect(html).not.toContain('{{');
+    expect(html).toContain('Cliente exemplo');
+  });
+
+  it('previews the system template without leftover variables', async () => {
+    const modelo = await primeiroModelo(app, dono);
+    const resposta = await chamar(app, {
+      method: 'GET',
+      url: `/api/v1/templates/${modelo.id}/preview`,
+      token: dono.accessToken,
+    });
+    expect(resposta.statusCode).toBe(200);
+    expect(resposta.json().data.html).not.toContain('{{');
+  });
+
+  it("doesn't preview another account's template", async () => {
+    const outra = await registrarConta(app);
+    const modelo = await criarModelo('Modelo privado');
+    const resposta = await chamar(app, {
+      method: 'GET',
+      url: `/api/v1/templates/${modelo.id}/preview`,
+      token: outra.accessToken,
+    });
+    expect(resposta.statusCode).toBe(404);
   });
 });
