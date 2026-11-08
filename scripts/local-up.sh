@@ -54,16 +54,23 @@ resolve_port() {
   fi
 
   set_env_var "$key" "$port"
+  echo "$port" >> "$assigned_ports_file"
   printf '%s\n' "$port"
 }
 
 find_available_port() {
   start_port="$1"
 
-  PORT_START="$start_port" node -e '
+  PORT_START="$start_port" PORTS_FILE="$assigned_ports_file" node -e '
+    const fs = require("node:fs");
     const net = require("node:net");
     const start = Number(process.env.PORT_START || 5433);
     const end = start + 100;
+    // Ports given to other services in this run are not bound yet, so they
+    // look free; skip them or two services would get the same port.
+    const assigned = new Set(
+      fs.readFileSync(process.env.PORTS_FILE, "utf8").split("\n").filter(Boolean).map(Number),
+    );
 
     function canListen(port) {
       return new Promise((resolve) => {
@@ -78,7 +85,7 @@ find_available_port() {
 
     (async () => {
       for (let port = start; port <= end; port += 1) {
-        if (await canListen(port)) {
+        if (!assigned.has(port) && (await canListen(port))) {
           console.log(port);
           return;
         }
@@ -88,6 +95,9 @@ find_available_port() {
     })();
   '
 }
+
+assigned_ports_file="$(mktemp)"
+trap 'rm -f "$assigned_ports_file"' EXIT
 
 postgres_port="$(resolve_port POSTGRES_PORT 5433 postgres Postgres)"
 api_port="$(resolve_port API_PORT 3333 api API)"
