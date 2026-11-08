@@ -147,7 +147,8 @@ const daysAgo = (days) => new Date(Date.now() - days * DAY);
 async function seedDemoData(account, owner) {
   await seedClients(account);
   await seedServices(account);
-  await seedProposals(account, owner);
+  const team = await seedTeam(account, owner);
+  await seedProposals(account, owner, team);
   await seedPipeline(account);
 }
 
@@ -201,7 +202,7 @@ function slugify(text) {
     .replace(/(^-|-$)/g, '');
 }
 
-async function seedProposals(account, owner) {
+async function seedProposals(account, owner, team = {}) {
   // The crane template is created by the API on startup, which runs before the seed.
   const template = await prisma.proposalTemplate.findUnique({ where: { id: CRANE_TEMPLATE_ID } });
   if (!template) {
@@ -213,10 +214,10 @@ async function seedProposals(account, owner) {
 
   const proposals = [
     { title: 'Montagem de estrutura metálica - Galpão 3', company: 'Galpões Modulares Brasil', site: 'Cajamar, SP', schedule: '03/11 a 07/11', mobilization: 12800, dailyRate: 18750, days: 5, status: 'ACCEPTED', created: 14, sent: 13, viewed: 12, answered: 10, equipment: 'Guindaste todo-terreno 100 t', scope: ['Içamento e posicionamento de treliças de até 48 m.', 'Supervisor técnico durante todo o turno.'] },
-    { title: 'Parada de manutenção - Forno 2', company: 'Metalúrgica Vale Verde', site: 'Sumaré, SP', schedule: '14/10 a 16/10', mobilization: 6000, dailyRate: 9800, days: 3, status: 'ACCEPTED', created: 30, sent: 29, viewed: 27, answered: 25, equipment: 'Guindaste veicular 50 t', scope: ['Remoção e reinstalação da tampa do forno.', 'Movimentação de refratários.'] },
+    { author: 'bruno', title: 'Parada de manutenção - Forno 2', company: 'Metalúrgica Vale Verde', site: 'Sumaré, SP', schedule: '14/10 a 16/10', mobilization: 6000, dailyRate: 9800, days: 3, status: 'ACCEPTED', created: 30, sent: 29, viewed: 27, answered: 25, equipment: 'Guindaste veicular 50 t', scope: ['Remoção e reinstalação da tampa do forno.', 'Movimentação de refratários.'] },
     { title: 'Içamento de transformador 15 MVA', company: 'Energia Solar Paulista', site: 'Itapetininga, SP', schedule: '20/11 a 21/11', mobilization: 8500, dailyRate: 18750, days: 2, status: 'SENT', created: 4, sent: 3, viewed: 2, equipment: 'Guindaste todo-terreno 100 t', scope: ['Içamento do transformador da carreta até a base.', 'Plano de rigging com ART.'] },
-    { title: 'Movimentação de cargas de projeto', company: 'Porto Seco Campinas Logística', site: 'Campinas, SP', schedule: '25/11 a 30/11', mobilization: 4000, dailyRate: 4200, days: 6, status: 'SENT', created: 2, sent: 1, equipment: 'Caminhão munck 30 t', scope: ['Descarga e posicionamento de equipamentos importados.'] },
-    { title: 'Remoção de prensa hidráulica', company: 'Construtora Atlântica S.A.', site: 'São Bernardo do Campo, SP', schedule: '22/10 a 23/10', mobilization: 5000, dailyRate: 9800, days: 2, status: 'DECLINED', created: 20, sent: 19, viewed: 18, answered: 15, equipment: 'Guindaste veicular 50 t', scope: ['Desmontagem e remoção da prensa para a área externa.'] },
+    { author: 'larissa', title: 'Movimentação de cargas de projeto', company: 'Porto Seco Campinas Logística', site: 'Campinas, SP', schedule: '25/11 a 30/11', mobilization: 4000, dailyRate: 4200, days: 6, status: 'SENT', created: 2, sent: 1, equipment: 'Caminhão munck 30 t', scope: ['Descarga e posicionamento de equipamentos importados.'] },
+    { author: 'bruno', title: 'Remoção de prensa hidráulica', company: 'Construtora Atlântica S.A.', site: 'São Bernardo do Campo, SP', schedule: '22/10 a 23/10', mobilization: 5000, dailyRate: 9800, days: 2, status: 'DECLINED', created: 20, sent: 19, viewed: 18, answered: 15, equipment: 'Guindaste veicular 50 t', scope: ['Desmontagem e remoção da prensa para a área externa.'] },
     { title: 'Içamento de vigas - Ponte rolante', company: 'Construtora Atlântica S.A.', site: 'Guarulhos, SP', schedule: '29/09 a 30/09', mobilization: 4500, dailyRate: 9800, days: 2, status: 'EXPIRED', created: 45, sent: 44, viewed: 43, equipment: 'Guindaste veicular 50 t', scope: ['Içamento das vigas da ponte rolante.'] },
     { title: 'Montagem de usina solar - Etapa 2', company: 'Energia Solar Paulista', site: 'Itapetininga, SP', schedule: 'A partir de 02/12', mobilization: 3000, dailyRate: 1600, days: 10, status: 'DRAFT', created: 0, equipment: 'Plataforma elevatória 20 m', scope: ['Apoio à montagem das estruturas dos painéis.'] },
   ];
@@ -235,7 +236,7 @@ async function seedProposals(account, owner) {
         accountId: account.id,
         templateId: template.id,
         clientId: client(item.company)?.id,
-        createdById: owner.id,
+        createdById: (team[item.author] ?? owner).id,
         title: item.title,
         locale: 'pt-BR',
         status: item.status,
@@ -258,8 +259,9 @@ async function seedProposals(account, owner) {
     if (createdAt >= periodStart) usedThisMonth += 1;
 
     // What the activity log and the bell would have recorded for this proposal.
-    const events = [{ action: 'proposal.created', key: 'proposalCreated', when: createdAt, userId: owner.id }];
-    if (item.sent !== undefined) events.push({ action: 'proposal.sent', key: 'proposalSent', when: at(item.sent), userId: owner.id });
+    const author = (team[item.author] ?? owner).id;
+    const events = [{ action: 'proposal.created', key: 'proposalCreated', when: createdAt, userId: author }];
+    if (item.sent !== undefined) events.push({ action: 'proposal.sent', key: 'proposalSent', when: at(item.sent), userId: author });
     if (item.status === 'ACCEPTED') events.push({ action: 'proposal.accepted', key: 'proposalAccepted', when: at(item.answered), userId: null });
     if (item.status === 'DECLINED') events.push({ action: 'proposal.declined', key: 'proposalDeclined', when: at(item.answered), userId: null });
     for (const event of events) {
@@ -334,4 +336,49 @@ async function seedPipeline(account) {
       await prisma.pipelineLead.create({ data: { ...lead, accountId: account.id, stageId: created.id } });
     }
   }
+}
+
+const MODULES = ['DASHBOARD', 'PROPOSALS', 'TEMPLATES', 'CRM', 'REPORTS', 'PLAN', 'CLIENTS', 'SERVICES'];
+
+async function seedTeam(account, owner) {
+  // Sales can create proposals, clients and leads; operations only looks.
+  const sales = await prisma.department.create({
+    data: {
+      accountId: account.id,
+      name: 'Comercial',
+      slug: 'comercial',
+      description: 'Vendedores que montam e enviam as propostas.',
+      permissionPreset: 'CUSTOM',
+      permissions: {
+        create: MODULES.map((module) => ({
+          module,
+          canView: module !== 'PLAN',
+          canEdit: ['PROPOSALS', 'CRM', 'CLIENTS'].includes(module),
+        })),
+      },
+    },
+  });
+  const operations = await prisma.department.create({
+    data: {
+      accountId: account.id,
+      name: 'Operações',
+      slug: 'operacoes',
+      description: 'Equipe de campo que acompanha as operações.',
+      permissionPreset: 'VIEW',
+      permissions: { create: MODULES.map((module) => ({ module, canView: true, canEdit: false })) },
+    },
+  });
+
+  const passwordHash = await argon2.hash(demo.password, { type: argon2.argon2id, memoryCost: 2 ** 15, timeCost: 2, parallelism: 1 });
+  const member = (data) =>
+    prisma.user.create({
+      data: { accountId: account.id, role: 'MEMBER', preferredLocale: 'pt-BR', invitedById: owner.id, passwordHash, ...data },
+    });
+
+  const bruno = await member({ email: 'bruno@cota.local', fullName: 'Bruno Carvalho', jobTitle: 'Vendedor', departmentId: sales.id, isActive: true, acceptedAt: daysAgo(50) });
+  const larissa = await member({ email: 'larissa@cota.local', fullName: 'Larissa Souza', jobTitle: 'Coordenadora de operações', departmentId: operations.id, isActive: true, acceptedAt: daysAgo(35) });
+  // Still pending: shows the "invite pending" state with a link to share.
+  await member({ email: 'diego@cota.local', fullName: 'Diego Martins', jobTitle: 'Vendedor', departmentId: sales.id, isActive: false, invitedAt: daysAgo(2) });
+
+  return { bruno, larissa };
 }
