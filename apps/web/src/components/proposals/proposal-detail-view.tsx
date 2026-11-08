@@ -247,6 +247,11 @@ export function ProposalDetailView({ proposalId }: ProposalDetailViewProps) {
           size: item.size,
         }));
 
+  // Photos the API could sign a viewing link for are shown as thumbnails.
+  const fotos = (proposal?.assets ?? []).filter(
+    (asset): asset is typeof asset & { url: string } => Boolean(asset.url),
+  );
+
   const statusTone = proposal ? STATUS_TONES[proposal.status] ?? "neutral" : "neutral";
   const statusLabel = proposal ? tStatus(proposal.status) : "";
   const createdAt = proposal ? formatDateTime(proposal.createdAt) : "—";
@@ -520,7 +525,29 @@ export function ProposalDetailView({ proposalId }: ProposalDetailViewProps) {
 
                 <div className="space-y-2">
                   <p className="meta-label">Anexos</p>
-                  {displayAttachments.length > 0 ? (
+                  {fotos.length > 0 ? (
+                    <ul className="grid grid-cols-3 gap-2">
+                      {fotos.map((foto, indice) => (
+                        <li key={foto.id}>
+                          <a
+                            href={foto.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block overflow-hidden rounded-lg border border-border bg-surface-muted transition-colors hover:border-outline"
+                          >
+                            {/* Signed storage links: next/image can't optimize or cache them. */}
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={foto.url}
+                              alt={`Foto ${indice + 1} da operação`}
+                              className="aspect-square w-full object-cover"
+                              loading="lazy"
+                            />
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : displayAttachments.length > 0 ? (
                     <ul className="divide-y divide-border rounded-lg border border-border">
                       {displayAttachments.map((attachment) => (
                         <li

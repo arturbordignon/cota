@@ -36,6 +36,8 @@ export interface ProposalAssetSummary {
   s3ObjectKey: string;
   mimeType: string;
   position: number;
+  /** Short-lived link to view the photo; null when storage is unreachable. */
+  url?: string | null;
 }
 
 export interface ProposalDetail extends ProposalSummary {
