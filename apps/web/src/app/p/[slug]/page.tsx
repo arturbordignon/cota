@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, DownloadSimple } from "@phosphor-icons/react";
 
@@ -10,17 +11,61 @@ import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Notice } from "@/components/ui/notice";
 import { Skeleton } from "@/components/ui/skeleton";
-import { buscarPropostaPublica, responderPropostaPublica } from "@/lib/public-client";
+import { RespostaJaRegistrada, buscarPropostaPublica, responderPropostaPublica } from "@/lib/public-client";
 import type { PublicProposal } from "@/types/api";
 
+type IdiomaProposta = "pt-BR" | "en";
+
+// The client reads the page in the language of the proposal, whatever their
+// browser is set to, so the buttons match the document.
+const TEXTOS = {
+  "pt-BR": {
+    accepted: "Proposta aceita. Obrigado! A empresa entrará em contato.",
+    declined: "Proposta recusada.",
+    expired: "Esta proposta expirou. Solicite uma nova à empresa.",
+    total: "Valor total",
+    validUntil: (data: string) => ` · Válida até ${data}`,
+    download: "Baixar PDF",
+    decline: "Recusar",
+    accept: "Aceitar proposta",
+    sending: "Enviando...",
+    back: "Voltar",
+    confirmDecline: "Confirmar recusa",
+    declineQuestion: "Tem certeza que deseja recusar esta proposta?",
+    alreadyAnswered: "Esta proposta já foi respondida.",
+    answerError: "Não foi possível enviar a sua resposta. Tente novamente.",
+  },
+  en: {
+    accepted: "Proposal accepted. Thank you! The company will be in touch.",
+    declined: "Proposal declined.",
+    expired: "This proposal has expired. Ask the company for a new one.",
+    total: "Total",
+    validUntil: (data: string) => ` · Valid until ${data}`,
+    download: "Download PDF",
+    decline: "Decline",
+    accept: "Accept proposal",
+    sending: "Sending...",
+    back: "Back",
+    confirmDecline: "Confirm decline",
+    declineQuestion: "Are you sure you want to decline this proposal?",
+    alreadyAnswered: "This proposal was already answered.",
+    answerError: "We couldn't send your answer. Try again.",
+  },
+} as const;
+
+function idiomaDaProposta(proposta: PublicProposal): IdiomaProposta {
+  return proposta.locale === "en" ? "en" : "pt-BR";
+}
+
 function descreverSituacao(proposta: PublicProposal) {
+  const textos = TEXTOS[idiomaDaProposta(proposta)];
   switch (proposta.status) {
     case "ACCEPTED":
-      return { tom: "success" as const, texto: "Proposta aceita. Obrigado! A empresa entrará em contato." };
+      return { tom: "success" as const, texto: textos.accepted };
     case "DECLINED":
-      return { tom: "danger" as const, texto: "Proposta recusada." };
+      return { tom: "danger" as const, texto: textos.declined };
     case "EXPIRED":
-      return { tom: "warning" as const, texto: "Esta proposta expirou. Solicite uma nova à empresa." };
+      return { tom: "warning" as const, texto: textos.expired };
     default:
       return null;
   }
@@ -30,13 +75,15 @@ function descreverValidade(proposta: PublicProposal) {
   if (!proposta.expiresAt) {
     return "";
   }
-  return ` · Válida até ${new Date(proposta.expiresAt).toLocaleDateString(proposta.locale)}`;
+  const idioma = idiomaDaProposta(proposta);
+  return TEXTOS[idioma].validUntil(new Date(proposta.expiresAt).toLocaleDateString(idioma));
 }
 
 export default function PublicProposalPage() {
   const params = useParams<{ slug: string }>();
   const queryClient = useQueryClient();
   const [confirmarRecusa, setConfirmarRecusa] = useState(false);
+  const tNaoEncontrada = useTranslations("publicProposal.notFound");
 
   const propostaQuery = useQuery({
     queryKey: ["public-proposal", params.slug],
@@ -68,8 +115,8 @@ export default function PublicProposalPage() {
       <main className="flex min-h-screen items-center justify-center bg-surface-muted px-4">
         <EmptyState
           className="max-w-md"
-          title="Proposta não encontrada"
-          description="Verifique o link recebido ou peça um novo à empresa."
+          title={tNaoEncontrada("title")}
+          description={tNaoEncontrada("description")}
         />
       </main>
     );
@@ -78,6 +125,7 @@ export default function PublicProposalPage() {
   const proposta = propostaQuery.data.data;
   const situacao = descreverSituacao(proposta);
   const podeResponder = proposta.status === "SENT";
+  const textos = TEXTOS[idiomaDaProposta(proposta)];
 
   return (
     <main className="min-h-screen bg-surface-muted pb-12">
@@ -89,7 +137,7 @@ export default function PublicProposalPage() {
               {proposta.title}
             </h1>
             <p className="text-sm text-muted">
-              Valor total{" "}
+              {textos.total}{" "}
               <span className="tabular font-display text-lg font-semibold text-ink">{proposta.total}</span>
               {descreverValidade(proposta)}
             </p>
@@ -99,23 +147,23 @@ export default function PublicProposalPage() {
               <Button variant="secondary" asChild>
                 <a href={proposta.pdfUrl} target="_blank" rel="noopener noreferrer">
                   <DownloadSimple size={16} weight="bold" />
-                  Baixar PDF
+                  {textos.download}
                 </a>
               </Button>
             )}
             {podeResponder && (
               <Button variant="ghost" onClick={() => setConfirmarRecusa(true)} disabled={responder.isPending}>
-                Recusar
+                {textos.decline}
               </Button>
             )}
             {podeResponder && (
               <Button
                 onClick={() => responder.mutate("accept")}
                 loading={responder.isPending && responder.variables === "accept"}
-                loadingText="Enviando..."
+                loadingText={textos.sending}
               >
                 <Check size={16} weight="bold" />
-                Aceitar proposta
+                {textos.accept}
               </Button>
             )}
           </div>
@@ -131,25 +179,29 @@ export default function PublicProposalPage() {
             action={
               <div className="flex gap-2">
                 <Button variant="ghost" size="sm" onClick={() => setConfirmarRecusa(false)}>
-                  Voltar
+                  {textos.back}
                 </Button>
                 <Button
                   variant="danger"
                   size="sm"
                   onClick={() => responder.mutate("decline")}
                   loading={responder.isPending}
-                  loadingText="Enviando..."
+                  loadingText={textos.sending}
                 >
-                  Confirmar recusa
+                  {textos.confirmDecline}
                 </Button>
               </div>
             }
           >
-            Tem certeza que deseja recusar esta proposta?
+            {textos.declineQuestion}
           </Notice>
         )}
 
-        {responder.isError && <Notice tone="danger">{responder.error.message}</Notice>}
+        {responder.isError && (
+          <Notice tone="danger">
+            {responder.error instanceof RespostaJaRegistrada ? textos.alreadyAnswered : textos.answerError}
+          </Notice>
+        )}
 
         <Card className="overflow-hidden">
           <iframe

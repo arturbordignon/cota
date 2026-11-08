@@ -267,6 +267,12 @@ export const ptBRMessages = {
       "error": "Não foi possível remover o serviço."
     }
   },
+  "publicProposal": {
+    "notFound": {
+      "title": "Proposta não encontrada",
+      "description": "Verifique o link recebido ou peça um novo à empresa."
+    }
+  },
   "clients": {
     "title": "Clientes",
     "description": "Centralize dados fiscais, limites de crédito e histórico para negociar com mais confiança.",

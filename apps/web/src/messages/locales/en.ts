@@ -267,6 +267,12 @@ export const enMessages = {
       "error": "We couldn't remove the service."
     }
   },
+  "publicProposal": {
+    "notFound": {
+      "title": "Proposal not found",
+      "description": "Check the link you received or ask the company for a new one."
+    }
+  },
   "clients": {
     "title": "Clients",
     "description": "Centralize tax data, credit limits, and history to negotiate with confidence.",
