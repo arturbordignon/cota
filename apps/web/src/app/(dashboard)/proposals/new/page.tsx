@@ -346,6 +346,23 @@ export default function NewProposalPage() {
     setStepIndex(1);
   };
 
+  // "Use this template" on a template page opens the wizard with ?templateId=,
+  // which starts on the details step with that template chosen.
+  const modeloDaUrl = searchParams.get("templateId");
+  const [modeloDaUrlAplicado, setModeloDaUrlAplicado] = useState(false);
+  useEffect(() => {
+    if (modeloDaUrlAplicado || !modeloDaUrl) {
+      return;
+    }
+    const modelo = modelos.find((item) => item.id === modeloDaUrl);
+    if (modelo) {
+      setModeloDaUrlAplicado(true);
+      selecionarModelo(modelo);
+    }
+    // selecionarModelo only sets state; it is safe to leave out of the deps.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [modeloDaUrl, modeloDaUrlAplicado, modelos]);
+
   const selecionarEmBranco = () => {
     if (!modeloPadrao) {
       setSubmissionError("Nenhum modelo padrão disponível para começar do zero.");
