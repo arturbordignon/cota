@@ -120,3 +120,23 @@ describe('proposal notifications', () => {
     expect(await chaves(vendedor)).toEqual([]);
   });
 });
+
+describe('team notifications', () => {
+  let app: FastifyInstance;
+  let dono: Conta;
+
+  beforeAll(async () => {
+    app = await criarApp();
+    dono = await registrarConta(app);
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  it('tells whoever sent the invite when it is accepted', async () => {
+    await criarMembro(app, dono);
+    const resposta = await chamar(app, { method: 'GET', url: '/api/v1/notifications', token: dono.accessToken });
+    expect((resposta.json().data as { key: string }[]).map((item) => item.key)).toContain('inviteAccepted');
+  });
+});

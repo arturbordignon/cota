@@ -3,7 +3,7 @@ import { z } from 'zod';
 import argon2 from 'argon2';
 import { randomBytes, createHash } from 'crypto';
 import dayjs from 'dayjs';
-import type { DepartmentPreset as PrismaDepartmentPreset, PermissionModule } from '@cota/db';
+import { criarNotificacoes, type DepartmentPreset as PrismaDepartmentPreset, type PermissionModule } from '@cota/db';
 
 import { CACHE_RESOURCES } from '../../constants/cache.js';
 import { toDepartmentSlug } from '../../utils/slug.js';
@@ -682,6 +682,20 @@ const teamRoutes: FastifyPluginAsync = async (app) => {
         },
       },
     });
+
+    if (invitee.invitedById) {
+      const nome = body.fullName ?? invitee.fullName ?? invitee.email;
+      await criarNotificacoes(app.prisma, {
+        accountId: invitee.accountId,
+        recipientIds: [invitee.invitedById],
+        key: 'inviteAccepted',
+        params: { member: nome },
+        tone: 'SUCCESS',
+        link: '/team',
+        title: 'Convite aceito',
+        body: `${nome} entrou na equipe.`,
+      }).catch((err) => request.log.error({ err }, 'Failed to notify the accepted invite'));
+    }
 
     return reply.send({
       data: {
