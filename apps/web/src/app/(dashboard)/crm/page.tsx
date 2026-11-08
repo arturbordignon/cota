@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useFormatter, useTranslations } from "next-intl";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowDown, ArrowUp, DotsSixVertical, PaintBrushBroad, Plus, Trash } from "@phosphor-icons/react";
 
@@ -17,6 +17,7 @@ import { Select, SelectItem } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { useApi } from "@/hooks/use-api";
+import { useAccountCurrency } from "@/hooks/use-account-currency";
 import { PipelineLeadSummary, PipelineStagesResponse } from "@/types/api";
 import { cn } from "@/lib/utils";
 
@@ -57,17 +58,6 @@ function mapColor(color: string): "info" | "warning" | "success" | "neutral" {
   }
 }
 
-function formatCurrency(value?: string | number | null) {
-  if (value == null || value === '') return null;
-  const numeric = typeof value === 'number' ? value : Number(value);
-  if (Number.isNaN(numeric)) return null;
-  return numeric.toLocaleString('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-    minimumFractionDigits: 0,
-  });
-}
-
 const STAGE_COLORS: StageColor[] = ['info', 'warning', 'success', 'neutral'];
 
 const STAGE_DOT: Record<StageColor, string> = {
@@ -78,6 +68,14 @@ const STAGE_DOT: Record<StageColor, string> = {
 };
 
 export default function CrmBoardPage() {
+  const formatador = useFormatter();
+  const moeda = useAccountCurrency();
+  const formatCurrency = (value?: string | number | null) => {
+    if (value == null || value === '') return null;
+    const numeric = typeof value === 'number' ? value : Number(value);
+    if (Number.isNaN(numeric)) return null;
+    return formatador.number(numeric, { style: 'currency', currency: moeda, maximumFractionDigits: 0 });
+  };
   // Anyone whose department can edit the pipeline may change it, as the API allows.
   const { temPermissao } = useCurrentUser();
   const podeEditar = temPermissao('crm', 'edit');
@@ -405,7 +403,7 @@ export default function CrmBoardPage() {
         <div>
           <p className="meta-label">{t('summary.value')}</p>
           <p className="tabular font-display text-[28px] font-semibold leading-tight text-ink">
-            {formatCurrency(totals.value) ?? 'R$ 0'}
+            {formatCurrency(totals.value) ?? formatCurrency(0)}
           </p>
         </div>
         <p className="pb-1.5 text-[13px] text-muted">
