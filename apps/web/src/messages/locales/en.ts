@@ -193,7 +193,18 @@ export const enMessages = {
       "generic": "We couldn't start the payment right now. Try again."
     }
   },
-
+  "plans": {
+    "title": "Plans",
+    "description": "Pick the plan that fits how many proposals your company sends.",
+    "loadError": "We couldn't load the plans.",
+    "current": "Current plan",
+    "subscribe": "Subscribe",
+    "perMonth": "{price} / month",
+    "perYear": "{price} / year",
+    "unlimited": "Unlimited proposals",
+    "limit": "{count} proposals per month",
+    "noPermission": "Only people who manage the plan can switch to another plan."
+  },
   "clients": {
     "title": "Clients",
     "description": "Centralize tax data, credit limits, and history to negotiate with confidence.",

@@ -193,7 +193,18 @@ export const ptBRMessages = {
       "generic": "Não foi possível iniciar a cobrança agora. Tente novamente."
     }
   },
-
+  "plans": {
+    "title": "Planos",
+    "description": "Escolha o plano ideal para o volume de propostas da sua empresa.",
+    "loadError": "Não foi possível carregar os planos.",
+    "current": "Plano atual",
+    "subscribe": "Contratar",
+    "perMonth": "{price} / mês",
+    "perYear": "{price} / ano",
+    "unlimited": "Propostas ilimitadas",
+    "limit": "{count} propostas por mês",
+    "noPermission": "Somente quem administra o plano pode contratar outro plano."
+  },
   "clients": {
     "title": "Clientes",
     "description": "Centralize dados fiscais, limites de crédito e histórico para negociar com mais confiança.",

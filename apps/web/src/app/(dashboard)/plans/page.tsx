@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+import { useFormatter, useTranslations } from "next-intl";
 import { useQuery } from "@tanstack/react-query";
 import { Check } from "@phosphor-icons/react";
 
@@ -24,27 +26,21 @@ function buscarMoeda(overview: BillingOverviewResponse | undefined, locale: stri
   return "BRL";
 }
 
-function formatarPreco(plano: PlanSummary) {
-  const valor = new Intl.NumberFormat("pt-BR", { style: "currency", currency: plano.currency }).format(
-    plano.amountCents / 100,
-  );
-  if (plano.isAnnual) {
-    return `${valor} / ano`;
-  }
-  return `${valor} / mês`;
-}
-
-function descreverLimite(plano: PlanSummary) {
-  if (plano.isUnlimited) {
-    return "Propostas ilimitadas";
-  }
-  return `${plano.proposalsPerMonth} propostas por mês`;
-}
-
 export default function PlansPage() {
   const api = useApi();
   const { user, temPermissao } = useCurrentUser();
   const podeContratar = temPermissao("plan", "edit");
+  const t = useTranslations("plans");
+  const format = useFormatter();
+  const [erroCobranca, setErroCobranca] = useState<string | null>(null);
+
+  const formatarPreco = (plano: PlanSummary) => {
+    const price = format.number(plano.amountCents / 100, { style: "currency", currency: plano.currency });
+    return plano.isAnnual ? t("perYear", { price }) : t("perMonth", { price });
+  };
+
+  const descreverLimite = (plano: PlanSummary) =>
+    plano.isUnlimited ? t("unlimited") : t("limit", { count: plano.proposalsPerMonth ?? 0 });
 
   const plansQuery = useQuery({
     queryKey: ["billing", "plans"],
@@ -64,12 +60,11 @@ export default function PlansPage() {
 
   return (
     <section className="space-y-8">
-      <PageHeader
-        title="Planos"
-        description="Escolha o plano ideal para o volume de propostas da sua empresa."
-      />
+      <PageHeader title={t("title")} description={t("description")} />
 
-      {plansQuery.isError && <Notice tone="danger">Não foi possível carregar os planos.</Notice>}
+      {plansQuery.isError && <Notice tone="danger">{t("loadError")}</Notice>}
+      {erroCobranca && <Notice tone="danger">{erroCobranca}</Notice>}
+      {!podeContratar && <Notice tone="info">{t("noPermission")}</Notice>}
 
       {plansQuery.isLoading ? (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -92,7 +87,7 @@ export default function PlansPage() {
             >
               <div className="flex items-center justify-between gap-2">
                 <h2 className="font-sans text-[15px] font-semibold text-ink">{plano.name}</h2>
-                {atual && <Badge tone="brand">Plano atual</Badge>}
+                {atual && <Badge tone="brand">{t("current")}</Badge>}
               </div>
               <p className="tabular mt-4 font-display text-[30px] font-semibold leading-none text-ink">
                 {formatarPreco(plano)}
@@ -104,10 +99,12 @@ export default function PlansPage() {
               <div className="mt-auto pt-6">
                 <CheckoutButton
                   planSlug={plano.slug}
-                  label={atual ? "Plano atual" : "Contratar"}
+                  label={atual ? t("current") : t("subscribe")}
                   variant={atual ? "secondary" : "primary"}
                   className="w-full"
                   disabled={!podeContratar || atual}
+                  onClick={() => setErroCobranca(null)}
+                  onFailure={setErroCobranca}
                 />
               </div>
             </Card>
