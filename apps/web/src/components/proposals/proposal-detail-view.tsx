@@ -164,7 +164,6 @@ export function ProposalDetailView({ proposalId }: ProposalDetailViewProps) {
 
   const proposal = proposalQuery.data?.data as ProposalDetail | undefined;
   const isTokenMissing = !api.token;
-  const loadError = proposalQuery.error as Error | null;
   const isLoading = proposalQuery.isLoading;
 
   useEffect(() => {
@@ -263,9 +262,12 @@ export function ProposalDetailView({ proposalId }: ProposalDetailViewProps) {
   const statusTone = proposal ? STATUS_TONES[proposal.status] ?? "neutral" : "neutral";
   const statusLabel = proposal ? tStatus(proposal.status) : "";
   const createdAt = proposal ? formatDateTime(proposal.createdAt) : "—";
-  const headerDescription = proposal
-    ? `Cliente: ${proposal.client?.name ?? "—"} · Criada em ${createdAt}`
-    : "Carregando detalhes da proposta...";
+  let headerDescription: string | undefined;
+  if (proposal) {
+    headerDescription = `Cliente: ${proposal.client?.name ?? "—"} · Criada em ${createdAt}`;
+  } else if (proposalQuery.isLoading) {
+    headerDescription = "Carregando detalhes da proposta...";
+  }
 
   const timeline = [
     { label: "Criada", value: proposal?.createdAt },
@@ -383,10 +385,6 @@ export function ProposalDetailView({ proposalId }: ProposalDetailViewProps) {
         <Notice tone="warning">
           Autentique-se ou defina o token da API para visualizar os detalhes reais da proposta.
         </Notice>
-      ) : null}
-
-      {loadError && !isLoading ? (
-        <Notice tone="danger">Não foi possível carregar a proposta: {loadError.message}</Notice>
       ) : null}
 
       {isLoading ? (
