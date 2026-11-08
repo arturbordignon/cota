@@ -8,6 +8,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CaretRight, Files, MagnifyingGlass, PaintBrush, Plus, UploadSimple } from "@phosphor-icons/react";
 
 import { PageHeader } from "@/components/layout/page-header";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Notice } from "@/components/ui/notice";
@@ -23,6 +24,7 @@ type TabValue = "catalog" | "mine" | "upload";
 
 export default function TemplatesPage() {
   const t = useTranslations("templates.page");
+  const tIdiomas = useTranslations("templates.dialog.localeLabels");
   const [activeTab, setActiveTab] = useState<TabValue>("catalog");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [busca, setBusca] = useState("");
@@ -287,9 +289,10 @@ export default function TemplatesPage() {
                     </div>
                   </div>
                   <div className="flex flex-1 flex-col p-5">
-                    {template.category ? (
-                      <span className="mb-1.5 text-xs font-semibold text-primary-strong">{template.category}</span>
-                    ) : null}
+                    <span className="mb-1.5 flex flex-wrap items-center gap-2 text-xs font-semibold">
+                      {template.category ? <span className="text-primary-strong">{template.category}</span> : null}
+                      <Badge tone="neutral">{tIdiomas(template.locale === "en" ? "en" : "ptBR")}</Badge>
+                    </span>
                     <h3 className="font-sans text-[15px] font-semibold leading-snug text-ink">{template.name}</h3>
                     <p className="mt-1 line-clamp-2 text-sm leading-relaxed text-muted">
                       {template.description ?? t("cards.noDescription")}

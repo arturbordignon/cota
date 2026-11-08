@@ -263,6 +263,7 @@ export default function NewProposalPage() {
   const queryClient = useQueryClient();
   const { temPermissao, user } = useCurrentUser();
   const t = useTranslations("proposals.wizard");
+  const tIdiomas = useTranslations("templates.dialog.localeLabels");
   const formatador = useFormatter();
   const moeda = useAccountCurrency();
   const formatarMoeda = (valor: number) => formatador.number(valor, { style: "currency", currency: moeda });
@@ -588,6 +589,7 @@ export default function NewProposalPage() {
               >
                 <span className="flex flex-wrap items-center gap-2">
                   {modelo.category && <Badge tone="brand">{modelo.category}</Badge>}
+                  <Badge tone="neutral">{tIdiomas(modelo.locale === "en" ? "en" : "ptBR")}</Badge>
                   <span className="text-xs font-medium text-muted">{modelo.accountId ? t("templateCard.mine") : t("templateCard.standard")}</span>
                 </span>
                 <span>
