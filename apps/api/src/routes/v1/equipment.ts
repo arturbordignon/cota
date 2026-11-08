@@ -1,6 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { Prisma } from '@cota/db';
 import { z } from 'zod';
+
 import { exigirPermissao } from '../../utils/permissions.js';
 
 const createEquipmentSchema = z.object({
