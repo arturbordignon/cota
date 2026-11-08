@@ -87,6 +87,10 @@ describe('stripe subscription sync', () => {
   const segredoAnterior = env.STRIPE_WEBHOOK_SECRET;
   const estados = new Map<string, { status: string; price: string; customer: string }>();
   let consultas = 0;
+  // Plans are shared by every account, so the ones made here are removed
+  // afterwards or they show up on the plans page of the dev database.
+  const planosCriados: string[] = [];
+  const contasCriadas: string[] = [];
 
   beforeAll(async () => {
     env.STRIPE_WEBHOOK_SECRET = SEGREDO;
@@ -109,6 +113,9 @@ describe('stripe subscription sync', () => {
   afterAll(async () => {
     env.STRIPE_WEBHOOK_SECRET = segredoAnterior;
     vi.restoreAllMocks();
+    await app.prisma.account.deleteMany({ where: { id: { in: contasCriadas } } });
+    await app.prisma.subscription.deleteMany({ where: { planId: { in: planosCriados } } });
+    await app.prisma.plan.deleteMany({ where: { id: { in: planosCriados } } });
     await app.close();
   });
 
@@ -127,6 +134,8 @@ describe('stripe subscription sync', () => {
         stripePriceId: preco,
       },
     });
+    planosCriados.push(plano.id);
+    contasCriadas.push(conta.accountId);
     const padrao = await app.prisma.plan.findUniqueOrThrow({ where: { slug: 'br-50' } });
     return { conta, customer, preco, plano, padrao };
   }
