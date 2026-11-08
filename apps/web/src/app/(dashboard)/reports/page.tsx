@@ -394,11 +394,11 @@ export default function ReportsPage() {
   const teamChartData = useMemo(
     () =>
       propostasPorMembro.map((m: any) => ({
-        name: m.createdByName ?? m.createdById ?? "—",
+        name: m.createdByName ?? tPage("highlights.unknown"),
         total: Number(m.total ?? 0),
         aceitas: Number(m.aceitas ?? 0),
       })),
-    [propostasPorMembro],
+    [propostasPorMembro, tPage],
   );
 
   const receitaCidadeChartData = useMemo(
