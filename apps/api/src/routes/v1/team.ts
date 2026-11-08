@@ -34,7 +34,8 @@ const permissionMapSchema = z.object(
 
 const createDepartmentSchema = z.object({
   name: z.string().min(2),
-  description: z.string().optional(),
+  // The form sends null for an empty description, as it does when editing.
+  description: z.string().optional().nullable(),
   permissionPreset: departmentPresetSchema.default('view'),
   permissions: permissionMapSchema.optional(),
 });
