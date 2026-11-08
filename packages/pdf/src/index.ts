@@ -1,7 +1,7 @@
 import type { Job } from 'bullmq';
 import type { Logger } from 'pino';
 import chromium from '@sparticuz/chromium';
-import puppeteer from 'puppeteer-core';
+import { launch } from 'puppeteer-core';
 import env from '@cota/config';
 import { uploadObject } from '@cota/storage';
 
@@ -74,7 +74,7 @@ export function requisicaoPermitida(url: string) {
 }
 
 async function gerarPdf(html: string) {
-  const navegador = await puppeteer.launch({
+  const navegador = await launch({
     executablePath: await buscarCaminhoNavegador(),
     args: buscarArgumentosNavegador(),
     headless: true,
