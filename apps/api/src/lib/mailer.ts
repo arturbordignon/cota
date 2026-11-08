@@ -1,6 +1,5 @@
-import nodemailer from 'nodemailer';
+import { createTransport } from 'nodemailer';
 import type { FastifyBaseLogger } from 'fastify';
-
 import env from '@cota/config';
 
 interface InviteEmailPayload {
@@ -11,7 +10,7 @@ interface InviteEmailPayload {
   logger?: FastifyBaseLogger;
 }
 
-type Transporter = ReturnType<typeof nodemailer.createTransport>;
+type Transporter = ReturnType<typeof createTransport>;
 
 let transporterPromise: Promise<Transporter | null> | null = null;
 
@@ -25,7 +24,7 @@ async function getTransporter(): Promise<Transporter | null> {
       return null;
     }
 
-    const transporter = nodemailer.createTransport({
+    const transporter = createTransport({
       host: env.SMTP_HOST,
       port: env.SMTP_PORT,
       secure: env.SMTP_SECURE,
