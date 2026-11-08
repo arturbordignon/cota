@@ -955,6 +955,18 @@ export const ptBRMessages = {
     },
     "states": {
       "error": "Não foi possível carregar o relatório."
+    },
+    "dateRange": {
+      "from": "Início",
+      "to": "Fim",
+      "clear": "Limpar",
+      "presets": {
+        "last7": "Últimos 7 dias",
+        "last30": "Últimos 30 dias",
+        "thisMonth": "Este mês",
+        "lastMonth": "Mês passado",
+        "ytd": "Ano até hoje"
+      }
     }
   },
   "templates": {

@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { useTranslations } from 'next-intl';
 
 import { Input } from '@/components/ui/input';
 
@@ -57,37 +58,38 @@ export function DateRangePicker({
   withPresets = true,
   className,
 }: DateRangePickerProps) {
+  const t = useTranslations('reports.dateRange');
   const today = React.useMemo(() => new Date(), []);
   const presets = React.useMemo(
     () => [
       {
-        label: 'Últimos 7 dias',
+        label: t('presets.last7'),
         get: () => ({ from: startOfDay(addDays(today, -6)), to: endOfDay(today) }),
       },
       {
-        label: 'Últimos 30 dias',
+        label: t('presets.last30'),
         get: () => ({ from: startOfDay(addDays(today, -29)), to: endOfDay(today) }),
       },
       {
-        label: 'Este mês',
+        label: t('presets.thisMonth'),
         get: () => ({
           from: startOfDay(startOfMonth(today)),
           to: endOfDay(endOfMonth(today)),
         }),
       },
       {
-        label: 'Mês passado',
+        label: t('presets.lastMonth'),
         get: () => {
           const prev = new Date(today.getFullYear(), today.getMonth() - 1, 1);
           return { from: startOfDay(startOfMonth(prev)), to: endOfDay(endOfMonth(prev)) };
         },
       },
       {
-        label: 'Ano até hoje (YTD)',
+        label: t('presets.ytd'),
         get: () => ({ from: startOfDay(startOfYear(today)), to: endOfDay(today) }),
       },
     ],
-    [today],
+    [t, today],
   );
 
   const onFromChange = (v: string) => {
@@ -106,7 +108,7 @@ export function DateRangePicker({
     <div className={`grid gap-3 ${className ?? ''}`}>
       <div className="grid grid-cols-2 gap-2 sm:max-w-md">
         <label className="space-y-1">
-          <span className="block text-xs font-medium text-muted">Início</span>
+          <span className="block text-xs font-medium text-muted">{t('from')}</span>
           <Input
             type="date"
             value={toDateInputValue(value?.from)}
@@ -114,7 +116,7 @@ export function DateRangePicker({
           />
         </label>
         <label className="space-y-1">
-          <span className="block text-xs font-medium text-muted">Fim</span>
+          <span className="block text-xs font-medium text-muted">{t('to')}</span>
           <Input
             type="date"
             value={toDateInputValue(value?.to)}
@@ -135,7 +137,7 @@ export function DateRangePicker({
             className="h-7 rounded-md px-2 text-xs font-semibold text-muted transition-colors hover:text-danger"
             onClick={() => onChange(undefined)}
           >
-            Limpar
+            {t('clear')}
           </button>
         </div>
       ) : null}

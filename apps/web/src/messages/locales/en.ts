@@ -955,6 +955,18 @@ export const enMessages = {
       },
     "states": {
       "error": "Unable to load the report."
+    },
+    "dateRange": {
+      "from": "From",
+      "to": "To",
+      "clear": "Clear",
+      "presets": {
+        "last7": "Last 7 days",
+        "last30": "Last 30 days",
+        "thisMonth": "This month",
+        "lastMonth": "Last month",
+        "ytd": "Year to date"
+      }
     }
   },
   "templates": {
