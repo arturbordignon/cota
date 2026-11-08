@@ -78,7 +78,9 @@ const STAGE_DOT: Record<StageColor, string> = {
 };
 
 export default function CrmBoardPage() {
-  const { isAdmin } = useCurrentUser();
+  // Anyone whose department can edit the pipeline may change it, as the API allows.
+  const { temPermissao } = useCurrentUser();
+  const podeEditar = temPermissao('crm', 'edit');
   const t = useTranslations("crm.page");
   const api = useApi();
   const queryClient = useQueryClient();
@@ -339,12 +341,12 @@ export default function CrmBoardPage() {
   };
 
   const handleDragStart = (columnId: string, leadId: string) => {
-    if (!isAdmin) return;
+    if (!podeEditar) return;
     setDragging({ columnId, leadId });
   };
 
   const handleDrop = (targetColumnId: string) => {
-    if (!isAdmin || !dragging || dragging.columnId === targetColumnId) return;
+    if (!podeEditar || !dragging || dragging.columnId === targetColumnId) return;
     setColumns((prev) => {
       const next = prev.map((column) => ({ ...column, leads: [...column.leads] }));
       const sourceColumn = next.find((column) => column.id === dragging.columnId);
@@ -361,7 +363,7 @@ export default function CrmBoardPage() {
   };
 
   const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
-    if (!isAdmin) return;
+    if (!podeEditar) return;
     event.preventDefault();
   };
 
@@ -377,12 +379,12 @@ export default function CrmBoardPage() {
           <>
             <Button
               variant="secondary"
-              disabled={!isAdmin}
+              disabled={!podeEditar}
               onClick={() => setCustomizeDialogOpen(true)}
             >
               <PaintBrushBroad size={16} /> {t('actions.customizeStages')}
             </Button>
-            <Button disabled={!isAdmin || columns.length === 0} onClick={() => setCreateDialogOpen(true)}>
+            <Button disabled={!podeEditar || columns.length === 0} onClick={() => setCreateDialogOpen(true)}>
               <Plus size={16} weight="bold" /> {t('actions.newLead')}
             </Button>
           </>
@@ -407,7 +409,7 @@ export default function CrmBoardPage() {
           </p>
         </div>
         <p className="pb-1.5 text-[13px] text-muted">
-          {!isAdmin ? t('overview.viewOnly') : t('overview.dragHint')}
+          {!podeEditar ? t('overview.viewOnly') : t('overview.dragHint')}
         </p>
       </div>
 
@@ -453,7 +455,7 @@ export default function CrmBoardPage() {
                     {column.leads.map((lead) => (
                       <div
                         key={lead.id}
-                        draggable={isAdmin}
+                        draggable={podeEditar}
                         onDragStart={() => handleDragStart(column.id, lead.id)}
                         onClick={() => setActiveLead({ lead, stage: column.title })}
                         onKeyDown={(event) => {
@@ -466,7 +468,7 @@ export default function CrmBoardPage() {
                         tabIndex={0}
                         className={cn(
                           'group rounded-lg border border-border bg-white p-3.5 shadow-card transition-[border-color,box-shadow] hover:border-outline hover:shadow-[0_4px_12px_-6px_rgb(27_31_36/0.18)]',
-                          isAdmin ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer',
+                          podeEditar ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer',
                         )}
                       >
                         <div className="flex items-start justify-between gap-2">
@@ -474,7 +476,7 @@ export default function CrmBoardPage() {
                             <p className="truncate text-sm font-semibold text-ink">{lead.companyName}</p>
                             {lead.contactName ? <p className="truncate text-xs text-muted">{lead.contactName}</p> : null}
                           </div>
-                          {isAdmin ? (
+                          {podeEditar ? (
                             <DotsSixVertical size={16} className="shrink-0 text-muted opacity-0 transition-opacity group-hover:opacity-100" />
                           ) : null}
                         </div>
