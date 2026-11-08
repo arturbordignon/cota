@@ -1237,6 +1237,120 @@ export const ptBRMessages = {
         "copyLink": "Copiar link",
         "linkCopied": "Link copiado"
       }
+    },
+    "wizard": {
+      "title": "Nova proposta",
+      "description": "Escolha um modelo, detalhe a operação, defina os valores e gere o PDF para enviar ao cliente.",
+      "noPermission": "Seu departamento não tem permissão para criar propostas.",
+      "steps": {
+        "template": {
+          "title": "Escolher modelo",
+          "description": "Use um modelo ou comece do zero."
+        },
+        "details": {
+          "title": "Detalhar operação",
+          "description": "Cliente, local, período, escopo e recursos."
+        },
+        "values": {
+          "title": "Valores",
+          "description": "Mobilização, diária e condições comerciais."
+        },
+        "review": {
+          "title": "Revisar & anexar",
+          "description": "Fotos, revisão final e geração do PDF."
+        }
+      },
+      "blank": {
+        "title": "Começar do zero",
+        "description": "Usa o layout padrão com todos os campos em branco para você preencher.",
+        "action": "Usar proposta em branco"
+      },
+      "templateCard": {
+        "select": "Selecionar modelo",
+        "selected": "Selecionado",
+        "mine": "Meu modelo",
+        "standard": "Modelo padrão"
+      },
+      "summary": {
+        "title": "Resumo",
+        "client": "Cliente",
+        "template": "Modelo",
+        "project": "Projeto",
+        "site": "Local",
+        "period": "Período",
+        "total": "Total"
+      },
+      "fields": {
+        "client": "Cliente",
+        "noClients": "Nenhum cliente cadastrado",
+        "addClient": "Adicionar",
+        "title": "Título / nome do projeto",
+        "titlePlaceholder": "Montagem de estrutura metálica - Galpão X",
+        "site": "Local da operação",
+        "sitePlaceholder": "Porto de Santos, SP",
+        "start": "Data de início",
+        "end": "Data de término",
+        "scope": "Escopo do serviço",
+        "scopePlaceholder": "Içamento e posicionamento de treliças\nSupervisor técnico durante o turno",
+        "onePerLine": "Um item por linha.",
+        "equipment": "Equipamentos",
+        "equipmentPlaceholder": "Outros equipamentos (um por linha)",
+        "team": "Equipe e certificações",
+        "teamPlaceholder": "Operador de guindaste certificado\nRigger responsável com ART",
+        "mobilization": "Mobilização",
+        "mobilizationHint": "Ida e volta do equipamento.",
+        "dailyRate": "Diária operacional",
+        "days": "Dias de operação",
+        "validity": "Validade da proposta (dias)",
+        "terms": "Condições gerais",
+        "termsHint": "Uma condição por linha.",
+        "termsPlaceholder": "Pagamento: 40% na confirmação + 60% após a conclusão\nOperação sujeita a condições climáticas"
+      },
+      "investment": {
+        "title": "Investimento",
+        "mobilization": "Mobilização",
+        "daily": "{count, plural, one {Diária × # dia} other {Diária × # dias}}",
+        "total": "Total"
+      },
+      "photos": {
+        "title": "Fotos da operação",
+        "description": "Até {max} fotos, aparecem no PDF.",
+        "hint": "JPG ou PNG, até 5 MB por foto",
+        "none": "Nenhuma foto selecionada.",
+        "tooBig": "Algumas fotos foram ignoradas por passarem de 5 MB."
+      },
+      "checklist": {
+        "title": "Antes de gerar",
+        "review": "Revise escopo e valores",
+        "confirm": "Confirme equipamentos e datas",
+        "company": "Confira os dados da empresa em Minha conta"
+      },
+      "actions": {
+        "generate": "Gerar proposta e PDF",
+        "generating": "Gerando...",
+        "draft": "Salvar rascunho",
+        "saving": "Salvando...",
+        "back": "Voltar",
+        "next": "Continuar",
+        "step": "Etapa {current} de {total}"
+      },
+      "errors": {
+        "noTemplate": "Nenhum modelo padrão disponível para começar do zero.",
+        "selectTemplate": "Selecione um modelo antes de continuar.",
+        "photoUpload": "Falha ao enviar a foto {name}.",
+        "photosNotAttached": "A proposta foi criada, mas as fotos não foram anexadas. Abra a proposta para tentar de novo.",
+        "finish": "Não foi possível finalizar a proposta.",
+        "limit": "Você atingiu o limite de propostas do seu plano neste mês. Escolha um plano maior para continuar."
+      },
+      "addClient": {
+        "title": "Adicionar cliente",
+        "description": "Cadastre um cliente sem sair da criação da proposta.",
+        "name": "Nome",
+        "company": "Empresa",
+        "optional": "opcional",
+        "cancel": "Cancelar",
+        "submit": "Cadastrar cliente"
+      }
     }
   },
   "crm": {

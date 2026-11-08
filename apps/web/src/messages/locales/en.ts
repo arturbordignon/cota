@@ -1237,6 +1237,120 @@ export const enMessages = {
         "copyLink": "Copy link",
         "linkCopied": "Link copied"
       }
+    },
+    "wizard": {
+      "title": "New proposal",
+      "description": "Pick a template, describe the job, set the prices and create the PDF to send to the client.",
+      "noPermission": "Your department isn't allowed to create proposals.",
+      "steps": {
+        "template": {
+          "title": "Choose template",
+          "description": "Use a template or start from scratch."
+        },
+        "details": {
+          "title": "Job details",
+          "description": "Client, site, dates, scope and resources."
+        },
+        "values": {
+          "title": "Prices",
+          "description": "Mobilization, daily rate and terms."
+        },
+        "review": {
+          "title": "Review & attach",
+          "description": "Photos, final review and PDF."
+        }
+      },
+      "blank": {
+        "title": "Start from scratch",
+        "description": "Uses the standard layout with every field empty for you to fill in.",
+        "action": "Use a blank proposal"
+      },
+      "templateCard": {
+        "select": "Select template",
+        "selected": "Selected",
+        "mine": "My template",
+        "standard": "Standard template"
+      },
+      "summary": {
+        "title": "Summary",
+        "client": "Client",
+        "template": "Template",
+        "project": "Project",
+        "site": "Site",
+        "period": "Period",
+        "total": "Total"
+      },
+      "fields": {
+        "client": "Client",
+        "noClients": "No clients yet",
+        "addClient": "Add",
+        "title": "Project title",
+        "titlePlaceholder": "Steel structure assembly - Warehouse X",
+        "site": "Job site",
+        "sitePlaceholder": "Port of Santos, SP",
+        "start": "Start date",
+        "end": "End date",
+        "scope": "Scope of work",
+        "scopePlaceholder": "Lifting and placing steel trusses\nTechnical supervisor during the shift",
+        "onePerLine": "One item per line.",
+        "equipment": "Equipment",
+        "equipmentPlaceholder": "Other equipment (one per line)",
+        "team": "Crew and certifications",
+        "teamPlaceholder": "Certified crane operator\nLead rigger with permit",
+        "mobilization": "Mobilization",
+        "mobilizationHint": "Bringing the equipment and taking it back.",
+        "dailyRate": "Daily rate",
+        "days": "Working days",
+        "validity": "Proposal valid for (days)",
+        "terms": "Terms",
+        "termsHint": "One term per line.",
+        "termsPlaceholder": "Payment: 40% on confirmation + 60% after completion\nWork subject to weather conditions"
+      },
+      "investment": {
+        "title": "Investment",
+        "mobilization": "Mobilization",
+        "daily": "{count, plural, one {Daily rate × # day} other {Daily rate × # days}}",
+        "total": "Total"
+      },
+      "photos": {
+        "title": "Job photos",
+        "description": "Up to {max} photos; they show in the PDF.",
+        "hint": "JPG or PNG, up to 5 MB each",
+        "none": "No photos selected.",
+        "tooBig": "Some photos were skipped for being over 5 MB."
+      },
+      "checklist": {
+        "title": "Before creating",
+        "review": "Review the scope and prices",
+        "confirm": "Check the equipment and dates",
+        "company": "Check the company details in My account"
+      },
+      "actions": {
+        "generate": "Create proposal and PDF",
+        "generating": "Creating...",
+        "draft": "Save draft",
+        "saving": "Saving...",
+        "back": "Back",
+        "next": "Continue",
+        "step": "Step {current} of {total}"
+      },
+      "errors": {
+        "noTemplate": "There's no standard template to start from scratch.",
+        "selectTemplate": "Pick a template before continuing.",
+        "photoUpload": "Couldn't upload the photo {name}.",
+        "photosNotAttached": "The proposal was created, but the photos weren't attached. Open the proposal to try again.",
+        "finish": "We couldn't finish the proposal.",
+        "limit": "You reached this month's proposal limit for your plan. Pick a bigger plan to continue."
+      },
+      "addClient": {
+        "title": "Add client",
+        "description": "Add a client without leaving the proposal.",
+        "name": "Name",
+        "company": "Company",
+        "optional": "optional",
+        "cancel": "Cancel",
+        "submit": "Add client"
+      }
     }
   },
   "crm": {

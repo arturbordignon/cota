@@ -3,6 +3,7 @@
 import type { Route } from "next";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useFormatter, useTranslations } from "next-intl";
 import { CaretLeft, CaretRight, CheckCircle, FilePlus, ImageSquare, Plus } from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -13,7 +14,8 @@ import type {
   TemplateDetail,
   TemplatesResponse,
 } from "@/types/api";
-import { useApi } from "@/hooks/use-api";
+import { ApiError, useApi } from "@/hooks/use-api";
+import { useAccountCurrency } from "@/hooks/use-account-currency";
 import { useCurrentUser } from "@/components/providers/user-provider";
 import { PageHeader } from "@/components/layout/page-header";
 import { Badge } from "@/components/ui/badge";
@@ -35,12 +37,7 @@ const MAX_ATTACHMENTS = 5;
 const TAMANHO_MAXIMO_FOTO = 5 * 1024 * 1024;
 const UM_DIA = 24 * 60 * 60 * 1000;
 
-const steps = [
-  { id: 1, title: "Escolher modelo", description: "Use um modelo ou comece do zero." },
-  { id: 2, title: "Detalhar operação", description: "Cliente, local, período, escopo e recursos." },
-  { id: 3, title: "Valores", description: "Mobilização, diária e condições comerciais." },
-  { id: 4, title: "Revisar & anexar", description: "Fotos, revisão final e geração do PDF." },
-];
+const STEP_KEYS = ["template", "details", "values", "review"] as const;
 
 type Formulario = {
   clientId: string;
@@ -174,10 +171,6 @@ function montarPeriodo(formulario: Formulario, idioma: IdiomaProposta) {
   return texto.intervalo(formatarData(formulario.dataInicio, idioma), formatarData(formulario.dataFim, idioma));
 }
 
-function formatarMoeda(valor: number) {
-  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(valor);
-}
-
 function descreverCapacidade(equipamento: EquipmentSummary, idioma: IdiomaProposta) {
   if (!equipamento.capacityTons) {
     return "";
@@ -249,20 +242,6 @@ function calcularTotal(totais: Totais) {
   return totais.mobilization + totais.dailyRate * totais.days;
 }
 
-function buscarRotuloModelo(selecionado: boolean) {
-  if (selecionado) {
-    return "Selecionado";
-  }
-  return "Selecionar modelo";
-}
-
-function buscarCategoriaModelo(modelo: TemplateDetail) {
-  if (modelo.accountId) {
-    return "Meu modelo";
-  }
-  return "Modelo padrão";
-}
-
 function formatarTamanhoArquivo(tamanho: number) {
   if (tamanho >= 1024 * 1024) {
     return `${(tamanho / (1024 * 1024)).toFixed(1)} MB`;
@@ -283,6 +262,15 @@ export default function NewProposalPage() {
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
   const { temPermissao } = useCurrentUser();
+  const t = useTranslations("proposals.wizard");
+  const formatador = useFormatter();
+  const moeda = useAccountCurrency();
+  const formatarMoeda = (valor: number) => formatador.number(valor, { style: "currency", currency: moeda });
+  const steps = STEP_KEYS.map((chave, indice) => ({
+    id: indice + 1,
+    title: t(`steps.${chave}.title`),
+    description: t(`steps.${chave}.description`),
+  }));
 
   const [stepIndex, setStepIndex] = useState(0);
   const [modeloId, setModeloId] = useState<string | null>(null);
@@ -400,7 +388,7 @@ export default function NewProposalPage() {
 
   const selecionarEmBranco = () => {
     if (!modeloPadrao) {
-      setSubmissionError("Nenhum modelo padrão disponível para começar do zero.");
+      setSubmissionError(t("errors.noTemplate"));
       return;
     }
     setModeloId(modeloPadrao.id);
@@ -414,7 +402,7 @@ export default function NewProposalPage() {
     const permitidas = imagens.filter((arquivo) => arquivo.size <= TAMANHO_MAXIMO_FOTO);
     setAvisoFotos(null);
     if (permitidas.length < imagens.length) {
-      setAvisoFotos("Algumas fotos foram ignoradas por passarem de 5MB.");
+      setAvisoFotos(t("photos.tooBig"));
     }
     setFotos(permitidas.slice(0, MAX_ATTACHMENTS));
   };
@@ -434,7 +422,7 @@ export default function NewProposalPage() {
         body: arquivo,
       });
       if (!envio.ok) {
-        throw new Error(`Falha ao enviar a foto ${arquivo.name}.`);
+        throw new Error(t("errors.photoUpload", { name: arquivo.name }));
       }
       assets.push({ s3ObjectKey: destino.key, mimeType: arquivo.type, position: posicao });
     }
@@ -447,7 +435,7 @@ export default function NewProposalPage() {
   const createProposalFlow = useMutation({
     mutationFn: async ({ gerarPdf }: { gerarPdf: boolean }) => {
       if (!modeloId) {
-        throw new Error("Selecione um modelo antes de continuar.");
+        throw new Error(t("errors.selectTemplate"));
       }
 
       let clientId: string | undefined;
@@ -469,7 +457,7 @@ export default function NewProposalPage() {
       try {
         await enviarFotos(proposalId);
       } catch (error) {
-        erroFotos = buscarMensagemErro(error, "Falha ao enviar as fotos.");
+        erroFotos = buscarMensagemErro(error, t("errors.photosNotAttached"));
       }
 
       if (gerarPdf) {
@@ -488,7 +476,7 @@ export default function NewProposalPage() {
         queryClient.invalidateQueries({ queryKey: ["billing", "overview"] }),
       ]);
       if (erroFotos) {
-        window.alert(`A proposta foi criada, mas as fotos não foram anexadas: ${erroFotos}`);
+        window.alert(t("errors.photosNotAttached"));
       }
       let destino = `/proposals/${proposalId}`;
       if (gerarPdf) {
@@ -497,7 +485,9 @@ export default function NewProposalPage() {
       router.push(destino as Route);
     },
     onError: (error: unknown) => {
-      setSubmissionError(buscarMensagemErro(error, "Não foi possível finalizar a proposta."));
+      setSubmissionError(
+        error instanceof ApiError && error.status === 402 ? t("errors.limit") : buscarMensagemErro(error, t("errors.finish")),
+      );
     },
   });
 
@@ -507,23 +497,23 @@ export default function NewProposalPage() {
   if (!podeCriar) {
     return (
       <section className="space-y-6">
-        <PageHeader title="Nova proposta" />
-        <Notice tone="warning">Seu departamento não tem permissão para criar propostas.</Notice>
+        <PageHeader title={t("title")} />
+        <Notice tone="warning">{t("noPermission")}</Notice>
       </section>
     );
   }
 
   const resumoLinhas = [
-    { rotulo: "Cliente", valor: clienteSelecionado?.name },
-    { rotulo: "Modelo", valor: modeloAtivo?.name },
-    { rotulo: "Projeto", valor: formulario.titulo },
-    { rotulo: "Local", valor: formulario.localOperacao },
-    { rotulo: "Período", valor: montarPeriodo(formulario, idiomaDoModelo(modeloAtivo)) },
+    { rotulo: t("summary.client"), valor: clienteSelecionado?.name },
+    { rotulo: t("summary.template"), valor: modeloAtivo?.name },
+    { rotulo: t("summary.project"), valor: formulario.titulo },
+    { rotulo: t("summary.site"), valor: formulario.localOperacao },
+    { rotulo: t("summary.period"), valor: montarPeriodo(formulario, idiomaDoModelo(modeloAtivo)) },
   ];
 
   const resumo = (
     <Card className="p-5">
-      <CardTitle>Resumo</CardTitle>
+      <CardTitle>{t("summary.title")}</CardTitle>
       <dl className="mt-4 space-y-3 text-sm">
         {resumoLinhas.map((linha) => (
           <div key={linha.rotulo} className="flex items-baseline justify-between gap-4">
@@ -533,7 +523,7 @@ export default function NewProposalPage() {
         ))}
       </dl>
       <div className="mt-4 flex items-end justify-between gap-4 border-t border-dashed border-outline pt-4">
-        <span className="text-sm font-semibold text-ink">Total</span>
+        <span className="text-sm font-semibold text-ink">{t("summary.total")}</span>
         <span className="tabular font-display text-2xl font-semibold leading-none text-ink">
           {formatarMoeda(total)}
         </span>
@@ -544,8 +534,8 @@ export default function NewProposalPage() {
   return (
     <section className="space-y-6">
       <PageHeader
-        title="Nova proposta"
-        description="Escolha um modelo, detalhe a operação, defina os valores e gere o PDF para enviar ao cliente."
+        title={t("title")}
+        description={t("description")}
       />
 
       <Card className="px-5 py-5 sm:px-6">
@@ -566,12 +556,12 @@ export default function NewProposalPage() {
               <FilePlus size={20} weight="bold" />
             </span>
             <span>
-              <span className="block text-[15px] font-semibold text-ink">Começar do zero</span>
+              <span className="block text-[15px] font-semibold text-ink">{t("blank.title")}</span>
               <span className="mt-1 block text-sm leading-snug text-muted">
-                Usa o layout padrão com todos os campos em branco para você preencher.
+                {t("blank.description")}
               </span>
             </span>
-            <span className="mt-auto text-[13px] font-semibold text-primary-strong">Usar proposta em branco</span>
+            <span className="mt-auto text-[13px] font-semibold text-primary-strong">{t("blank.action")}</span>
           </button>
 
           {templatesQuery.isLoading &&
@@ -594,7 +584,7 @@ export default function NewProposalPage() {
               >
                 <span className="flex flex-wrap items-center gap-2">
                   {modelo.category && <Badge tone="brand">{modelo.category}</Badge>}
-                  <span className="text-xs font-medium text-muted">{buscarCategoriaModelo(modelo)}</span>
+                  <span className="text-xs font-medium text-muted">{modelo.accountId ? t("templateCard.mine") : t("templateCard.standard")}</span>
                 </span>
                 <span>
                   <span className="block text-[15px] font-semibold text-ink">{modelo.name}</span>
@@ -609,7 +599,7 @@ export default function NewProposalPage() {
                   )}
                 >
                   {selecionado ? <CheckCircle size={16} weight="fill" className="text-primary" /> : null}
-                  {buscarRotuloModelo(selecionado)}
+                  {selecionado ? t("templateCard.selected") : t("templateCard.select")}
                 </span>
               </button>
             );
@@ -621,13 +611,13 @@ export default function NewProposalPage() {
         <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
           <Card className="space-y-6 p-5 sm:p-6">
             <div className="space-y-2">
-              <Label htmlFor="cliente">Cliente</Label>
+              <Label htmlFor="cliente">{t("fields.client")}</Label>
               <div className="flex items-center gap-2">
                 <div className="min-w-0 flex-1">
                   <Select
                     id="cliente"
                     value={formulario.clientId}
-                    placeholder="Nenhum cliente cadastrado"
+                    placeholder={t("fields.noClients")}
                     onValueChange={(valor) => atualizarCampo("clientId", valor)}
                   >
                     {clientes.map((cliente) => (
@@ -640,30 +630,30 @@ export default function NewProposalPage() {
                 {podeCadastrarCliente && (
                   <Button variant="secondary" onClick={() => setAddClientOpen(true)}>
                     <Plus size={14} weight="bold" />
-                    Adicionar
+                    {t("fields.addClient")}
                   </Button>
                 )}
               </div>
             </div>
 
             <div className="grid gap-5 sm:grid-cols-2">
-              <Field label="Título / nome do projeto" htmlFor="titulo">
+              <Field label={t("fields.title")} htmlFor="titulo">
                 <Input
                   id="titulo"
-                  placeholder="Montagem de estrutura metálica - Galpão X"
+                  placeholder={t("fields.titlePlaceholder")}
                   value={formulario.titulo}
                   onChange={(event) => atualizarCampo("titulo", event.target.value)}
                 />
               </Field>
-              <Field label="Local da operação" htmlFor="localOperacao">
+              <Field label={t("fields.site")} htmlFor="localOperacao">
                 <Input
                   id="localOperacao"
-                  placeholder="Porto de Santos, SP"
+                  placeholder={t("fields.sitePlaceholder")}
                   value={formulario.localOperacao}
                   onChange={(event) => atualizarCampo("localOperacao", event.target.value)}
                 />
               </Field>
-              <Field label="Data de início" htmlFor="dataInicio">
+              <Field label={t("fields.start")} htmlFor="dataInicio">
                 <Input
                   id="dataInicio"
                   type="date"
@@ -671,7 +661,7 @@ export default function NewProposalPage() {
                   onChange={(event) => atualizarData("dataInicio", event.target.value)}
                 />
               </Field>
-              <Field label="Data de término" htmlFor="dataFim">
+              <Field label={t("fields.end")} htmlFor="dataFim">
                 <Input
                   id="dataFim"
                   type="date"
@@ -681,18 +671,18 @@ export default function NewProposalPage() {
               </Field>
             </div>
 
-            <Field label="Escopo do serviço" htmlFor="escopo" hint="Um item por linha.">
+            <Field label={t("fields.scope")} htmlFor="escopo" hint={t("fields.onePerLine")}>
               <Textarea
                 id="escopo"
                 rows={4}
-                placeholder={"Içamento e posicionamento de treliças\nSupervisor técnico durante o turno"}
+                placeholder={t("fields.scopePlaceholder")}
                 value={formulario.escopo}
                 onChange={(event) => atualizarCampo("escopo", event.target.value)}
               />
             </Field>
 
             <div className="space-y-2">
-              <Label htmlFor="equipamentosExtras">Equipamentos</Label>
+              <Label htmlFor="equipamentosExtras">{t("fields.equipment")}</Label>
               {catalogo.length > 0 && (
                 <div className="grid gap-2 sm:grid-cols-2">
                   {catalogo.map((equipamento) => (
@@ -717,17 +707,17 @@ export default function NewProposalPage() {
               <Textarea
                 id="equipamentosExtras"
                 rows={2}
-                placeholder="Outros equipamentos (um por linha)"
+                placeholder={t("fields.equipmentPlaceholder")}
                 value={formulario.equipamentosExtras}
                 onChange={(event) => atualizarCampo("equipamentosExtras", event.target.value)}
               />
             </div>
 
-            <Field label="Equipe e certificações" htmlFor="equipe" hint="Um item por linha.">
+            <Field label={t("fields.team")} htmlFor="equipe" hint={t("fields.onePerLine")}>
               <Textarea
                 id="equipe"
                 rows={3}
-                placeholder={"Operador de guindaste certificado\nRigger responsável com ART"}
+                placeholder={t("fields.teamPlaceholder")}
                 value={formulario.equipe}
                 onChange={(event) => atualizarCampo("equipe", event.target.value)}
               />
@@ -742,7 +732,7 @@ export default function NewProposalPage() {
         <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
           <Card className="space-y-6 p-5 sm:p-6">
             <div className="grid gap-5 sm:grid-cols-3">
-              <Field label="Mobilização (R$)" htmlFor="mobilizacao" hint="Ida e volta do equipamento.">
+              <Field label={t("fields.mobilization")} htmlFor="mobilizacao" hint={t("fields.mobilizationHint")}>
                 <Input
                   id="mobilizacao"
                   type="number"
@@ -754,7 +744,7 @@ export default function NewProposalPage() {
                   onChange={(event) => atualizarCampo("mobilizacao", event.target.value)}
                 />
               </Field>
-              <Field label="Diária operacional (R$)" htmlFor="diaria">
+              <Field label={t("fields.dailyRate")} htmlFor="diaria">
                 <Input
                   id="diaria"
                   type="number"
@@ -766,7 +756,7 @@ export default function NewProposalPage() {
                   onChange={(event) => atualizarCampo("diaria", event.target.value)}
                 />
               </Field>
-              <Field label="Dias de operação" htmlFor="dias">
+              <Field label={t("fields.days")} htmlFor="dias">
                 <Input
                   id="dias"
                   type="number"
@@ -779,7 +769,7 @@ export default function NewProposalPage() {
               </Field>
             </div>
 
-            <Field label="Validade da proposta (dias)" htmlFor="validadeDias" className="sm:max-w-[220px]">
+            <Field label={t("fields.validity")} htmlFor="validadeDias" className="sm:max-w-[220px]">
               <Input
                 id="validadeDias"
                 type="number"
@@ -791,11 +781,11 @@ export default function NewProposalPage() {
               />
             </Field>
 
-            <Field label="Condições gerais" htmlFor="condicoes" hint="Uma condição por linha.">
+            <Field label={t("fields.terms")} htmlFor="condicoes" hint={t("fields.termsHint")}>
               <Textarea
                 id="condicoes"
                 rows={5}
-                placeholder={"Pagamento: 40% na confirmação + 60% após a conclusão\nOperação sujeita a condições climáticas"}
+                placeholder={t("fields.termsPlaceholder")}
                 value={formulario.condicoes}
                 onChange={(event) => atualizarCampo("condicoes", event.target.value)}
               />
@@ -803,19 +793,19 @@ export default function NewProposalPage() {
           </Card>
 
           <Card className="p-5 lg:sticky lg:top-24">
-            <CardTitle>Investimento</CardTitle>
+            <CardTitle>{t("investment.title")}</CardTitle>
             <dl className="mt-4 space-y-3 text-sm">
               <div className="flex items-baseline justify-between gap-3">
-                <dt className="text-muted">Mobilização</dt>
+                <dt className="text-muted">{t("investment.mobilization")}</dt>
                 <dd className="tabular font-medium text-ink">{formatarMoeda(totais.mobilization)}</dd>
               </div>
               <div className="flex items-baseline justify-between gap-3">
-                <dt className="text-muted">Diária × {totais.days} dia(s)</dt>
+                <dt className="text-muted">{t("investment.daily", { count: totais.days })}</dt>
                 <dd className="tabular font-medium text-ink">{formatarMoeda(totais.dailyRate * totais.days)}</dd>
               </div>
             </dl>
             <div className="mt-4 border-t border-dashed border-outline pt-4">
-              <p className="meta-label">Total</p>
+              <p className="meta-label">{t("investment.total")}</p>
               <p className="tabular mt-1 font-display text-[32px] font-semibold leading-none text-ink">
                 {formatarMoeda(total)}
               </p>
@@ -829,11 +819,11 @@ export default function NewProposalPage() {
           <div className="space-y-6">
             <Card className="space-y-3 p-5 sm:p-6">
               <div>
-                <CardTitle>Fotos da operação</CardTitle>
-                <CardDescription>Até {MAX_ATTACHMENTS} fotos, aparecem no PDF.</CardDescription>
+                <CardTitle>{t("photos.title")}</CardTitle>
+                <CardDescription>{t("photos.description", { max: MAX_ATTACHMENTS })}</CardDescription>
               </div>
               <UploadArea
-                hint="JPG ou PNG, até 5 MB por foto"
+                hint={t("photos.hint")}
                 onFilesSelected={selecionarFotos}
                 accept="image/png,image/jpeg"
               />
@@ -854,18 +844,14 @@ export default function NewProposalPage() {
                   ))}
                 </ul>
               ) : (
-                <p className="text-xs text-muted">Nenhuma foto selecionada.</p>
+                <p className="text-xs text-muted">{t("photos.none")}</p>
               )}
             </Card>
 
             <Card className="p-5 sm:p-6">
-              <CardTitle>Antes de gerar</CardTitle>
+              <CardTitle>{t("checklist.title")}</CardTitle>
               <ul className="mt-3 space-y-2 text-sm text-ink-muted">
-                {[
-                  "Revise escopo e valores",
-                  "Confirme equipamentos e datas",
-                  "Confira os dados da empresa em Minha conta",
-                ].map((item) => (
+                {[t("checklist.review"), t("checklist.confirm"), t("checklist.company")].map((item) => (
                   <li key={item} className="flex items-center gap-2.5">
                     <CheckCircle size={16} weight="fill" className="shrink-0 text-outline" />
                     {item}
@@ -881,21 +867,21 @@ export default function NewProposalPage() {
               size="lg"
               className="w-full"
               loading={createProposalFlow.isPending && createProposalFlow.variables?.gerarPdf === true}
-              loadingText="Gerando..."
+              loadingText={t("actions.generating")}
               disabled={createProposalFlow.isPending}
               onClick={() => createProposalFlow.mutate({ gerarPdf: true })}
             >
-              Gerar proposta e PDF
+              {t("actions.generate")}
             </Button>
             <Button
               variant="secondary"
               className="w-full"
               loading={createProposalFlow.isPending && createProposalFlow.variables?.gerarPdf === false}
-              loadingText="Salvando..."
+              loadingText={t("actions.saving")}
               disabled={createProposalFlow.isPending}
               onClick={() => createProposalFlow.mutate({ gerarPdf: false })}
             >
-              Salvar rascunho
+              {t("actions.draft")}
             </Button>
           </div>
         </div>
@@ -910,14 +896,14 @@ export default function NewProposalPage() {
           disabled={stepIndex === 0 || createProposalFlow.isPending}
         >
           <CaretLeft size={14} weight="bold" />
-          Voltar
+          {t("actions.back")}
         </Button>
         <span className="tabular text-[13px] font-medium text-muted">
-          Etapa {stepIndex + 1} de {steps.length}
+          {t("actions.step", { current: stepIndex + 1, total: steps.length })}
         </span>
         {stepIndex < steps.length - 1 ? (
           <Button onClick={handleNext} disabled={!modeloId || createProposalFlow.isPending}>
-            Continuar
+            {t("actions.next")}
             <CaretRight size={14} weight="bold" />
           </Button>
         ) : (
@@ -928,8 +914,8 @@ export default function NewProposalPage() {
       <Modal
         open={addClientOpen}
         onOpenChange={setAddClientOpen}
-        title="Adicionar cliente"
-        description="Cadastre um cliente sem sair da criação da proposta."
+        title={t("addClient.title")}
+        description={t("addClient.description")}
         size="sm"
         onSubmit={(e) => {
           e.preventDefault();
@@ -941,7 +927,7 @@ export default function NewProposalPage() {
         }}
       >
         <ModalBody>
-          <Field label="Nome" htmlFor="novo-cliente-nome">
+          <Field label={t("addClient.name")} htmlFor="novo-cliente-nome">
             <Input
               id="novo-cliente-nome"
               autoFocus
@@ -949,7 +935,7 @@ export default function NewProposalPage() {
               onChange={(e) => setNewClient((s) => ({ ...s, name: e.target.value }))}
             />
           </Field>
-          <Field label="Empresa" htmlFor="novo-cliente-empresa" optional="opcional">
+          <Field label={t("addClient.company")} htmlFor="novo-cliente-empresa" optional={t("addClient.optional")}>
             <Input
               id="novo-cliente-empresa"
               value={newClient.companyName}
@@ -961,11 +947,11 @@ export default function NewProposalPage() {
         <ModalFooter>
           <ModalClose asChild>
             <Button type="button" variant="ghost">
-              Cancelar
+              {t("addClient.cancel")}
             </Button>
           </ModalClose>
           <Button type="submit" loading={createClient.isPending} disabled={!newClient.name.trim()}>
-            Cadastrar cliente
+            {t("addClient.submit")}
           </Button>
         </ModalFooter>
       </Modal>
