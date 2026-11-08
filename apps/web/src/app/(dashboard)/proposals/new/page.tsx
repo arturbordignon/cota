@@ -261,7 +261,7 @@ export default function NewProposalPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
-  const { temPermissao } = useCurrentUser();
+  const { temPermissao, user } = useCurrentUser();
   const t = useTranslations("proposals.wizard");
   const formatador = useFormatter();
   const moeda = useAccountCurrency();
@@ -309,7 +309,11 @@ export default function NewProposalPage() {
     () => (templatesQuery.data?.data || []) as TemplateDetail[],
     [templatesQuery.data],
   );
-  const modeloPadrao = modelos.find((modelo) => !modelo.accountId);
+  // A blank proposal starts from the standard template in the account's language.
+  const idiomaDaConta = user?.account.locale === "en" ? "en" : "pt-BR";
+  const modeloPadrao =
+    modelos.find((modelo) => !modelo.accountId && modelo.locale === idiomaDaConta) ??
+    modelos.find((modelo) => !modelo.accountId);
   const modeloAtivo = modelos.find((modelo) => modelo.id === modeloId);
   const totais = montarTotais(formulario);
   const total = calcularTotal(totais);
