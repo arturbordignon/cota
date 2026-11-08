@@ -32,6 +32,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { ApiError, useApi } from "@/hooks/use-api";
+import { useAccountCurrency } from "@/hooks/use-account-currency";
 import { cn } from "@/lib/utils";
 import { ReportsOverviewResponse } from "@/types/api";
 import { StatCard } from "@/components/reports/stat-card";
@@ -263,10 +264,11 @@ export default function ReportsPage() {
   const tCustom = useTranslations("reports.tabs.custom.form");
   const tCustomResult = useTranslations("reports.tabs.custom.resultCard");
 
+  const moeda = useAccountCurrency();
   const formatCurrency = useCallback(
     (value: number) =>
-      formatter.number(value, { style: "currency", currency: "BRL", maximumFractionDigits: 0 }),
-    [formatter],
+      formatter.number(value, { style: "currency", currency: moeda, maximumFractionDigits: 0 }),
+    [formatter, moeda],
   );
 
   const formatNumber = useCallback(
