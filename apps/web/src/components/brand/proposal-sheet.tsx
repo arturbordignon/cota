@@ -1,5 +1,4 @@
 import { CheckCircle, Truck } from "@phosphor-icons/react/dist/ssr";
-
 import { useTranslations } from "next-intl";
 
 import { cn } from "@/lib/utils";
