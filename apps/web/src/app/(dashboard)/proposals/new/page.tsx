@@ -16,6 +16,7 @@ import type {
 } from "@/types/api";
 import { ApiError, useApi } from "@/hooks/use-api";
 import { useAccountCurrency } from "@/hooks/use-account-currency";
+import { useErrorMessage } from "@/hooks/use-error-message";
 import { useCurrentUser } from "@/components/providers/user-provider";
 import { PageHeader } from "@/components/layout/page-header";
 import { Badge } from "@/components/ui/badge";
@@ -264,6 +265,7 @@ export default function NewProposalPage() {
   const { temPermissao, user } = useCurrentUser();
   const t = useTranslations("proposals.wizard");
   const tIdiomas = useTranslations("templates.dialog.localeLabels");
+  const mensagemDeErro = useErrorMessage();
   const formatador = useFormatter();
   const moeda = useAccountCurrency();
   const formatarMoeda = (valor: number) => formatador.number(valor, { style: "currency", currency: moeda });
@@ -952,7 +954,7 @@ export default function NewProposalPage() {
               onChange={(e) => setNewClient((s) => ({ ...s, companyName: e.target.value }))}
             />
           </Field>
-          {createClient.isError && <Notice tone="danger">{createClient.error.message}</Notice>}
+          {createClient.isError && <Notice tone="danger">{mensagemDeErro(createClient.error)}</Notice>}
         </ModalBody>
         <ModalFooter>
           <ModalClose asChild>
