@@ -63,14 +63,16 @@ const templateRoutes: FastifyPluginAsync = async (app) => {
       key: cacheKey,
       ttl: 180,
       loader: async () => {
+        // Deleting a template only deactivates it, so the list must leave
+        // inactive ones out or they come back after being removed.
         const filters = [] as Array<Record<string, unknown>>;
         if (query.scope === 'system') {
           filters.push({ accountId: null, isActive: true });
         } else if (query.scope === 'custom') {
-          filters.push({ accountId: request.user.accountId });
+          filters.push({ accountId: request.user.accountId, isActive: true });
         } else {
           filters.push({ accountId: null, isActive: true });
-          filters.push({ accountId: request.user.accountId });
+          filters.push({ accountId: request.user.accountId, isActive: true });
         }
 
         return app.prisma.proposalTemplate.findMany({
