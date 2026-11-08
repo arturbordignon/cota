@@ -483,6 +483,12 @@ export const enMessages = {
     "closeMenu": "Close menu",
     "language": "Interface language"
   },
+  "notFound": {
+    "title": "Page not found",
+    "description": "The address may be wrong, or the page was removed.",
+    "dashboard": "Go to the dashboard",
+    "home": "Home page"
+  },
   "notifications": {
     "title": "Notifications",
     "description": "Know when clients open and answer proposals, PDFs are ready and the team grows.",

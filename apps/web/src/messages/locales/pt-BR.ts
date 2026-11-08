@@ -483,6 +483,12 @@ export const ptBRMessages = {
     "closeMenu": "Fechar menu",
     "language": "Idioma da interface"
   },
+  "notFound": {
+    "title": "Página não encontrada",
+    "description": "O endereço pode estar incorreto ou a página foi removida.",
+    "dashboard": "Ir para o painel",
+    "home": "Página inicial"
+  },
   "notifications": {
     "title": "Notificações",
     "description": "Acompanhe quando clientes abrem e respondem propostas, PDFs ficam prontos e a equipe cresce.",
