@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useFormatter, useTranslations } from "next-intl";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -276,6 +277,14 @@ export default function ClientsPage() {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const menuContainerRef = useRef<HTMLDivElement | null>(null);
   const [copiedClientId, setCopiedClientId] = useState<string | null>(null);
+
+  // The global search lands here with ?search=.
+  const termoDaUrl = useSearchParams().get("search");
+  useEffect(() => {
+    if (termoDaUrl !== null) {
+      setSearchTerm(termoDaUrl);
+    }
+  }, [termoDaUrl]);
 
   useEffect(() => {
     setOpenMenuId(null);
