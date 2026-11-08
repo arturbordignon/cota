@@ -8,11 +8,13 @@ import { useTranslations } from "next-intl";
 import { Logo } from "@/components/brand/logo";
 import { ProposalSheet } from "@/components/brand/proposal-sheet";
 import { useCurrentUser } from "@/components/providers/user-provider";
+import { LocaleSwitcher } from "@/components/layout/locale-switcher";
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { status } = useCurrentUser();
   const t = useTranslations("auth.panel");
+  const tLanding = useTranslations("landing");
 
   useEffect(() => {
     if (status === "authenticated") {
@@ -32,9 +34,14 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
   return (
     <div className="grid min-h-screen bg-white lg:grid-cols-[minmax(0,1fr)_minmax(0,0.95fr)]">
       <div className="flex flex-col px-6 py-6 sm:px-10 lg:px-16">
-        <Link href="/" className="self-start rounded-lg">
-          <Logo />
-        </Link>
+        <div className="flex items-center justify-between gap-4">
+          <Link href="/" className="rounded-lg">
+            <Logo />
+          </Link>
+          <div className="w-[170px]">
+            <LocaleSwitcher ariaLabel={tLanding("language")} />
+          </div>
+        </div>
         <div className="flex flex-1 items-center justify-center py-10">
           <div className="w-full max-w-[400px]">{content}</div>
         </div>
