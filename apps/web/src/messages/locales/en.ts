@@ -1351,6 +1351,76 @@ export const enMessages = {
         "cancel": "Cancel",
         "submit": "Add client"
       }
+    },
+    "detail": {
+      "titleFallback": "Proposal details",
+      "header": {
+        "description": "Client: {client} · Created {date}",
+        "loading": "Loading the proposal..."
+      },
+      "loginNeeded": "Sign in to see the proposal details.",
+      "notFound": {
+        "title": "Proposal not found",
+        "description": "It may have been removed, or you don't have access to it."
+      },
+      "meta": {
+        "client": "Client",
+        "template": "Template",
+        "language": "Language",
+        "expires": "Expires",
+        "updated": "Updated {date}",
+        "publicLink": "Public link",
+        "publicLinkLater": "The client can open the link once the proposal is sent."
+      },
+      "summary": {
+        "title": "Job summary",
+        "project": "Project",
+        "site": "Job site",
+        "period": "Period",
+        "days": "Working days",
+        "total": "Total"
+      },
+      "payload": {
+        "title": "Submitted data",
+        "empty": "No extra data was given for this proposal."
+      },
+      "timeline": {
+        "title": "Timeline",
+        "created": "Created",
+        "sent": "Sent",
+        "viewed": "Viewed",
+        "accepted": "Accepted",
+        "declined": "Declined"
+      },
+      "files": {
+        "title": "PDF and attachments",
+        "download": "Download the proposal PDF",
+        "notReady": "Not available yet. Click \"Create PDF\" to make the file.",
+        "attachments": "Attachments",
+        "noAttachments": "No attachments on this proposal yet.",
+        "photoAlt": "Job photo {number}",
+        "file": "File {number}"
+      },
+      "actions": {
+        "generate": "Create PDF",
+        "regenerate": "Recreate PDF",
+        "generating": "Creating PDF...",
+        "download": "Download PDF",
+        "send": "Send to client",
+        "copy": "Copy public link",
+        "copied": "Link copied"
+      },
+      "banners": {
+        "pdfSlow": "The PDF is taking longer than expected. Try again in a moment.",
+        "pdfReady": "PDF ready to download.",
+        "pdfQueued": "Creating the PDF. It shows up here in a few seconds.",
+        "pdfError": "We couldn't create the PDF right now.",
+        "linkCopied": "Public link copied. Send it for the client to view and answer.",
+        "sentCopyLink": "Proposal sent. Copy the link: {link}",
+        "sendError": "We couldn't send the proposal.",
+        "downloadError": "We couldn't download the PDF.",
+        "noPublicLink": "This proposal has no public link."
+      }
     }
   },
   "crm": {

@@ -22,6 +22,7 @@ import { Notice } from "@/components/ui/notice";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { useApi } from "@/hooks/use-api";
+import { useAccountCurrency } from "@/hooks/use-account-currency";
 import type {
   GenerateProposalResponse,
   ProposalDetail,
@@ -91,30 +92,24 @@ const NOMES_IDIOMAS: Record<string, string> = {
   en: "English",
 };
 
-function formatarMoeda(valor: number, locale?: string) {
-  let moeda = "BRL";
-  if (locale === "en") {
-    moeda = "USD";
-  }
-  return new Intl.NumberFormat(locale || "pt-BR", { style: "currency", currency: moeda }).format(valor);
-}
+type RotulosResumo = { project: string; site: string; period: string; days: string; total: string };
 
-function montarResumo(proposta?: ProposalDetail) {
+function montarResumo(rotulos: RotulosResumo, formatarMoeda: (valor: number) => string, proposta?: ProposalDetail) {
   if (!proposta) {
     return [];
   }
   const dados = (proposta.payloadJson || {}) as DadosProposta;
   const totais = (proposta.totalsJson || {}) as TotaisProposta;
   const itens = [
-    { label: "Projeto", value: dados.job?.projectName },
-    { label: "Local da operação", value: dados.job?.siteLocation },
-    { label: "Período", value: dados.job?.schedule },
+    { label: rotulos.project, value: dados.job?.projectName },
+    { label: rotulos.site, value: dados.job?.siteLocation },
+    { label: rotulos.period, value: dados.job?.schedule },
   ];
   if (typeof totais.days === "number" && totais.days > 0) {
-    itens.push({ label: "Dias de operação", value: String(totais.days) });
+    itens.push({ label: rotulos.days, value: String(totais.days) });
   }
   if (typeof totais.total === "number") {
-    itens.push({ label: "Valor total", value: formatarMoeda(totais.total, proposta.locale) });
+    itens.push({ label: rotulos.total, value: formatarMoeda(totais.total) });
   }
   return itens.filter((item) => item.value);
 }
@@ -123,6 +118,9 @@ export function ProposalDetailView({ proposalId }: ProposalDetailViewProps) {
   const api = useApi();
   const format = useFormatter();
   const tStatus = useTranslations("proposals.status");
+  const t = useTranslations("proposals.detail");
+  const moeda = useAccountCurrency();
+  const formatarMoeda = (valor: number) => format.number(valor, { style: "currency", currency: moeda });
   const queryClient = useQueryClient();
   const { temPermissao } = useCurrentUser();
   const podeEditar = temPermissao("proposals", "edit");
@@ -172,37 +170,34 @@ export function ProposalDetailView({ proposalId }: ProposalDetailViewProps) {
     }
     if (Date.now() - esperaPdf.inicio > TEMPO_MAXIMO_ESPERA_PDF) {
       setEsperaPdf(null);
-      setBanner({ tone: "danger", text: "O PDF está demorando mais que o esperado. Tente novamente em instantes." });
+      setBanner({ tone: "danger", text: t("banners.pdfSlow") });
       return;
     }
     if (proposal.updatedAt === esperaPdf.atualizadoEm || !proposal.pdfObjectKey) {
       return;
     }
     setEsperaPdf(null);
-    setBanner({ tone: "success", text: "PDF pronto para download." });
-  }, [esperaPdf, proposal]);
+    setBanner({ tone: "success", text: t("banners.pdfReady") });
+  }, [esperaPdf, proposal, t]);
 
   const generateMutation = useMutation({
     mutationFn: async () => {
       if (!api.isAuthenticated) {
-        throw new Error("Você precisa estar autenticado para gerar o PDF da proposta.");
+        throw new Error(t("loginNeeded"));
       }
       return api.post<GenerateProposalResponse>(`/proposals/${proposalId}/generate`, {});
     },
-    onSuccess: (response) => {
+    onSuccess: () => {
       setBanner({
         tone: "info",
-        text: response.message ?? "PDF em geração.",
+        text: t("banners.pdfQueued"),
       });
       setEsperaPdf({ atualizadoEm: proposal?.updatedAt, inicio: Date.now() });
     },
-    onError: (error: unknown) => {
+    onError: () => {
       setBanner({
         tone: "danger",
-        text:
-          error instanceof Error
-            ? error.message
-            : "Não foi possível reenfileirar a proposta para geração.",
+        text: t("banners.pdfError"),
       });
     },
   });
@@ -246,7 +241,7 @@ export function ProposalDetailView({ proposalId }: ProposalDetailViewProps) {
         }))
       : attachmentsFromPayload.map((item, index) => ({
           id: item.name ? `${item.name}-${index}` : `attachment-${index}`,
-          label: item.name ?? `Arquivo ${index + 1}`,
+          label: item.name ?? t("files.file", { number: index + 1 }),
           meta: item.type ?? "",
           size: item.size,
         }));
@@ -264,23 +259,23 @@ export function ProposalDetailView({ proposalId }: ProposalDetailViewProps) {
   const createdAt = proposal ? formatDateTime(proposal.createdAt) : "—";
   let headerDescription: string | undefined;
   if (proposal) {
-    headerDescription = `Cliente: ${proposal.client?.name ?? "—"} · Criada em ${createdAt}`;
+    headerDescription = t("header.description", { client: proposal.client?.name ?? "—", date: createdAt });
   } else if (proposalQuery.isLoading) {
-    headerDescription = "Carregando detalhes da proposta...";
+    headerDescription = t("header.loading");
   }
 
   const timeline = [
-    { label: "Criada", value: proposal?.createdAt },
-    { label: "Enviada", value: proposal?.sentAt },
-    { label: "Visualizada", value: proposal?.viewedAt },
-    { label: "Aceita", value: proposal?.acceptedAt },
-    { label: "Recusada", value: proposal?.declinedAt },
+    { label: t("timeline.created"), value: proposal?.createdAt },
+    { label: t("timeline.sent"), value: proposal?.sentAt },
+    { label: t("timeline.viewed"), value: proposal?.viewedAt },
+    { label: t("timeline.accepted"), value: proposal?.acceptedAt },
+    { label: t("timeline.declined"), value: proposal?.declinedAt },
   ];
 
   const enviarProposta = useMutation({
     mutationFn: async () => {
       if (!proposal?.publicSlug) {
-        throw new Error("Proposta sem link público.");
+        throw new Error(t("banners.noPublicLink"));
       }
       await api.post(`/proposals/${proposal.id}/send`, {});
     },
@@ -295,16 +290,16 @@ export function ProposalDetailView({ proposalId }: ProposalDetailViewProps) {
       try {
         await copiarTexto(linkPublico);
         setCopyState("copied");
-        setBanner({ tone: "success", text: "Link público copiado. Envie para o cliente visualizar e responder." });
+        setBanner({ tone: "success", text: t("banners.linkCopied") });
         return;
       } catch {
         setCopyState("error");
-        setBanner({ tone: "info", text: `Proposta enviada. Copie o link: ${linkPublico}` });
+        setBanner({ tone: "info", text: t("banners.sentCopyLink", { link: linkPublico }) });
       }
     },
     onError: (error: unknown) => {
       setCopyState("error");
-      setBanner({ tone: "danger", text: buscarMensagemErro(error, "Não foi possível enviar a proposta.") });
+      setBanner({ tone: "danger", text: buscarMensagemErro(error, t("banners.sendError")) });
     },
   });
 
@@ -314,31 +309,35 @@ export function ProposalDetailView({ proposalId }: ProposalDetailViewProps) {
       window.open(resposta.url, "_blank", "noopener");
     },
     onError: (error: unknown) => {
-      setBanner({ tone: "danger", text: buscarMensagemErro(error, "Não foi possível baixar o PDF.") });
+      setBanner({ tone: "danger", text: buscarMensagemErro(error, t("banners.downloadError")) });
     },
   });
 
-  let rotuloLink = "Enviar ao cliente";
+  let rotuloLink = t("actions.send");
   if (copyState === "copied") {
-    rotuloLink = "Link copiado";
+    rotuloLink = t("actions.copied");
   }
   if (proposal && proposal.status !== "DRAFT" && proposal.status !== "PENDING" && copyState !== "copied") {
-    rotuloLink = "Copiar link público";
+    rotuloLink = t("actions.copy");
   }
 
-  let rotuloGerarPdf = "Gerar PDF";
+  let rotuloGerarPdf = t("actions.generate");
   if (proposal?.pdfObjectKey) {
-    rotuloGerarPdf = "Regerar PDF";
+    rotuloGerarPdf = t("actions.regenerate");
   }
 
-  const resumo = montarResumo(proposal);
+  const resumo = montarResumo(
+    { project: t("summary.project"), site: t("summary.site"), period: t("summary.period"), days: t("summary.days"), total: t("summary.total") },
+    formatarMoeda,
+    proposal,
+  );
 
   const metadados = proposal
     ? [
-        { rotulo: "Cliente", valor: proposal.client?.name ?? "—" },
-        { rotulo: "Modelo", valor: proposal.template?.name ?? "—" },
-        { rotulo: "Idioma", valor: NOMES_IDIOMAS[proposal.locale ?? ""] ?? proposal.locale ?? "—" },
-        { rotulo: "Expira em", valor: formatDateTime(proposal.expiresAt) },
+        { rotulo: t("meta.client"), valor: proposal.client?.name ?? "—" },
+        { rotulo: t("meta.template"), valor: proposal.template?.name ?? "—" },
+        { rotulo: t("meta.language"), valor: NOMES_IDIOMAS[proposal.locale ?? ""] ?? proposal.locale ?? "—" },
+        { rotulo: t("meta.expires"), valor: formatDateTime(proposal.expiresAt) },
       ]
     : [];
 
@@ -347,7 +346,7 @@ export function ProposalDetailView({ proposalId }: ProposalDetailViewProps) {
   return (
     <section className="space-y-6">
       <PageHeader
-        title={proposal?.title ?? proposal?.template?.name ?? "Detalhe da proposta"}
+        title={proposal?.title ?? proposal?.template?.name ?? t("titleFallback")}
         description={headerDescription}
         action={
           proposal && podeEditar && (
@@ -356,7 +355,7 @@ export function ProposalDetailView({ proposalId }: ProposalDetailViewProps) {
                 variant="secondary"
                 onClick={() => generateMutation.mutate()}
                 loading={generateMutation.isPending || Boolean(esperaPdf)}
-                loadingText="Gerando PDF..."
+                loadingText={t("actions.generating")}
               >
                 <ArrowClockwise size={16} weight="bold" />
                 {rotuloGerarPdf}
@@ -368,7 +367,7 @@ export function ProposalDetailView({ proposalId }: ProposalDetailViewProps) {
                 disabled={!proposal.pdfObjectKey}
               >
                 <DownloadSimple size={16} weight="bold" />
-                Baixar PDF
+                {t("actions.download")}
               </Button>
               <Button onClick={() => enviarProposta.mutate()} loading={enviarProposta.isPending}>
                 <ClipboardText size={16} weight="bold" />
@@ -383,7 +382,7 @@ export function ProposalDetailView({ proposalId }: ProposalDetailViewProps) {
 
       {isTokenMissing ? (
         <Notice tone="warning">
-          Autentique-se ou defina o token da API para visualizar os detalhes reais da proposta.
+          {t("loginNeeded")}
         </Notice>
       ) : null}
 
@@ -396,8 +395,8 @@ export function ProposalDetailView({ proposalId }: ProposalDetailViewProps) {
 
       {!proposal && !isLoading ? (
         <EmptyState
-          title="Proposta não encontrada"
-          description="Ela pode ter sido removida ou você não possui permissão para visualizá-la."
+          title={t("notFound.title")}
+          description={t("notFound.description")}
         />
       ) : null}
 
@@ -408,7 +407,7 @@ export function ProposalDetailView({ proposalId }: ProposalDetailViewProps) {
               <Badge tone={statusTone} dot>
                 {statusLabel}
               </Badge>
-              <span className="text-xs text-muted">Atualizada em {formatDateTime(proposal.updatedAt)}</span>
+              <span className="text-xs text-muted">{t("meta.updated", { date: formatDateTime(proposal.updatedAt) })}</span>
             </div>
 
             <div className="space-y-7 p-6">
@@ -420,7 +419,7 @@ export function ProposalDetailView({ proposalId }: ProposalDetailViewProps) {
                   </div>
                 ))}
                 <div className="sm:col-span-2">
-                  <dt className="meta-label">Link público</dt>
+                  <dt className="meta-label">{t("meta.publicLink")}</dt>
                   <dd className="mt-1 break-all text-sm text-ink-muted">
                     {proposal.publicSlug && linkPublicoAtivo ? (
                       <a
@@ -435,7 +434,7 @@ export function ProposalDetailView({ proposalId }: ProposalDetailViewProps) {
                       <>
                         /p/{proposal.publicSlug}
                         <span className="mt-1 block text-xs text-muted">
-                          O cliente consegue abrir o link depois que a proposta for enviada.
+                          {t("meta.publicLinkLater")}
                         </span>
                       </>
                     ) : (
@@ -447,7 +446,7 @@ export function ProposalDetailView({ proposalId }: ProposalDetailViewProps) {
 
               {resumo.length > 0 && (
                 <div className="space-y-3">
-                  <h3 className="font-sans text-[15px] font-semibold text-ink">Resumo da operação</h3>
+                  <h3 className="font-sans text-[15px] font-semibold text-ink">{t("summary.title")}</h3>
                   <dl className="divide-y divide-border rounded-lg border border-border">
                     {resumo.map((item) => (
                       <div key={item.label} className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 px-4 py-3">
@@ -461,7 +460,7 @@ export function ProposalDetailView({ proposalId }: ProposalDetailViewProps) {
 
               {payloadEntries.length > 0 && (
                 <div className="space-y-3">
-                  <h3 className="font-sans text-[15px] font-semibold text-ink">Dados enviados</h3>
+                  <h3 className="font-sans text-[15px] font-semibold text-ink">{t("payload.title")}</h3>
                   <dl className="grid gap-3 sm:grid-cols-2">
                     {payloadEntries.map(({ key, label, value }) => (
                       <div key={key} className="rounded-lg bg-surface-muted px-4 py-3">
@@ -475,7 +474,7 @@ export function ProposalDetailView({ proposalId }: ProposalDetailViewProps) {
 
               {payloadEntries.length === 0 && resumo.length === 0 && (
                 <p className="text-sm text-muted">
-                  Nenhum dado adicional foi informado para esta proposta.
+                  {t("payload.empty")}
                 </p>
               )}
             </div>
@@ -485,7 +484,7 @@ export function ProposalDetailView({ proposalId }: ProposalDetailViewProps) {
             <Card className="p-5">
               <CardTitle className="flex items-center gap-2">
                 <PaperPlaneTilt size={18} weight="bold" className="text-primary-strong" />
-                Linha do tempo
+                {t("timeline.title")}
               </CardTitle>
               <ol className="mt-4">
                 {timeline.map((item, indice) => {
@@ -523,7 +522,7 @@ export function ProposalDetailView({ proposalId }: ProposalDetailViewProps) {
             <Card className="p-5">
               <CardTitle className="flex items-center gap-2">
                 <Files size={18} weight="bold" className="text-primary-strong" />
-                PDF e anexos
+                {t("files.title")}
               </CardTitle>
               <div className="mt-4 space-y-4 text-sm">
                 {proposal.pdfObjectKey ? (
@@ -536,19 +535,19 @@ export function ProposalDetailView({ proposalId }: ProposalDetailViewProps) {
                       PDF
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block font-semibold text-ink">Baixar PDF da proposta</span>
+                      <span className="block font-semibold text-ink">{t("files.download")}</span>
                       <span className="block truncate text-xs text-muted">{proposal.title ?? proposal.template?.name}</span>
                     </span>
                     <DownloadSimple size={16} className="shrink-0 text-muted" />
                   </button>
                 ) : (
                   <p className="rounded-lg bg-surface-muted px-3 py-2.5 text-ink-muted">
-                    Ainda não disponível. Clique em &quot;Gerar PDF&quot; para criar o arquivo.
+                    {t("files.notReady")}
                   </p>
                 )}
 
                 <div className="space-y-2">
-                  <p className="meta-label">Anexos</p>
+                  <p className="meta-label">{t("files.attachments")}</p>
                   {fotos.length > 0 ? (
                     <ul className="grid grid-cols-3 gap-2">
                       {fotos.map((foto, indice) => (
@@ -563,7 +562,7 @@ export function ProposalDetailView({ proposalId }: ProposalDetailViewProps) {
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
                               src={foto.url}
-                              alt={`Foto ${indice + 1} da operação`}
+                              alt={t("files.photoAlt", { number: indice + 1 })}
                               className="aspect-square w-full object-cover"
                               loading="lazy"
                             />
@@ -585,7 +584,7 @@ export function ProposalDetailView({ proposalId }: ProposalDetailViewProps) {
                     </ul>
                   ) : (
                     <p className="text-xs text-muted">
-                      Nenhum anexo foi associado a esta proposta até o momento.
+                      {t("files.noAttachments")}
                     </p>
                   )}
                 </div>

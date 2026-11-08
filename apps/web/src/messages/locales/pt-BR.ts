@@ -1351,6 +1351,76 @@ export const ptBRMessages = {
         "cancel": "Cancelar",
         "submit": "Cadastrar cliente"
       }
+    },
+    "detail": {
+      "titleFallback": "Detalhe da proposta",
+      "header": {
+        "description": "Cliente: {client} · Criada em {date}",
+        "loading": "Carregando detalhes da proposta..."
+      },
+      "loginNeeded": "Faça login para ver os detalhes da proposta.",
+      "notFound": {
+        "title": "Proposta não encontrada",
+        "description": "Ela pode ter sido removida ou você não possui permissão para visualizá-la."
+      },
+      "meta": {
+        "client": "Cliente",
+        "template": "Modelo",
+        "language": "Idioma",
+        "expires": "Expira em",
+        "updated": "Atualizada em {date}",
+        "publicLink": "Link público",
+        "publicLinkLater": "O cliente consegue abrir o link depois que a proposta for enviada."
+      },
+      "summary": {
+        "title": "Resumo da operação",
+        "project": "Projeto",
+        "site": "Local da operação",
+        "period": "Período",
+        "days": "Dias de operação",
+        "total": "Valor total"
+      },
+      "payload": {
+        "title": "Dados enviados",
+        "empty": "Nenhum dado adicional foi informado para esta proposta."
+      },
+      "timeline": {
+        "title": "Linha do tempo",
+        "created": "Criada",
+        "sent": "Enviada",
+        "viewed": "Visualizada",
+        "accepted": "Aceita",
+        "declined": "Recusada"
+      },
+      "files": {
+        "title": "PDF e anexos",
+        "download": "Baixar PDF da proposta",
+        "notReady": "Ainda não disponível. Clique em \"Gerar PDF\" para criar o arquivo.",
+        "attachments": "Anexos",
+        "noAttachments": "Nenhum anexo foi associado a esta proposta até o momento.",
+        "photoAlt": "Foto {number} da operação",
+        "file": "Arquivo {number}"
+      },
+      "actions": {
+        "generate": "Gerar PDF",
+        "regenerate": "Regerar PDF",
+        "generating": "Gerando PDF...",
+        "download": "Baixar PDF",
+        "send": "Enviar ao cliente",
+        "copy": "Copiar link público",
+        "copied": "Link copiado"
+      },
+      "banners": {
+        "pdfSlow": "O PDF está demorando mais que o esperado. Tente novamente em instantes.",
+        "pdfReady": "PDF pronto para download.",
+        "pdfQueued": "Gerando o PDF. Ele aparece aqui em alguns segundos.",
+        "pdfError": "Não foi possível gerar o PDF agora.",
+        "linkCopied": "Link público copiado. Envie para o cliente visualizar e responder.",
+        "sentCopyLink": "Proposta enviada. Copie o link: {link}",
+        "sendError": "Não foi possível enviar a proposta.",
+        "downloadError": "Não foi possível baixar o PDF.",
+        "noPublicLink": "Proposta sem link público."
+      }
     }
   },
   "crm": {
