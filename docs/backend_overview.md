@@ -56,21 +56,28 @@ Worker (BullMQ consumer) handling PDF rendering + notifications
 - **SavedFieldSet**: id, account_id, key, payload_json (reusable groups of values e.g., standard terms).
 - **AuditEvent**: id, account_id, user_id, action, entity_type, entity_id, metadata_json.
 
-## API Surface (Phase 1)
-- Auth: register, login, refresh, password reset request/confirm.
-- Account: fetch/update settings.
-- Templates: list system templates, list account templates, create/update/delete custom templates, upload template asset (HTML or PDF).
-- Clients: CRUD.
-- Equipment Catalog: CRUD.
-- Saved Field Sets: CRUD.
-- Proposals:
-  - Create draft from template (auto-populate defaults).
-  - Update draft payload (job info, equipment, pricing, terms, photos metadata).
-  - Trigger generation (enqueues job for PDF + static page render).
-  - Fetch proposal details + ready asset URLs when done.
-  - List proposals with filters (status, client, date range).
-- Assets: upload photo (direct S3 signed URL approach) up to 5 images per proposal.
-- Webhook ingress (future) for e-signature providers.
+## API Surface
+Everything lives under `/api/v1`; `pnpm smoke:api` calls each route once.
+
+- Auth: `POST /auth/register`, `/auth/login`, `/auth/refresh`, `/auth/logout`; `GET /auth/me` (profile and permissions).
+- Account: `GET /account`, `PUT /account/company` (details printed on proposals), `DELETE /account` (owner, with password).
+- Clients: CRUD on `/clients`. Deleting a client keeps its proposals without a client.
+- Services (equipment catalog): CRUD on `/equipment`.
+- Templates: list (`?scope=system|custom&locale=`), CRUD on `/templates` (delete deactivates),
+  `GET /templates/:id/preview` renders the template with sample data and the account's company.
+- Proposals: list with filters (`status`, `clientId`, `from`, `to`), create, read by id or slug, update
+  (title, values, payload, photos), `POST /:id/generate` (queues the PDF), `POST /:id/send`, `GET /:id/pdf`.
+- Photos: `POST /assets/upload-url` hands out a signed upload URL (PNG/JPEG/WebP up to 5 MB, 5 per proposal).
+- Public proposal page: `GET /public/proposals/:slug`, `POST /:slug/accept`, `POST /:slug/decline` (no login).
+- Pipeline: `/pipeline/stages` (list, create, rename, reorder, delete when empty) and `/pipeline/leads` (create, move).
+- Reports: `GET /reports/overview` and `POST /reports/run`, which answers questions in Portuguese or English about
+  conversion, revenue by client, time until the client answers, proposals per consultant and by status.
+- Team (owner): members, invites (`/team/members`, `/team/invite/preview`, `/team/invite/accept`), departments
+  with per-module permissions, and `/team/ranking`.
+- Notifications: `GET /notifications`, `POST /notifications/:id/read`, `POST /notifications/read-all`.
+- Activity log (owner): `GET /audit-events` with `category` and `search`.
+- Billing: `GET /billing/plans`, `GET /billing/overview`, `POST /billing/checkout`, `POST /billing/portal`,
+  `POST /billing/webhook` (Stripe).
 
 ## Localization Strategy
 - API accepts `Accept-Language` header; default to account locale.
