@@ -1198,6 +1198,65 @@ export const ptBRMessages = {
         "duplicate": "Não foi possível duplicar este modelo.",
         "unavailable": "Os dados do modelo ainda não estão disponíveis."
       }
+    },
+    "builder": {
+      "title": "Editor visual de modelos",
+      "description": "Monte layouts para web ou PDF arrastando blocos reutilizáveis.",
+      "back": "Voltar para modelos",
+      "blocksTitle": "Blocos",
+      "blocksHint": "Clique para adicionar um componente ao layout.",
+      "blocks": {
+        "heading": "Título",
+        "paragraph": "Parágrafo",
+        "image": "Imagem",
+        "divider": "Divisor",
+        "pricing": "Tabela de preços",
+        "button": "Botão CTA",
+        "signature": "Assinatura"
+      },
+      "export": {
+        "title": "Exportar",
+        "html": "Exportar HTML",
+        "pdf": "Exportar PDF"
+      },
+      "empty": {
+        "title": "Nenhum conteúdo ainda",
+        "description": "Adicione blocos ao layout para visualizar a prévia."
+      },
+      "blockActions": {
+        "moveUp": "Mover para cima",
+        "moveDown": "Mover para baixo",
+        "edit": "Editar",
+        "remove": "Remover bloco"
+      },
+      "details": {
+        "title": "Detalhes do modelo",
+        "name": "Nome",
+        "namePlaceholder": "Ex.: Proposta corporativa",
+        "description": "Descrição",
+        "descriptionPlaceholder": "Breve resumo do modelo",
+        "category": "Categoria",
+        "categoryPlaceholder": "Ex.: Comercial",
+        "language": "Idioma do documento",
+        "hint": "Essas informações aparecem na lista de modelos."
+      },
+      "editor": {
+        "title": "Editar bloco",
+        "content": "Conteúdo",
+        "imageUrl": "URL da imagem",
+        "items": "Itens",
+        "itemLabel": "Descrição",
+        "itemValue": "Valor",
+        "addItem": "Adicionar item",
+        "buttonText": "Texto do botão",
+        "buttonLink": "Link",
+        "done": "Encerrar edição",
+        "noSelection": "Selecione um bloco para editar."
+      },
+      "save": "Salvar modelo",
+      "saved": "Modelo salvo com sucesso!",
+      "saveError": "Não foi possível salvar o modelo.",
+      "previewAlt": "Prévia"
     }
   },
   "proposals": {

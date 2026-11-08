@@ -1198,6 +1198,65 @@ export const enMessages = {
         "duplicate": "We couldn't duplicate this template.",
         "unavailable": "Template data is not available yet."
       }
+    },
+    "builder": {
+      "title": "Visual template builder",
+      "description": "Build layouts for web or PDF by stacking reusable blocks.",
+      "back": "Back to templates",
+      "blocksTitle": "Blocks",
+      "blocksHint": "Click to add a component to the layout.",
+      "blocks": {
+        "heading": "Heading",
+        "paragraph": "Paragraph",
+        "image": "Image",
+        "divider": "Divider",
+        "pricing": "Price table",
+        "button": "CTA button",
+        "signature": "Signature"
+      },
+      "export": {
+        "title": "Export",
+        "html": "Export HTML",
+        "pdf": "Export PDF"
+      },
+      "empty": {
+        "title": "No content yet",
+        "description": "Add blocks to the layout to see the preview."
+      },
+      "blockActions": {
+        "moveUp": "Move up",
+        "moveDown": "Move down",
+        "edit": "Edit",
+        "remove": "Remove block"
+      },
+      "details": {
+        "title": "Template details",
+        "name": "Name",
+        "namePlaceholder": "E.g. Corporate proposal",
+        "description": "Description",
+        "descriptionPlaceholder": "Short summary of the template",
+        "category": "Category",
+        "categoryPlaceholder": "E.g. Sales",
+        "language": "Document language",
+        "hint": "This information shows in the template list."
+      },
+      "editor": {
+        "title": "Edit block",
+        "content": "Content",
+        "imageUrl": "Image URL",
+        "items": "Items",
+        "itemLabel": "Description",
+        "itemValue": "Value",
+        "addItem": "Add item",
+        "buttonText": "Button text",
+        "buttonLink": "Link",
+        "done": "Done editing",
+        "noSelection": "Select a block to edit."
+      },
+      "save": "Save template",
+      "saved": "Template saved!",
+      "saveError": "We couldn't save the template.",
+      "previewAlt": "Preview"
     }
   },
   "proposals": {
