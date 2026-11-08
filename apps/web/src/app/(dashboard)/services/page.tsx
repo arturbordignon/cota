@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
-import { useFormatter } from "next-intl";
+import { useFormatter, useTranslations } from "next-intl";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { PencilSimple, Plus, Trash, Truck } from "@phosphor-icons/react";
 
@@ -59,6 +59,7 @@ function ServiceDialog({
   submitLabel,
   initialValues,
 }: ServiceDialogProps) {
+  const t = useTranslations("services.form");
   const [name, setName] = useState<string>("");
   const [capacity, setCapacity] = useState<string>("");
   const [rate, setRate] = useState<string>("");
@@ -126,56 +127,56 @@ function ServiceDialog({
       onSubmit={handleSubmit}
     >
       <ModalBody>
-        <Field label="Nome" htmlFor="service-name">
+        <Field label={t("name")} htmlFor="service-name">
           <Input
             id="service-name"
             value={name}
             onChange={(event) => setName(event.target.value)}
-            placeholder="Ex.: Guindaste 50t"
+            placeholder={t("placeholders.name")}
             required
             disabled={isSubmitting}
             autoFocus
           />
         </Field>
         <div className="grid gap-4 md:grid-cols-2">
-          <Field label="Capacidade (t)" htmlFor="service-capacity">
+          <Field label={t("capacity")} htmlFor="service-capacity">
             <Input
               id="service-capacity"
               inputMode="decimal"
               value={capacity}
               onChange={(event) => setCapacity(event.target.value)}
-              placeholder="Ex.: 50"
+              placeholder={t("placeholders.capacity")}
               disabled={isSubmitting}
             />
           </Field>
-          <Field label="Valor diário (BRL)" htmlFor="service-rate">
+          <Field label={t("rate")} htmlFor="service-rate">
             <Input
               id="service-rate"
               inputMode="decimal"
               value={rate}
               onChange={(event) => setRate(event.target.value)}
-              placeholder="Ex.: 2500"
+              placeholder={t("placeholders.rate")}
               disabled={isSubmitting}
             />
           </Field>
         </div>
-        <Field label="Descrição" htmlFor="service-description">
+        <Field label={t("description")} htmlFor="service-description">
           <Textarea
             id="service-description"
             rows={3}
             value={details}
             onChange={(event) => setDetails(event.target.value)}
-            placeholder="Resumo do serviço ou equipamento"
+            placeholder={t("placeholders.description")}
             disabled={isSubmitting}
           />
         </Field>
-        <Field label="Observações internas" htmlFor="service-notes">
+        <Field label={t("notes")} htmlFor="service-notes">
           <Textarea
             id="service-notes"
             rows={2}
             value={notes}
             onChange={(event) => setNotes(event.target.value)}
-            placeholder="Links, restrições ou observações"
+            placeholder={t("placeholders.notes")}
             disabled={isSubmitting}
           />
         </Field>
@@ -184,10 +185,10 @@ function ServiceDialog({
       <ModalFooter>
         <ModalClose asChild>
           <Button type="button" variant="ghost" disabled={isSubmitting}>
-            Cancelar
+            {t("cancel")}
           </Button>
         </ModalClose>
-        <Button type="submit" disabled={isSubmitting || !name.trim()} loading={isSubmitting} loadingText="Salvando…">
+        <Button type="submit" disabled={isSubmitting || !name.trim()} loading={isSubmitting} loadingText={t("saving")}>
           {submitLabel}
         </Button>
       </ModalFooter>
@@ -206,6 +207,7 @@ function extractSpecs(equipment: EquipmentSummary) {
 }
 
 export default function ServicesPage() {
+  const t = useTranslations("services");
   const api = useApi();
   const format = useFormatter();
   const queryClient = useQueryClient();
@@ -255,7 +257,7 @@ export default function ServicesPage() {
       setDeleteTarget(null);
     },
     onError: (error) => {
-      setDeleteError(error instanceof Error ? error.message : 'Não foi possível remover o serviço.');
+      setDeleteError(t("deleteDialog.error"));
     },
   });
 
@@ -288,24 +290,24 @@ export default function ServicesPage() {
   return (
     <section className="space-y-6">
       <PageHeader
-        title="Catálogo de serviços"
-        description="Organize equipamentos, pacotes e valores para montar propostas consistentes."
+        title={t("page.title")}
+        description={t("page.description")}
         action={
           canCreate && (
             <Button asChild>
               <Link href={"/services/new" as Route}>
                 <Plus size={16} weight="bold" />
-                Novo serviço
+                {t("page.newService")}
               </Link>
             </Button>
           )
         }
       />
 
-      {isTokenMissing ? <Notice tone="warning">Faça login para visualizar o catálogo.</Notice> : null}
+      {isTokenMissing ? <Notice tone="warning">{t("page.loginNeeded")}</Notice> : null}
 
       {loadError && !isTokenMissing ? (
-        <Notice tone="danger">Não foi possível carregar os serviços: {loadError.message}</Notice>
+        <Notice tone="danger">{t("page.loadError")}</Notice>
       ) : null}
 
       {equipmentQuery.isLoading ? (
@@ -328,18 +330,18 @@ export default function ServicesPage() {
                   <div className="min-w-0 flex-1">
                     <h3 className="font-sans text-[15px] font-semibold leading-snug text-ink">{service.name}</h3>
                     {service.capacityTons != null ? (
-                      <p className="tabular text-[13px] text-muted">Capacidade {service.capacityTons} t</p>
+                      <p className="tabular text-[13px] text-muted">{t("page.capacity", { value: service.capacityTons })}</p>
                     ) : null}
                   </div>
                 </div>
 
                 <p className="mb-4 mt-4 line-clamp-3 text-sm leading-relaxed text-ink-muted">
-                  {description ?? notes ?? "Sem detalhes adicionais"}
+                  {description ?? notes ?? t("page.noDetails")}
                 </p>
 
                 <div className="mt-auto flex items-end justify-between gap-3 border-t border-border pt-4">
                   <div>
-                    <p className="meta-label">Diária</p>
+                    <p className="meta-label">{t("page.dailyRate")}</p>
                     <p className="tabular font-display text-xl font-semibold leading-tight text-ink">
                       {formattedRate ?? "—"}
                     </p>
@@ -348,13 +350,13 @@ export default function ServicesPage() {
                     <div className="flex gap-1">
                       <Button variant="secondary" size="sm" onClick={() => setEditingService(service)}>
                         <PencilSimple size={14} weight="bold" />
-                        Editar
+                        {t("page.edit")}
                       </Button>
                       <Button
                         variant="ghost"
                         size="icon-sm"
                         onClick={() => setDeleteTarget(service)}
-                        aria-label={`Excluir ${service.name}`}
+                        aria-label={t("page.deleteLabel", { name: service.name })}
                         className="hover:bg-danger-soft hover:text-danger"
                       >
                         <Trash size={16} />
@@ -369,14 +371,14 @@ export default function ServicesPage() {
       ) : (
         <EmptyState
           icon={<Truck size={24} weight="bold" />}
-          title="Nenhum serviço cadastrado ainda."
-          description="Adicione seus equipamentos e pacotes principais para reutilizar os valores nas propostas."
+          title={t("page.empty.title")}
+          description={t("page.empty.description")}
           action={
             canCreate && (
               <Button asChild>
                 <Link href={"/services/new" as Route}>
                   <Plus size={16} weight="bold" />
-                  Novo serviço
+                  {t("page.newService")}
                 </Link>
               </Button>
             )
@@ -395,9 +397,9 @@ export default function ServicesPage() {
           }}
           isSubmitting={updateService.isPending}
           errorMessage={updateService.error?.message}
-          title="Editar serviço"
-          description="Atualize as informações e elas serão refletidas nas próximas propostas."
-          submitLabel="Salvar alterações"
+          title={t("editDialog.title")}
+          description={t("editDialog.description")}
+          submitLabel={t("editDialog.submit")}
           initialValues={editingInitialValues}
         />
       ) : null}
@@ -412,8 +414,8 @@ export default function ServicesPage() {
             }
           }}
           size="sm"
-          title="Remover serviço"
-          description={`Tem certeza que deseja remover “${deleteTarget.name}”? Essa ação não pode ser desfeita.`}
+          title={t("deleteDialog.title")}
+          description={t("deleteDialog.description", { name: deleteTarget.name })}
         >
           {deleteError ? (
             <ModalBody>
@@ -423,16 +425,16 @@ export default function ServicesPage() {
           <ModalFooter>
             <ModalClose asChild>
               <Button variant="ghost" disabled={deleteServiceMutation.isPending}>
-                Cancelar
+                {t("deleteDialog.cancel")}
               </Button>
             </ModalClose>
             <Button
               variant="danger"
               onClick={() => deleteServiceMutation.mutate(deleteTarget.id)}
               loading={deleteServiceMutation.isPending}
-              loadingText="Removendo..."
+              loadingText={t("deleteDialog.confirming")}
             >
-              Remover
+              {t("deleteDialog.confirm")}
             </Button>
           </ModalFooter>
         </Modal>
