@@ -6,6 +6,7 @@ import { ReactNode, useEffect, useRef, useState } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
 import { Bell, Check, MagnifyingGlass, Plus, SignOut, UserCircle } from '@phosphor-icons/react';
 
 import { Button } from '@/components/ui/button';
@@ -14,6 +15,9 @@ import { useLocaleChange } from '@/components/layout/locale-switcher';
 import { GlobalSearch, type SearchScope } from '@/components/layout/global-search';
 import { locales, localeLabels } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
+import { NOTIFICATIONS_QUERY_KEY } from '@/lib/notifications';
+import { useApi } from '@/hooks/use-api';
+import type { NotificationsResponse } from '@/types/api';
 
 interface TopbarProps {
   credits?: string;
@@ -141,6 +145,15 @@ export function Topbar({
   const tActions = useTranslations('actions');
   const tTopbar = useTranslations('common.topbar');
   const [searchOpen, setSearchOpen] = useState(false);
+  const api = useApi();
+  // Checked every minute so a client's answer shows up without a reload.
+  const notificacoesQuery = useQuery({
+    queryKey: NOTIFICATIONS_QUERY_KEY,
+    queryFn: () => api.get<NotificationsResponse>('/notifications'),
+    enabled: api.isAuthenticated,
+    refetchInterval: 60_000,
+  });
+  const naoLidas = notificacoesQuery.data?.unreadCount ?? 0;
   const [atalho, setAtalho] = useState('Ctrl K');
   const router = useRouter();
 
@@ -227,11 +240,21 @@ export function Topbar({
         ) : null}
         <button
           type="button"
-          className={iconButtonClass}
-          aria-label={tTopbar('openNotifications')}
+          className={cn(iconButtonClass, 'relative')}
+          aria-label={
+            naoLidas > 0 ? tTopbar('openNotificationsUnread', { count: naoLidas }) : tTopbar('openNotifications')
+          }
           onClick={() => router.push('/notifications')}
         >
           <Bell size={20} />
+          {naoLidas > 0 ? (
+            <span
+              aria-hidden
+              className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger px-1 text-[10px] font-bold leading-none text-white"
+            >
+              {naoLidas > 9 ? '9+' : naoLidas}
+            </span>
+          ) : null}
         </button>
         {actions ? <div className="flex items-center gap-2">{actions}</div> : null}
         <div className="mx-1 hidden h-6 w-px bg-border sm:block" aria-hidden />

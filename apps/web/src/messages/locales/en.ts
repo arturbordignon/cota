@@ -239,6 +239,7 @@ export const enMessages = {
       "openSearch": "Open search",
       "closeSearch": "Close search",
       "openNotifications": "View notifications",
+      "openNotificationsUnread": "View notifications ({count} unread)",
       "openLocale": "Change language",
       "searchHint": "Search proposals, clients, templates",
       "openUserMenu": "Open account menu",

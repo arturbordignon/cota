@@ -239,6 +239,7 @@ export const ptBRMessages = {
       "openSearch": "Abrir busca",
       "closeSearch": "Fechar busca",
       "openNotifications": "Ver notificações",
+      "openNotificationsUnread": "Ver notificações ({count, plural, one {# não lida} other {# não lidas}})",
       "openLocale": "Alterar idioma",
       "searchHint": "Buscar propostas, clientes, modelos",
       "openUserMenu": "Abrir menu da conta",
