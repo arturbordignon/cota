@@ -11,6 +11,7 @@ import { reserveProposalSlot } from '../../services/billing.js';
 import { ProposalLimitError } from '../../errors/proposal-limit.js';
 import { invalidateReportsOverviewCache, invalidateTeamRankingCache } from '../../utils/cache.js';
 import { chaveDeFotoValida, verificarFotoEnviada } from '../../utils/fotos.js';
+import { registrarEvento } from '../../utils/audit.js';
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const isUuid = (value: string) => UUID_REGEX.test(value);
@@ -180,6 +181,17 @@ const proposalRoutes: FastifyPluginAsync = async (app) => {
         invalidateReportsOverviewCache(app, request.user.accountId),
         invalidateTeamRankingCache(app, request.user.accountId),
       ]);
+
+      await registrarEvento(app, request.log, {
+        accountId: request.user.accountId,
+        userId: request.user.sub,
+        action: 'proposal.created',
+        entityType: 'Proposal',
+        entityId: proposal.id,
+        summary: `Proposta ${proposal.title} criada`,
+        summaryKey: 'proposalCreated',
+        summaryParams: { proposal: proposal.title ?? '' },
+      });
 
       return reply.code(201).send({
         data: proposal,
@@ -370,7 +382,18 @@ const proposalRoutes: FastifyPluginAsync = async (app) => {
     const updated = await app.prisma.proposal.update({
       where: { id: proposal.id },
       data: { status: 'SENT', sentAt: new Date() },
-      select: { id: true, status: true }
+      select: { id: true, status: true, title: true }
+    });
+
+    await registrarEvento(app, request.log, {
+      accountId: request.user.accountId,
+      userId: request.user.sub,
+      action: 'proposal.sent',
+      entityType: 'Proposal',
+      entityId: updated.id,
+      summary: `Proposta ${updated.title} enviada ao cliente`,
+      summaryKey: 'proposalSent',
+      summaryParams: { proposal: updated.title ?? '' },
     });
 
     await Promise.all([
@@ -378,7 +401,7 @@ const proposalRoutes: FastifyPluginAsync = async (app) => {
       invalidateTeamRankingCache(app, request.user.accountId),
     ]);
 
-    return reply.send({ data: updated });
+    return reply.send({ data: { id: updated.id, status: updated.status } });
   });
 
   app.get('/:id/pdf', async (request, reply) => {
