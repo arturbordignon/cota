@@ -818,6 +818,7 @@ export const enMessages = {
           }
         },
         "topClients": {
+          "noClient": "No client",
           "title": "Revenue by client",
           "badge": "Top 5",
           "total": "Total {value}",
@@ -831,6 +832,7 @@ export const enMessages = {
           "empty": "No proposals assigned to teammates."
         },
         "cityRevenue": {
+          "noCity": "No site",
           "title": "Revenue by city",
           "badge": "Top 8"
         },

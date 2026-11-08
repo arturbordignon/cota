@@ -818,6 +818,7 @@ export const ptBRMessages = {
           }
         },
         "topClients": {
+          "noClient": "Sem cliente",
           "title": "Receita por cliente",
           "badge": "Top 5",
           "total": "Total {value}",
@@ -831,6 +832,7 @@ export const ptBRMessages = {
           "empty": "Nenhuma proposta atribuída a membros."
         },
         "cityRevenue": {
+          "noCity": "Sem local",
           "title": "Receita por cidade",
           "badge": "Top 8"
         },

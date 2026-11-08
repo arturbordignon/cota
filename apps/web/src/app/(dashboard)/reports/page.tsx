@@ -396,12 +396,12 @@ export default function ReportsPage() {
 
   const { topClientsChartData, topClientsTotal } = useMemo(() => {
     const chartData = topClients.map((client) => ({
-      name: client.client,
+      name: client.client ?? tOverview("topClients.noClient"),
       value: client.value ?? 0,
     }));
     const total = chartData.reduce((acc, client) => acc + Number(client.value ?? 0), 0);
     return { topClientsChartData: chartData, topClientsTotal: total };
-  }, [topClients]);
+  }, [tOverview, topClients]);
 
   const teamChartData = useMemo(
     () =>
@@ -414,8 +414,9 @@ export default function ReportsPage() {
   );
 
   const receitaCidadeChartData = useMemo(
-    () => receitaPorCidade.map((c: any) => ({ name: c.city, value: Number(c.value ?? 0) })),
-    [receitaPorCidade],
+    () =>
+      receitaPorCidade.map((c: any) => ({ name: c.city ?? tOverview("cityRevenue.noCity"), value: Number(c.value ?? 0) })),
+    [receitaPorCidade, tOverview],
   );
 
   const pipelineChartData = useMemo(
