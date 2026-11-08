@@ -883,6 +883,7 @@ export const enMessages = {
       "loadingDescription": "Retrieving template information.",
       "defaultDescription": "Template detail",
       "actions": {
+        "edit": "Edit",
         "useTemplate": "Use this template",
         "duplicate": "Duplicate template",
         "duplicating": "Duplicating..."
@@ -911,6 +912,7 @@ export const enMessages = {
       },
       "duplicateSuffix": "(copy)",
       "duplicateSuccess": "Template duplicated. Redirecting to your templates...",
+      "updateSuccess": "Template updated.",
       "errors": {
         "load": "We couldn't load the template: {message}",
         "notFound": "Template not found or removed.",

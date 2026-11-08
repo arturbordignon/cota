@@ -883,6 +883,7 @@ export const ptBRMessages = {
       "loadingDescription": "Buscando informações do modelo.",
       "defaultDescription": "Detalhes do modelo",
       "actions": {
+        "edit": "Editar",
         "useTemplate": "Usar este modelo",
         "duplicate": "Duplicar modelo",
         "duplicating": "Duplicando..."
@@ -911,6 +912,7 @@ export const ptBRMessages = {
       },
       "duplicateSuffix": "(cópia)",
       "duplicateSuccess": "Modelo duplicado. Redirecionando para Meus modelos...",
+      "updateSuccess": "Modelo atualizado.",
       "errors": {
         "load": "Não foi possível carregar o modelo: {message}",
         "notFound": "Modelo não encontrado ou removido.",

@@ -5,8 +5,8 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useTranslations, useFormatter } from "next-intl";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { CaretLeft, Copy, FilePlus } from "@phosphor-icons/react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { CaretLeft, Copy, FilePlus, PencilSimple } from "@phosphor-icons/react";
 
 import { PageHeader } from "@/components/layout/page-header";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +17,7 @@ import { Notice } from "@/components/ui/notice";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useApi } from "@/hooks/use-api";
 import { useCurrentUser } from "@/components/providers/user-provider";
+import { CreateTemplateDialog, type CreateTemplatePayload } from "@/components/templates/template-dialog";
 import type { TemplateDetailResponse } from "@/types/api";
 
 type FeedbackState =
@@ -31,6 +32,7 @@ export default function TemplateDetailPage() {
   const t = useTranslations("templates.detail");
   const formatter = useFormatter();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [feedback, setFeedback] = useState<FeedbackState>(null);
   const { temPermissao } = useCurrentUser();
   const podeEditar = temPermissao("templates", "edit");
@@ -85,6 +87,29 @@ export default function TemplateDetailPage() {
     },
   });
 
+  // Only the account's own templates can be changed; system ones are duplicated.
+  const podeAlterar = podeEditar && Boolean(template) && !isSystemTemplate;
+  const [editOpen, setEditOpen] = useState(false);
+
+  const updateMutation = useMutation({
+    mutationFn: (values: CreateTemplatePayload) =>
+      api.put<TemplateDetailResponse>(`/templates/${templateId}`, {
+        name: values.name,
+        description: values.description ?? "",
+        category: values.category ?? "",
+        locale: values.locale,
+        htmlBody: values.htmlBody,
+      }),
+    onSuccess: async () => {
+      setEditOpen(false);
+      setFeedback({ tone: "info", message: t("updateSuccess") });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["template", templateId] }),
+        queryClient.invalidateQueries({ queryKey: ["templates"] }),
+      ]);
+    },
+  });
+
   const handleDuplicate = () => {
     setFeedback(null);
     duplicateMutation.mutate();
@@ -131,6 +156,12 @@ export default function TemplateDetailPage() {
                   <FilePlus size={16} />
                   {t("actions.useTemplate")}
                 </Link>
+              </Button>
+            ) : null}
+            {podeAlterar ? (
+              <Button variant="secondary" onClick={() => setEditOpen(true)}>
+                <PencilSimple size={16} />
+                {t("actions.edit")}
               </Button>
             ) : null}
             {podeEditar ? (
@@ -216,6 +247,24 @@ export default function TemplateDetailPage() {
             </div>
           </Card>
         </div>
+      ) : null}
+      {podeAlterar && template ? (
+        <CreateTemplateDialog
+          open={editOpen}
+          onOpenChange={setEditOpen}
+          editando={{
+            name: template.name,
+            description: template.description ?? undefined,
+            category: template.category ?? undefined,
+            locale: template.locale === "en" ? "en" : "pt-BR",
+            htmlBody: template.htmlBody,
+          }}
+          onSubmit={async (values) => {
+            await updateMutation.mutateAsync(values);
+          }}
+          isSubmitting={updateMutation.isPending}
+          errorMessage={updateMutation.error?.message}
+        />
       ) : null}
     </section>
   );
