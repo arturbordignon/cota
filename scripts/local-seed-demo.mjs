@@ -52,13 +52,27 @@ async function main() {
     update: {},
   });
 
+  // Shown in the header and footer of every proposal, so the demo looks like a
+  // real company from the first PDF.
+  const settingsJson = {
+    timezone: 'America/Sao_Paulo',
+    company: {
+      name: 'Guindastes Horizonte Ltda',
+      cnpj: '12.345.678/0001-90',
+      phone: '(11) 4002-8922',
+      email: 'comercial@horizonte.com.br',
+      address: 'Av. dos Estados, 4500 - Santo André/SP',
+      tagline: 'Içamentos e remoções industriais com segurança.',
+    },
+  };
+
   const account = await prisma.account.upsert({
     where: { slug: demo.accountSlug },
     create: {
       name: demo.accountName,
       slug: demo.accountSlug,
       defaultLocale: demo.locale,
-      settingsJson: { timezone: 'America/Sao_Paulo' },
+      settingsJson,
       currentPlanId: plan.id,
     },
     update: {
@@ -67,6 +81,11 @@ async function main() {
       currentPlanId: plan.id,
     },
   });
+
+  // Keep details someone already edited on the account page.
+  if (!account.settingsJson?.company) {
+    await prisma.account.update({ where: { id: account.id }, data: { settingsJson } });
+  }
 
   await prisma.user.upsert({
     where: {
