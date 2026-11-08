@@ -9,17 +9,23 @@ import {
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import env from '@cota/config';
 
-const usePathStyle = !env.S3_ENDPOINT.includes('amazonaws.com');
+function criarCliente(endpoint: string) {
+  return new S3Client({
+    region: env.AWS_REGION,
+    endpoint,
+    forcePathStyle: !endpoint.includes('amazonaws.com'),
+    credentials: {
+      accessKeyId: env.S3_ACCESS_KEY,
+      secretAccessKey: env.S3_SECRET_KEY
+    }
+  });
+}
 
-const s3Client = new S3Client({
-  region: env.AWS_REGION,
-  endpoint: env.S3_ENDPOINT,
-  forcePathStyle: usePathStyle,
-  credentials: {
-    accessKeyId: env.S3_ACCESS_KEY,
-    secretAccessKey: env.S3_SECRET_KEY
-  }
-});
+// Reads and writes go to the address the servers reach. Links for browsers are
+// signed for the public address: the host is part of the signature, so a link
+// signed for minio:9000 can't be opened as localhost:9000.
+const s3Client = criarCliente(env.S3_ENDPOINT);
+const clientePublico = env.S3_PUBLIC_ENDPOINT ? criarCliente(env.S3_PUBLIC_ENDPOINT) : s3Client;
 
 interface UploadUrlInput {
   key: string;
@@ -31,6 +37,8 @@ interface UploadUrlInput {
 interface DownloadUrlInput {
   key: string;
   expiresIn?: number;
+  /** For the PDF worker, which reaches storage at the internal address. */
+  interno?: boolean;
 }
 
 export async function createUploadUrl({ key, contentType, contentLength, expiresIn = 900 }: UploadUrlInput) {
@@ -41,17 +49,17 @@ export async function createUploadUrl({ key, contentType, contentLength, expires
     ContentLength: contentLength
   });
 
-  const url = await getSignedUrl(s3Client, command, { expiresIn });
+  const url = await getSignedUrl(clientePublico, command, { expiresIn });
   return url;
 }
 
-export async function createDownloadUrl({ key, expiresIn = 900 }: DownloadUrlInput) {
+export async function createDownloadUrl({ key, expiresIn = 900, interno = false }: DownloadUrlInput) {
   const command = new GetObjectCommand({
     Bucket: env.S3_BUCKET,
     Key: key
   });
 
-  const url = await getSignedUrl(s3Client, command, { expiresIn });
+  const url = await getSignedUrl(interno ? s3Client : clientePublico, command, { expiresIn });
   return url;
 }
 
