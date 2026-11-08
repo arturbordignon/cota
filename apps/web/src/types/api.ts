@@ -340,3 +340,20 @@ export type ReportsOverviewResponse = {
   }>;
   pipelineSummary: Array<{ stageId: string; name: string; leadCount: number; totalValue: number }>;
 };
+
+export interface NotificationItem {
+  id: string;
+  key: string | null;
+  params: Record<string, string>;
+  link: string | null;
+  title: string;
+  body: string;
+  tone: "success" | "info" | "warning" | "danger";
+  isRead: boolean;
+  createdAt: string;
+}
+
+export interface NotificationsResponse {
+  data: NotificationItem[];
+  unreadCount: number;
+}

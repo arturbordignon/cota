@@ -472,36 +472,39 @@ export const ptBRMessages = {
   },
   "notifications": {
     "title": "Notificações",
-    "description": "Acompanhe atualizações recentes em propostas, equipe e cobrança.",
+    "description": "Acompanhe quando clientes abrem e respondem propostas, PDFs ficam prontos e a equipe cresce.",
     "markAll": "Marcar todas como lidas",
+    "empty": "Nenhuma notificação por enquanto. Avisaremos aqui quando um cliente abrir ou responder uma proposta.",
+    "loadError": "Não foi possível carregar as notificações.",
+    "unread": "Não lida",
     "tone": {
       "success": "Sucesso",
       "info": "Atualização",
-      "warning": "Atenção"
+      "warning": "Atenção",
+      "danger": "Urgente"
     },
-    "items": [
-      {
-        "id": "proposalAccepted",
+    "entries": {
+      "proposalViewed": {
+        "title": "Proposta visualizada",
+        "body": "O cliente abriu a proposta {proposal}."
+      },
+      "proposalAccepted": {
         "title": "Proposta aceita",
-        "description": "A Atlas Engenharia aprovou a proposta #2418.",
-        "timestamp": "Há 2 horas",
-        "tone": "success"
+        "body": "O cliente aceitou a proposta {proposal}."
       },
-      {
-        "id": "commentAdded",
-        "title": "Comentário adicionado",
-        "description": "João Lima comentou na proposta #2397 solicitando ajuste de valores.",
-        "timestamp": "Ontem",
-        "tone": "info"
+      "proposalDeclined": {
+        "title": "Proposta recusada",
+        "body": "O cliente recusou a proposta {proposal}."
       },
-      {
-        "id": "paymentPending",
-        "title": "Pagamento pendente",
-        "description": "A assinatura do workspace Operações expira em 3 dias.",
-        "timestamp": "Há 3 dias",
-        "tone": "warning"
+      "proposalPdfReady": {
+        "title": "PDF pronto",
+        "body": "O PDF da proposta {proposal} está pronto para download."
+      },
+      "inviteAccepted": {
+        "title": "Convite aceito",
+        "body": "{member} entrou na equipe."
       }
-    ]
+    }
   },
   "reports": {
     "page": {

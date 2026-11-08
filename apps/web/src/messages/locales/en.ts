@@ -472,36 +472,39 @@ export const enMessages = {
   },
   "notifications": {
     "title": "Notifications",
-    "description": "Review recent updates across proposals, teammates, and billing.",
+    "description": "Know when clients open and answer proposals, PDFs are ready and the team grows.",
     "markAll": "Mark all as read",
+    "empty": "No notifications yet. We'll let you know here when a client opens or answers a proposal.",
+    "loadError": "We couldn't load the notifications.",
+    "unread": "Unread",
     "tone": {
       "success": "Success",
       "info": "Update",
-      "warning": "Attention"
+      "warning": "Attention",
+      "danger": "Urgent"
     },
-    "items": [
-      {
-        "id": "proposalAccepted",
+    "entries": {
+      "proposalViewed": {
+        "title": "Proposal viewed",
+        "body": "The client opened the proposal {proposal}."
+      },
+      "proposalAccepted": {
         "title": "Proposal accepted",
-        "description": "Atlas Engineering approved proposal #2418.",
-        "timestamp": "2 hours ago",
-        "tone": "success"
+        "body": "The client accepted the proposal {proposal}."
       },
-      {
-        "id": "commentAdded",
-        "title": "Comment added",
-        "description": "João Lima left feedback on proposal #2397 requesting pricing adjustments.",
-        "timestamp": "Yesterday",
-        "tone": "info"
+      "proposalDeclined": {
+        "title": "Proposal declined",
+        "body": "The client declined the proposal {proposal}."
       },
-      {
-        "id": "paymentPending",
-        "title": "Payment pending",
-        "description": "The Operations workspace subscription expires in 3 days.",
-        "timestamp": "3 days ago",
-        "tone": "warning"
+      "proposalPdfReady": {
+        "title": "PDF ready",
+        "body": "The PDF of the proposal {proposal} is ready to download."
+      },
+      "inviteAccepted": {
+        "title": "Invite accepted",
+        "body": "{member} joined the team."
       }
-    ]
+    }
   },
   "reports": {
     "page": {
