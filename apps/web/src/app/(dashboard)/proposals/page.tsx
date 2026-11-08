@@ -3,6 +3,7 @@
 import type { Route } from "next";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useFormatter, useTranslations } from "next-intl";
 import { useQuery } from "@tanstack/react-query";
 import { Check, LinkSimple, Plus } from "@phosphor-icons/react";
@@ -44,12 +45,14 @@ export default function ProposalsPage() {
   const [statusFiltro, setStatusFiltro] = useState("all");
   const isTokenMissing = !api.token;
 
+  // The global search lands here with ?search=; follow it even when this page
+  // is already open, since the page doesn't remount on a new search.
+  const termoDaUrl = useSearchParams().get("search");
   useEffect(() => {
-    const termo = new URLSearchParams(window.location.search).get("search");
-    if (termo) {
-      setBusca(termo);
+    if (termoDaUrl !== null) {
+      setBusca(termoDaUrl);
     }
-  }, []);
+  }, [termoDaUrl]);
 
   const propostasVisiveis = useMemo(() => {
     const termo = busca.trim().toLowerCase();
