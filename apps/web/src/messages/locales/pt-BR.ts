@@ -191,6 +191,14 @@ export const ptBRMessages = {
       "unavailable": "A cobrança online ainda não está configurada nesta instalação. Defina as chaves da Stripe para contratar planos.",
       "forbidden": "Somente quem administra o plano da conta pode contratar ou alterar planos.",
       "generic": "Não foi possível iniciar a cobrança agora. Tente novamente."
+    },
+    "usage": {
+      "loadError": "Não foi possível carregar o uso atual.",
+      "currentPlan": "Plano atual",
+      "basicPlan": "Plano básico",
+      "used": "Propostas geradas neste ciclo",
+      "remaining": "{count, plural, one {Resta # proposta} other {Restam # propostas}} até {date}",
+      "unlimited": "Propostas ilimitadas"
     }
   },
   "plans": {

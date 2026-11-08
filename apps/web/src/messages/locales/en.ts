@@ -191,6 +191,14 @@ export const enMessages = {
       "unavailable": "Online billing isn't set up on this installation yet. Add the Stripe keys to subscribe to plans.",
       "forbidden": "Only people who manage the account's plan can subscribe or change plans.",
       "generic": "We couldn't start the payment right now. Try again."
+    },
+    "usage": {
+      "loadError": "We couldn't load the current usage.",
+      "currentPlan": "Current plan",
+      "basicPlan": "Basic plan",
+      "used": "Proposals created this cycle",
+      "remaining": "{count, plural, one {# proposal} other {# proposals}} left until {date}",
+      "unlimited": "Unlimited proposals"
     }
   },
   "plans": {
