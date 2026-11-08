@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import { useFormatter, useTranslations } from "next-intl";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -68,7 +68,7 @@ function ServiceDialog({
   const [details, setDetails] = useState<string>("");
   const [notes, setNotes] = useState<string>("");
 
-  const resetForm = () => {
+  const resetForm = useCallback(() => {
     setName(initialValues?.name ?? "");
     setCapacity(
       initialValues?.capacityTons != null && !Number.isNaN(initialValues.capacityTons)
@@ -82,13 +82,13 @@ function ServiceDialog({
     );
     setDetails(initialValues?.description ?? "");
     setNotes(initialValues?.notes ?? "");
-  };
+  }, [initialValues]);
 
   useEffect(() => {
     if (open) {
       resetForm();
     }
-  }, [open, initialValues?.name, initialValues?.capacityTons, initialValues?.dailyRate, initialValues?.description, initialValues?.notes]);
+  }, [open, resetForm]);
 
   const handleClose = (next: boolean) => {
     if (!next) {
