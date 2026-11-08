@@ -161,6 +161,9 @@ async function main() {
 
 const DAY = 24 * 60 * 60 * 1000;
 const daysAgo = (days) => new Date(Date.now() - days * DAY);
+// Keeps a date inside the current month, so the dashboard's monthly numbers
+// have something to show whatever day the seed runs.
+const thisMonth = (days) => (days === undefined ? undefined : Math.min(days, new Date().getDate() - 1));
 
 async function seedDemoData(account, owner) {
   await seedClients(account);
@@ -231,10 +234,10 @@ async function seedProposals(account, owner, team = {}) {
   const client = (company) => clients.find((item) => item.companyName === company);
 
   const proposals = [
-    { title: 'Montagem de estrutura metálica - Galpão 3', company: 'Galpões Modulares Brasil', site: 'Cajamar, SP', schedule: '03/11 a 07/11', mobilization: 12800, dailyRate: 18750, days: 5, status: 'ACCEPTED', created: 14, sent: 13, viewed: 12, answered: 10, equipment: 'Guindaste todo-terreno 100 t', scope: ['Içamento e posicionamento de treliças de até 48 m.', 'Supervisor técnico durante todo o turno.'] },
+    { title: 'Montagem de estrutura metálica - Galpão 3', company: 'Galpões Modulares Brasil', site: 'Cajamar, SP', schedule: '03/11 a 07/11', mobilization: 12800, dailyRate: 18750, days: 5, status: 'ACCEPTED', created: thisMonth(6), sent: thisMonth(5), viewed: thisMonth(4), answered: thisMonth(2), equipment: 'Guindaste todo-terreno 100 t', scope: ['Içamento e posicionamento de treliças de até 48 m.', 'Supervisor técnico durante todo o turno.'] },
     { author: 'bruno', title: 'Parada de manutenção - Forno 2', company: 'Metalúrgica Vale Verde', site: 'Sumaré, SP', schedule: '14/10 a 16/10', mobilization: 6000, dailyRate: 9800, days: 3, status: 'ACCEPTED', created: 30, sent: 29, viewed: 27, answered: 25, equipment: 'Guindaste veicular 50 t', scope: ['Remoção e reinstalação da tampa do forno.', 'Movimentação de refratários.'] },
-    { title: 'Içamento de transformador 15 MVA', company: 'Energia Solar Paulista', site: 'Itapetininga, SP', schedule: '20/11 a 21/11', mobilization: 8500, dailyRate: 18750, days: 2, status: 'SENT', created: 4, sent: 3, viewed: 2, equipment: 'Guindaste todo-terreno 100 t', scope: ['Içamento do transformador da carreta até a base.', 'Plano de rigging com ART.'] },
-    { author: 'larissa', title: 'Movimentação de cargas de projeto', company: 'Porto Seco Campinas Logística', site: 'Campinas, SP', schedule: '25/11 a 30/11', mobilization: 4000, dailyRate: 4200, days: 6, status: 'SENT', created: 2, sent: 1, equipment: 'Caminhão munck 30 t', scope: ['Descarga e posicionamento de equipamentos importados.'] },
+    { title: 'Içamento de transformador 15 MVA', company: 'Energia Solar Paulista', site: 'Itapetininga, SP', schedule: '20/11 a 21/11', mobilization: 8500, dailyRate: 18750, days: 2, status: 'SENT', created: thisMonth(4), sent: thisMonth(3), viewed: thisMonth(2), equipment: 'Guindaste todo-terreno 100 t', scope: ['Içamento do transformador da carreta até a base.', 'Plano de rigging com ART.'] },
+    { author: 'larissa', title: 'Movimentação de cargas de projeto', company: 'Porto Seco Campinas Logística', site: 'Campinas, SP', schedule: '25/11 a 30/11', mobilization: 4000, dailyRate: 4200, days: 6, status: 'SENT', created: thisMonth(2), sent: thisMonth(1), equipment: 'Caminhão munck 30 t', scope: ['Descarga e posicionamento de equipamentos importados.'] },
     { author: 'bruno', title: 'Remoção de prensa hidráulica', company: 'Construtora Atlântica S.A.', site: 'São Bernardo do Campo, SP', schedule: '22/10 a 23/10', mobilization: 5000, dailyRate: 9800, days: 2, status: 'DECLINED', created: 20, sent: 19, viewed: 18, answered: 15, equipment: 'Guindaste veicular 50 t', scope: ['Desmontagem e remoção da prensa para a área externa.'] },
     { title: 'Içamento de vigas - Ponte rolante', company: 'Construtora Atlântica S.A.', site: 'Guarulhos, SP', schedule: '29/09 a 30/09', mobilization: 4500, dailyRate: 9800, days: 2, status: 'EXPIRED', created: 45, sent: 44, viewed: 43, equipment: 'Guindaste veicular 50 t', scope: ['Içamento das vigas da ponte rolante.'] },
     { title: 'Montagem de usina solar - Etapa 2', company: 'Energia Solar Paulista', site: 'Itapetininga, SP', schedule: 'A partir de 02/12', mobilization: 3000, dailyRate: 1600, days: 10, status: 'DRAFT', created: 0, equipment: 'Plataforma elevatória 20 m', scope: ['Apoio à montagem das estruturas dos painéis.'] },
