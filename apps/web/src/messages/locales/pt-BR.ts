@@ -117,6 +117,35 @@ export const ptBRMessages = {
       "title": "Do pedido do cliente à proposta aceita, no mesmo fluxo.",
       "description": "Monte a operação, gere o PDF com a sua marca e envie um link para o cliente aceitar ou recusar.",
       "loading": "Carregando sessão..."
+    },
+    "acceptInvite": {
+      "checking": "Validando convite…",
+      "wait": "Aguarde um instante.",
+      "invalidTitle": "Este convite não pode ser usado",
+      "invalid": {
+        "missing": "O link está incompleto. Abra o link exatamente como recebido no e-mail.",
+        "notFound": "Não encontramos este convite. Peça um novo link a quem convidou você.",
+        "used": "Este convite já foi aceito. Entre com o seu e-mail e senha.",
+        "expired": "Este convite expirou. Peça um novo link a quem convidou você.",
+        "generic": "Não foi possível validar o convite. Tente novamente."
+      },
+      "goToSignIn": "Ir para o acesso",
+      "title": "Bem-vindo(a) à {account}",
+      "description": "Conclua seu cadastro e comece a colaborar com a equipe.",
+      "fields": {
+        "email": "E-mail",
+        "name": "Nome completo",
+        "password": "Defina uma senha",
+        "passwordHint": "Use pelo menos 8 caracteres."
+      },
+      "placeholders": {
+        "name": "Seu nome"
+      },
+      "submit": "Entrar na conta",
+      "submitting": "Concluindo convite...",
+      "submitError": "Não foi possível aceitar o convite. Tente novamente.",
+      "trouble": "Problemas com o link?",
+      "signIn": "Acesse com suas credenciais"
     }
   },
   "proposalSheet": {

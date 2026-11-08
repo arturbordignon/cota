@@ -117,6 +117,35 @@ export const enMessages = {
       "title": "From the client's request to the accepted proposal, in one flow.",
       "description": "Plan the job, create the PDF with your brand and send a link for the client to accept or decline.",
       "loading": "Loading your session..."
+    },
+    "acceptInvite": {
+      "checking": "Checking your invite…",
+      "wait": "One moment, please.",
+      "invalidTitle": "This invite can't be used",
+      "invalid": {
+        "missing": "The link is incomplete. Open it exactly as you received it in the email.",
+        "notFound": "We couldn't find this invite. Ask whoever invited you for a new link.",
+        "used": "This invite was already accepted. Sign in with your email and password.",
+        "expired": "This invite has expired. Ask whoever invited you for a new link.",
+        "generic": "We couldn't check the invite. Try again."
+      },
+      "goToSignIn": "Go to sign in",
+      "title": "Welcome to {account}",
+      "description": "Finish setting up your access and start working with the team.",
+      "fields": {
+        "email": "Email",
+        "name": "Full name",
+        "password": "Choose a password",
+        "passwordHint": "Use at least 8 characters."
+      },
+      "placeholders": {
+        "name": "Your name"
+      },
+      "submit": "Join the account",
+      "submitting": "Accepting invite...",
+      "submitError": "We couldn't accept the invite. Try again.",
+      "trouble": "Trouble with the link?",
+      "signIn": "Sign in with your credentials"
     }
   },
   "proposalSheet": {

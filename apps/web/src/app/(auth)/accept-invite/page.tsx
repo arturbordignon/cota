@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,10 +22,22 @@ interface InvitePreview {
   };
 }
 
+type MotivoInvalido = "missing" | "notFound" | "used" | "expired" | "generic";
+
+function motivoDoErro(err: unknown): MotivoInvalido {
+  if (err instanceof authClient.AuthRequestError) {
+    if (err.status === 404) return "notFound";
+    if (err.status === 400) return "used";
+    if (err.status === 410) return "expired";
+  }
+  return "generic";
+}
+
 export default function AcceptInvitePage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { signIn } = useCurrentUser();
+  const t = useTranslations("auth.acceptInvite");
 
   const token = useMemo(() => searchParams.get("token") ?? "", [searchParams]);
 
@@ -33,11 +46,13 @@ export default function AcceptInvitePage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // A bad link and a failed submit are different: only the first one hides the form.
+  const [motivoInvalido, setMotivoInvalido] = useState<MotivoInvalido | null>(null);
+  const [erroEnvio, setErroEnvio] = useState<string | null>(null);
 
   useEffect(() => {
     if (!token) {
-      setError("Convite inválido. Verifique o link recebido.");
+      setMotivoInvalido("missing");
       setLoading(false);
       return;
     }
@@ -50,12 +65,12 @@ export default function AcceptInvitePage() {
         if (!active) return;
         setPreview(response.data);
         setFullName(response.data.fullName ?? "");
-        setError(null);
+        setMotivoInvalido(null);
       })
       .catch((err) => {
         if (!active) return;
         setPreview(null);
-        setError(err instanceof Error ? err.message : "Não foi possível validar o convite.");
+        setMotivoInvalido(motivoDoErro(err));
       })
       .finally(() => {
         if (!active) return;
@@ -72,7 +87,7 @@ export default function AcceptInvitePage() {
     if (!preview || submitting) return;
 
     setSubmitting(true);
-    setError(null);
+    setErroEnvio(null);
 
     try {
       await authClient.acceptInvite({ token, fullName: fullName.trim() || undefined, password });
@@ -83,7 +98,13 @@ export default function AcceptInvitePage() {
       });
       router.replace("/dashboard");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Não foi possível aceitar o convite.");
+      const motivo = motivoDoErro(err);
+      if (motivo === "used" || motivo === "expired" || motivo === "notFound") {
+        setPreview(null);
+        setMotivoInvalido(motivo);
+      } else {
+        setErroEnvio(t("submitError"));
+      }
       setSubmitting(false);
     }
   };
@@ -91,23 +112,21 @@ export default function AcceptInvitePage() {
   if (loading) {
     return (
       <div className="space-y-2">
-        <h1 className="font-display text-[28px] font-semibold leading-tight text-ink">Validando convite…</h1>
-        <p className="text-sm text-muted">Aguarde um instante.</p>
+        <h1 className="font-display text-[28px] font-semibold leading-tight text-ink">{t("checking")}</h1>
+        <p className="text-sm text-muted">{t("wait")}</p>
       </div>
     );
   }
 
-  if (!preview || error) {
+  if (!preview) {
     return (
       <div className="space-y-6">
         <div className="space-y-2">
-          <h1 className="font-display text-[28px] font-semibold leading-tight text-ink">Convite inválido</h1>
-          <p className="text-[15px] leading-relaxed text-muted">
-            {error ?? "Não foi possível encontrar este convite. Solicite um novo link ao administrador."}
-          </p>
+          <h1 className="font-display text-[28px] font-semibold leading-tight text-ink">{t("invalidTitle")}</h1>
+          <p className="text-[15px] leading-relaxed text-muted">{t(`invalid.${motivoInvalido ?? "generic"}`)}</p>
         </div>
         <Button asChild variant="primary">
-          <Link href="/sign-in">Ir para o acesso</Link>
+          <Link href="/sign-in">{t("goToSignIn")}</Link>
         </Button>
       </div>
     );
@@ -118,30 +137,30 @@ export default function AcceptInvitePage() {
   return (
     <div className="space-y-8">
       <div className="space-y-2">
-        <h1 className="font-display text-[32px] font-semibold leading-tight text-ink">Bem-vindo(a) à {preview.account.name}</h1>
-        <p className="text-[15px] leading-relaxed text-muted">
-          Conclua seu cadastro e comece a colaborar com a equipe.
-        </p>
+        <h1 className="font-display text-[32px] font-semibold leading-tight text-ink">
+          {t("title", { account: preview.account.name })}
+        </h1>
+        <p className="text-[15px] leading-relaxed text-muted">{t("description")}</p>
       </div>
 
       <form className="space-y-5" onSubmit={handleSubmit}>
         <div className="space-y-2">
-          <Label>E-mail</Label>
-          <Input value={preview.email} readOnly />
+          <Label htmlFor="accept-email">{t("fields.email")}</Label>
+          <Input id="accept-email" value={preview.email} readOnly />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="accept-name">Nome completo</Label>
+          <Label htmlFor="accept-name">{t("fields.name")}</Label>
           <Input
             id="accept-name"
             value={fullName}
             onChange={(event) => setFullName(event.target.value)}
-            placeholder="Seu nome"
+            placeholder={t("placeholders.name")}
             autoComplete="name"
             disabled={submitting}
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="accept-password">Defina uma senha</Label>
+          <Label htmlFor="accept-password">{t("fields.password")}</Label>
           <Input
             id="accept-password"
             type="password"
@@ -152,20 +171,18 @@ export default function AcceptInvitePage() {
             disabled={submitting}
             required
           />
-          <p className="text-xs text-muted">Use ao menos 8 caracteres, misturando letras e números.</p>
+          <p className="text-xs text-muted">{t("fields.passwordHint")}</p>
         </div>
-        {error ? (
-          <Notice tone="danger">{error}</Notice>
-        ) : null}
+        {erroEnvio ? <Notice tone="danger">{erroEnvio}</Notice> : null}
         <Button type="submit" size="lg" className="w-full" disabled={isDisabled}>
-          {submitting ? "Concluindo convite..." : "Entrar na conta"}
+          {submitting ? t("submitting") : t("submit")}
         </Button>
       </form>
 
       <div className="text-sm text-muted">
-        Problemas com o link?{' '}
+        {t("trouble")}{" "}
         <Link href="/sign-in" className="font-semibold text-primary-strong underline-offset-4 hover:underline">
-          Acesse com suas credenciais
+          {t("signIn")}
         </Link>
       </div>
     </div>
