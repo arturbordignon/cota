@@ -6,13 +6,14 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useTranslations, useFormatter } from "next-intl";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CaretLeft, Copy, FilePlus, PencilSimple } from "@phosphor-icons/react";
+import { CaretLeft, Copy, FilePlus, PencilSimple, Trash } from "@phosphor-icons/react";
 
 import { PageHeader } from "@/components/layout/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Modal, ModalBody, ModalClose, ModalFooter } from "@/components/ui/modal";
 import { Notice } from "@/components/ui/notice";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useApi } from "@/hooks/use-api";
@@ -110,6 +111,15 @@ export default function TemplateDetailPage() {
     },
   });
 
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const deleteMutation = useMutation({
+    mutationFn: () => api.del(`/templates/${templateId}`),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["templates"] });
+      router.push("/templates?scope=custom");
+    },
+  });
+
   const handleDuplicate = () => {
     setFeedback(null);
     duplicateMutation.mutate();
@@ -162,6 +172,18 @@ export default function TemplateDetailPage() {
               <Button variant="secondary" onClick={() => setEditOpen(true)}>
                 <PencilSimple size={16} />
                 {t("actions.edit")}
+              </Button>
+            ) : null}
+            {podeAlterar ? (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setDeleteOpen(true)}
+                aria-label={t("actions.delete")}
+                title={t("actions.delete")}
+                className="hover:bg-danger-soft hover:text-danger"
+              >
+                <Trash size={18} />
               </Button>
             ) : null}
             {podeEditar ? (
@@ -266,6 +288,29 @@ export default function TemplateDetailPage() {
           errorMessage={updateMutation.error?.message}
         />
       ) : null}
+      <Modal
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        title={t("deleteDialog.title")}
+        description={t("deleteDialog.description", { name: template?.name ?? "" })}
+        closeLabel={t("deleteDialog.cancel")}
+      >
+        {deleteMutation.error ? (
+          <ModalBody>
+            <Notice tone="danger">{deleteMutation.error.message}</Notice>
+          </ModalBody>
+        ) : null}
+        <ModalFooter>
+          <ModalClose asChild>
+            <Button type="button" variant="ghost" disabled={deleteMutation.isPending}>
+              {t("deleteDialog.cancel")}
+            </Button>
+          </ModalClose>
+          <Button type="button" variant="danger" loading={deleteMutation.isPending} onClick={() => deleteMutation.mutate()}>
+            {t("deleteDialog.confirm")}
+          </Button>
+        </ModalFooter>
+      </Modal>
     </section>
   );
 }

@@ -884,6 +884,7 @@ export const ptBRMessages = {
       "defaultDescription": "Detalhes do modelo",
       "actions": {
         "edit": "Editar",
+        "delete": "Excluir modelo",
         "useTemplate": "Usar este modelo",
         "duplicate": "Duplicar modelo",
         "duplicating": "Duplicando..."
@@ -912,6 +913,12 @@ export const ptBRMessages = {
       },
       "duplicateSuffix": "(cópia)",
       "duplicateSuccess": "Modelo duplicado. Redirecionando para Meus modelos...",
+      "deleteDialog": {
+        "title": "Excluir modelo",
+        "description": "{name} sai da sua lista de modelos. As propostas já criadas com ele não mudam.",
+        "cancel": "Cancelar",
+        "confirm": "Excluir modelo"
+      },
       "updateSuccess": "Modelo atualizado.",
       "errors": {
         "load": "Não foi possível carregar o modelo: {message}",

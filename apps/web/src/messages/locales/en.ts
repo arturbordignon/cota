@@ -884,6 +884,7 @@ export const enMessages = {
       "defaultDescription": "Template detail",
       "actions": {
         "edit": "Edit",
+        "delete": "Delete template",
         "useTemplate": "Use this template",
         "duplicate": "Duplicate template",
         "duplicating": "Duplicating..."
@@ -912,6 +913,12 @@ export const enMessages = {
       },
       "duplicateSuffix": "(copy)",
       "duplicateSuccess": "Template duplicated. Redirecting to your templates...",
+      "deleteDialog": {
+        "title": "Delete template",
+        "description": "{name} leaves your template list. Proposals already created with it stay the same.",
+        "cancel": "Cancel",
+        "confirm": "Delete template"
+      },
       "updateSuccess": "Template updated.",
       "errors": {
         "load": "We couldn't load the template: {message}",
