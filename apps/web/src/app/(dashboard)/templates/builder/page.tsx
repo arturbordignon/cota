@@ -523,7 +523,11 @@ export default function TemplateBuilderPage() {
                   <div className="mt-3 rounded-lg bg-surface-muted/70 p-4 text-sm text-muted">
                     {block.type === "heading" && <h2 className="text-lg font-semibold text-ink">{block.content}</h2>}
                     {block.type === "paragraph" && <p className="text-sm text-ink">{block.content}</p>}
-                    {block.type === "image" && <img src={block.url ?? ""} alt={t("previewAlt")} className="h-auto w-full max-w-[420px] rounded-xl" />}
+                    {block.type === "image" && (
+                      // Any address the user types: next/image only serves configured hosts.
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={block.url ?? ""} alt={t("previewAlt")} className="h-auto w-full max-w-[420px] rounded-xl" />
+                    )}
                     {block.type === "divider" && <hr className="border-outline" />}
                     {block.type === "pricing" && (
                       <ul className="space-y-2 text-ink">
