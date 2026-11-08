@@ -6,5 +6,6 @@ const prisma = new PrismaClient({
 });
 
 export { prisma };
+export * from './notifications.js';
 export * from '@prisma/client';
 export default prisma;
