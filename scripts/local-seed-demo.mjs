@@ -146,6 +146,7 @@ const daysAgo = (days) => new Date(Date.now() - days * DAY);
 
 async function seedDemoData(account, owner) {
   await seedClients(account);
+  await seedServices(account);
 }
 
 async function seedClients(account) {
@@ -170,3 +171,19 @@ main()
   .finally(async () => {
     await prisma.$disconnect();
   });
+
+async function seedServices(account) {
+  const services = [
+    { name: 'Guindaste todo-terreno 100 t', capacityTons: 100, dailyRate: 18750, description: 'Liebherr LTM 1100 com lança de 52 m e jib de 19 m.', notes: 'Inclui operador certificado.' },
+    { name: 'Guindaste veicular 50 t', capacityTons: 50, dailyRate: 9800, description: 'Lança telescópica de 40 m, ideal para obras urbanas.' },
+    { name: 'Caminhão munck 30 t', capacityTons: 30, dailyRate: 4200, description: 'Apoio logístico e movimentação de acessórios.' },
+    { name: 'Plataforma elevatória 20 m', dailyRate: 1600, description: 'Plataforma articulada a diesel para trabalho em altura.' },
+  ];
+  for (const service of services) {
+    const { description, notes, ...data } = service;
+    const specs = {};
+    if (description) specs.description = description;
+    if (notes) specs.notes = notes;
+    await prisma.equipment.create({ data: { ...data, accountId: account.id, specsJson: specs } });
+  }
+}
