@@ -65,6 +65,31 @@ export const enMessages = {
       "proposalDeclined": "The client declined the proposal {proposal}"
     }
   },
+  "auth": {
+    "signIn": {
+      "title": "Welcome back",
+      "description": "Sign in to keep creating proposals and following up with clients.",
+      "fields": {
+        "account": "Account address",
+        "accountHint": "Created when you signed up, for example: my-company.",
+        "email": "Work email",
+        "password": "Password"
+      },
+      "placeholders": {
+        "account": "my-company",
+        "email": "name@company.com"
+      },
+      "submit": "Sign in",
+      "submitting": "Signing in...",
+      "noAccount": "Don't have an account?",
+      "createAccount": "Create one now",
+      "errors": {
+        "invalid": "Wrong email, password or account address.",
+        "tooMany": "Too many attempts. Wait a few minutes and try again.",
+        "generic": "We couldn't sign you in. Try again."
+      }
+    }
+  },
   "clients": {
     "title": "Clients",
     "description": "Centralize tax data, credit limits, and history to negotiate with confidence.",

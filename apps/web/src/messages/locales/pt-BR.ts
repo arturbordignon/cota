@@ -65,6 +65,31 @@ export const ptBRMessages = {
       "proposalDeclined": "O cliente recusou a proposta {proposal}"
     }
   },
+  "auth": {
+    "signIn": {
+      "title": "Bem-vindo de volta",
+      "description": "Acesse sua conta para continuar gerando propostas e acompanhando clientes.",
+      "fields": {
+        "account": "Endereço da conta",
+        "accountHint": "Criado no cadastro, por exemplo: minha-empresa.",
+        "email": "E-mail corporativo",
+        "password": "Senha"
+      },
+      "placeholders": {
+        "account": "minha-empresa",
+        "email": "nome@empresa.com"
+      },
+      "submit": "Entrar",
+      "submitting": "Entrando...",
+      "noAccount": "Não possui conta?",
+      "createAccount": "Criar conta agora",
+      "errors": {
+        "invalid": "E-mail, senha ou endereço da conta incorretos.",
+        "tooMany": "Muitas tentativas. Aguarde alguns minutos e tente novamente.",
+        "generic": "Não foi possível entrar. Tente novamente."
+      }
+    }
+  },
   "clients": {
     "title": "Clientes",
     "description": "Centralize dados fiscais, limites de crédito e histórico para negociar com mais confiança.",
