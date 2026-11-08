@@ -29,7 +29,7 @@ import {
   normalizePermissionMap,
   type DepartmentPermissionMap,
   type DepartmentPreset,
-} from "@/data/mock/departments";
+} from "@/lib/permission-map";
 import {
   DepartmentSummary,
   DepartmentPermission,
