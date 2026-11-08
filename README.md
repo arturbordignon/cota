@@ -101,6 +101,8 @@ SMOKE_SCREENSHOTS=./shots pnpm smoke:web   # also saves a screenshot of each pag
 `smoke:api` also waits for the worker to render a PDF and walks a proposal through the client's public page.
 `smoke:web` needs Chrome or Chromium (set `CHROME_PATH` if it isn't in the usual place) and reports script
 errors, server errors and untranslated keys. Set `SMOKE_API_URL` / `SMOKE_WEB_URL` when the ports differ.
+Account deletion is limited to 5 attempts per 15 minutes per address and `smoke:api` uses two, so run it at
+most twice in a row; a third run leaves its throwaway account behind.
 
 ## Docker builds
 The images run as the unprivileged `node` user and contain only production dependencies:
