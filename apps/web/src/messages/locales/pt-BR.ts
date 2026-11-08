@@ -880,6 +880,7 @@ export const ptBRMessages = {
       "loadingDescription": "Buscando informações do modelo.",
       "defaultDescription": "Detalhes do modelo",
       "actions": {
+        "useTemplate": "Usar este modelo",
         "duplicate": "Duplicar modelo",
         "duplicating": "Duplicando..."
       },

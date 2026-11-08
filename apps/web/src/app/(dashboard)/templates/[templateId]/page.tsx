@@ -1,11 +1,12 @@
 "use client";
 
+import type { Route } from "next";
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useTranslations, useFormatter } from "next-intl";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { CaretLeft, Copy } from "@phosphor-icons/react";
+import { CaretLeft, Copy, FilePlus } from "@phosphor-icons/react";
 
 import { PageHeader } from "@/components/layout/page-header";
 import { Badge } from "@/components/ui/badge";
@@ -124,6 +125,14 @@ export default function TemplateDetailPage() {
                 {t("backButton")}
               </Link>
             </Button>
+            {temPermissao("proposals", "edit") && template ? (
+              <Button asChild variant="secondary">
+                <Link href={`/proposals/new?templateId=${template.id}` as Route}>
+                  <FilePlus size={16} />
+                  {t("actions.useTemplate")}
+                </Link>
+              </Button>
+            ) : null}
             {podeEditar ? (
               <Button
                 onClick={handleDuplicate}
