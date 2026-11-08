@@ -5,9 +5,9 @@ import type { FormEvent } from "react";
 import { useFormatter, useTranslations } from "next-intl";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { PencilSimple, Plus, Trash, Truck } from "@phosphor-icons/react";
-
 import type { Route } from "next";
 import Link from "next/link";
+
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
