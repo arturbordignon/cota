@@ -83,6 +83,17 @@ describe('photo uploads', () => {
     expect(resposta.json().data.assets[0].mimeType).toBe('image/png');
   });
 
+  it('returns a link to view each attached photo', async () => {
+    const { key } = await enviar('image/png', PNG);
+    await anexar(key);
+
+    const resposta = await chamar(app, { method: 'GET', url: `/api/v1/proposals/${proposta.id}`, token: conta.accessToken });
+    const foto = resposta.json().data.assets[0] as { url: string };
+    const download = await fetch(foto.url);
+    expect(download.ok).toBe(true);
+    expect(Buffer.from(await download.arrayBuffer()).subarray(0, 4)).toEqual(PNG.subarray(0, 4));
+  });
+
   it('rejects HTML disguised as a PNG', async () => {
     const { key, envio } = await enviar('image/png', HTML_DISFARCADO);
     expect(envio.ok).toBe(true);

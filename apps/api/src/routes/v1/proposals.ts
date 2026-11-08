@@ -228,7 +228,15 @@ const proposalRoutes: FastifyPluginAsync = async (app) => {
       return reply.status(404).send({ message: 'Proposal not found' });
     }
 
-    return reply.send({ data: proposal });
+    // Short-lived links so the page can show the photos; the bucket stays private.
+    const assets = await Promise.all(
+      proposal.assets.map(async (asset) => ({
+        ...asset,
+        url: await createDownloadUrl({ key: asset.s3ObjectKey, expiresIn: 3600 }).catch(() => null)
+      }))
+    );
+
+    return reply.send({ data: { ...proposal, assets } });
   });
 
   app.patch('/:id', async (request, reply) => {
