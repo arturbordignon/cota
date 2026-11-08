@@ -345,7 +345,7 @@ export default function TeamPage() {
     }
   };
 
-  const handleCopyInvite = async (link: string) => {
+  const handleCopyInvite = useCallback(async (link: string) => {
     try {
       if (typeof navigator !== 'undefined' && navigator?.clipboard) {
         await navigator.clipboard.writeText(link);
@@ -363,7 +363,7 @@ export default function TeamPage() {
       console.error('Failed to copy invite link', error);
       setCopySuccess(false);
     }
-  };
+  }, []);
 
   const inviteLinkMutation = useMutation({
     mutationFn: ({ memberId, sendEmail }: { memberId: string; sendEmail?: boolean }) =>
