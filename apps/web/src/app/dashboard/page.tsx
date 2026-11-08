@@ -183,7 +183,7 @@ export default function DashboardPage() {
       const absoluto = Math.abs(minutos);
       if (absoluto < 60) return t('metrics.time.minutes', { value: formatNumber(minutos, { maximumFractionDigits: 0 }) });
       if (absoluto < 24 * 60) return t('metrics.time.hours', { value: formatNumber(minutos / 60) });
-      return t('metrics.time.days', { value: formatNumber(minutos / (24 * 60)) });
+      return t('metrics.time.days', { value: Math.round((minutos / (24 * 60)) * 10) / 10 });
     };
 
     const formatSigned = (value: number, unit?: string) => {

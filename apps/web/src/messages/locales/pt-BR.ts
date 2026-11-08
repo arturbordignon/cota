@@ -572,7 +572,7 @@ export const ptBRMessages = {
         "delta": "{value} vs. mês anterior",
         "minutes": "{value} min",
         "hours": "{value} h",
-        "days": "{value} dias"
+        "days": "{value, plural, one {# dia} other {# dias}}"
       },
       "noData": "Sem dados no período",
       "deltaUnavailable": "Sem comparação disponível"

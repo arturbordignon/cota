@@ -572,7 +572,7 @@ export const enMessages = {
         "delta": "{value} vs. previous month",
         "minutes": "{value} min",
         "hours": "{value} h",
-        "days": "{value} days"
+        "days": "{value, plural, one {# day} other {# days}}"
       },
       "noData": "No data yet",
       "deltaUnavailable": "No comparison yet"
