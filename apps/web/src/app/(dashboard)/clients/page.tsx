@@ -7,7 +7,7 @@ import { useFormatter, useTranslations } from "next-intl";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
-import { Check, Copy, DotsThreeVertical, PaperPlaneTilt, PencilSimple, Plus, UserCircle, UsersThree } from "@phosphor-icons/react";
+import { Check, Copy, DotsThreeVertical, PaperPlaneTilt, PencilSimple, Plus, Trash, UserCircle, UsersThree } from "@phosphor-icons/react";
 
 import { FilterBar } from "@/components/layout/filter-bar";
 import { PageHeader } from "@/components/layout/page-header";
@@ -226,6 +226,7 @@ export default function ClientsPage() {
   const menuContainerRef = useRef<HTMLDivElement | null>(null);
   const [copiedClientId, setCopiedClientId] = useState<string | null>(null);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
+  const [deletingClient, setDeletingClient] = useState<Client | null>(null);
 
   // The global search lands here with ?search=.
   const termoDaUrl = useSearchParams().get("search");
@@ -267,6 +268,14 @@ export default function ClientsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["clients"] });
       setEditingClient(null);
+    },
+  });
+
+  const deleteClient = useMutation<unknown, Error, string>({
+    mutationFn: (id) => api.del(`/clients/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["clients"] });
+      setDeletingClient(null);
     },
   });
 
@@ -555,6 +564,21 @@ export default function ClientsPage() {
                                     {t("table.actions.edit")}
                                   </button>
                                 ) : null}
+                                {canCreate ? (
+                                  <button
+                                    type="button"
+                                    role="menuitem"
+                                    className={`${menuItemClass} hover:bg-danger-soft hover:text-danger`}
+                                    onClick={() => {
+                                      deleteClient.reset();
+                                      setDeletingClient(client);
+                                      setOpenMenuId(null);
+                                    }}
+                                  >
+                                    <Trash size={16} />
+                                    {t("table.actions.delete")}
+                                  </button>
+                                ) : null}
                                 {client.email ? (
                                   <button
                                     type="button"
@@ -653,6 +677,37 @@ export default function ClientsPage() {
           errorMessage={updateClient.error?.message}
         />
       ) : null}
+
+      <Modal
+        open={Boolean(deletingClient)}
+        onOpenChange={(aberto) => {
+          if (!aberto) setDeletingClient(null);
+        }}
+        title={t("deleteDialog.title")}
+        description={t("deleteDialog.description", { name: deletingClient?.name ?? "" })}
+        closeLabel={t("dialog.close")}
+      >
+        {deleteClient.error ? (
+          <ModalBody>
+            <Notice tone="danger">{deleteClient.error.message}</Notice>
+          </ModalBody>
+        ) : null}
+        <ModalFooter>
+          <ModalClose asChild>
+            <Button type="button" variant="ghost" disabled={deleteClient.isPending}>
+              {t("dialog.cancel")}
+            </Button>
+          </ModalClose>
+          <Button
+            type="button"
+            variant="danger"
+            loading={deleteClient.isPending}
+            onClick={() => deletingClient && deleteClient.mutate(deletingClient.id)}
+          >
+            {t("deleteDialog.confirm")}
+          </Button>
+        </ModalFooter>
+      </Modal>
 
       {selectedClientId ? (
         <ClientDetailsDialog

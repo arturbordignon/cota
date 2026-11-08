@@ -132,11 +132,17 @@ export const enMessages = {
       "actions": {
         "openMenu": "Open actions",
         "edit": "Edit",
+        "delete": "Delete",
         "sendProposal": "Send proposal",
         "copyEmail": "Copy email",
         "copied": "Copied",
         "noEmail": "Email not provided"
       }
+    },
+    "deleteDialog": {
+      "title": "Delete client",
+      "description": "{name} will be removed. Proposals already created for this client are kept, without a linked client.",
+      "confirm": "Delete client"
     },
     "newPage": {
       "title": "Add client",

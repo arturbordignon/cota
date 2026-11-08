@@ -132,11 +132,17 @@ export const ptBRMessages = {
       "actions": {
         "openMenu": "Abrir ações",
         "edit": "Editar",
+        "delete": "Excluir",
         "sendProposal": "Enviar proposta",
         "copyEmail": "Copiar e-mail",
         "copied": "Copiado",
         "noEmail": "E-mail não informado"
       }
+    },
+    "deleteDialog": {
+      "title": "Excluir cliente",
+      "description": "{name} será removido. As propostas já criadas para ele continuam salvas, sem cliente vinculado.",
+      "confirm": "Excluir cliente"
     },
     "newPage": {
       "title": "Cadastrar cliente",
