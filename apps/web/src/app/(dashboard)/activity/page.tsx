@@ -16,14 +16,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useApi } from '@/hooks/use-api';
 import { AuditEventsResponse } from '@/types/api';
 
-const categoryKeys = [
-  'proposal',
-  'department',
-  'notifications',
-  'billing',
-  'user',
-  'system',
-] as const;
+// Notifications have their own page; nothing in the activity log is filed under them.
+const categoryKeys = ['proposal', 'department', 'billing', 'user', 'system'] as const;
 type ActivityCategory = (typeof categoryKeys)[number];
 
 export default function ActivityPage() {
