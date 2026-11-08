@@ -42,6 +42,10 @@ const envSchema = z.object({
   AWS_REGION: z.string().default('us-east-1'),
   S3_BUCKET: z.string().default('cota-local'),
   S3_ENDPOINT: z.string().default('http://localhost:9000'),
+  // Address browsers use to reach the bucket, when it differs from the one the
+  // API and worker use (in Docker: localhost:9000 outside, minio:9000 inside).
+  // Links handed to the browser are signed for this address.
+  S3_PUBLIC_ENDPOINT: z.string().default(''),
   S3_ACCESS_KEY: z.string().default('minio'),
   S3_SECRET_KEY: z.string().default('minio123'),
   JWT_ACCESS_SECRET: z.string().default('change-me'),
