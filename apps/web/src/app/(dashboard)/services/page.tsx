@@ -20,6 +20,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { useApi } from "@/hooks/use-api";
 import { useCurrentUser } from "@/components/providers/user-provider";
+import { useAccountCurrency } from "@/hooks/use-account-currency";
 import { EquipmentResponse, EquipmentSummary } from "@/types/api";
 
 interface ServicePayload {
@@ -209,6 +210,7 @@ function extractSpecs(equipment: EquipmentSummary) {
 export default function ServicesPage() {
   const t = useTranslations("services");
   const api = useApi();
+  const moeda = useAccountCurrency();
   const format = useFormatter();
   const queryClient = useQueryClient();
   const [editingService, setEditingService] = useState<EquipmentSummary | null>(null);
@@ -267,7 +269,7 @@ export default function ServicesPage() {
     if (Number.isNaN(value)) return null;
     return format.number(value, {
       style: 'currency',
-      currency: 'BRL',
+      currency: moeda,
       minimumFractionDigits: 2,
     });
   };
