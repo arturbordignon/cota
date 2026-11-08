@@ -86,6 +86,11 @@ const TEMPO_MAXIMO_ESPERA_PDF = 90000;
 type DadosProposta = { job?: { projectName?: string; siteLocation?: string; schedule?: string } };
 type TotaisProposta = { total?: number; days?: number };
 
+const NOMES_IDIOMAS: Record<string, string> = {
+  "pt-BR": "Português (Brasil)",
+  en: "English",
+};
+
 function formatarMoeda(valor: number, locale?: string) {
   let moeda = "BRL";
   if (locale === "en") {
@@ -330,7 +335,7 @@ export function ProposalDetailView({ proposalId }: ProposalDetailViewProps) {
     ? [
         { rotulo: "Cliente", valor: proposal.client?.name ?? "—" },
         { rotulo: "Modelo", valor: proposal.template?.name ?? "—" },
-        { rotulo: "Idioma", valor: proposal.locale ?? "—" },
+        { rotulo: "Idioma", valor: NOMES_IDIOMAS[proposal.locale ?? ""] ?? proposal.locale ?? "—" },
         { rotulo: "Expira em", valor: formatDateTime(proposal.expiresAt) },
       ]
     : [];
