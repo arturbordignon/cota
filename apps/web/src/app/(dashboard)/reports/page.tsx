@@ -369,13 +369,12 @@ export default function ReportsPage() {
     });
   }, [overview?.proposalsByStatus, statusBadges]);
 
-  const topClients: any[] = overview?.topClients ?? [];
-  const recentProposals: any[] = overview?.recentProposals ?? [];
-  const pipelineSummary: any[] = overview?.pipelineSummary ?? [];
-
-  // Optional fields if your backend sends them
-  const propostasPorMembro = (overview as any)?.propostasPorMembro ?? [];
-  const receitaPorCidade = (overview as any)?.receitaPorCidade ?? [];
+  // Stable references so the charts below only recompute when the data changes.
+  const topClients: any[] = useMemo(() => overview?.topClients ?? [], [overview]);
+  const recentProposals: any[] = useMemo(() => overview?.recentProposals ?? [], [overview]);
+  const pipelineSummary: any[] = useMemo(() => overview?.pipelineSummary ?? [], [overview]);
+  const propostasPorMembro = useMemo(() => (overview as any)?.propostasPorMembro ?? [], [overview]);
+  const receitaPorCidade = useMemo(() => (overview as any)?.receitaPorCidade ?? [], [overview]);
   const kpis = (overview as any)?.kpis ?? null;
   const range = (overview as any)?.range ?? overviewParsed;
 
