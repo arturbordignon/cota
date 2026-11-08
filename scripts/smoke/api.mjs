@@ -11,6 +11,7 @@ import { verificarPropostas } from './proposals.mjs';
 import { verificarPipeline } from './pipeline.mjs';
 import { verificarRelatorios } from './reports.mjs';
 import { verificarEquipe } from './team.mjs';
+import { verificarAtividade } from './activity.mjs';
 
 const contexto = {};
 
@@ -29,5 +30,6 @@ await verificarPropostas(contexto);
 await verificarPipeline(contexto);
 await verificarRelatorios(contexto);
 await verificarEquipe(contexto);
+await verificarAtividade(contexto);
 
 process.exitCode = resumo() ? 0 : 1;
