@@ -162,7 +162,6 @@ photos and PDFs are always served through signed URLs.
 
 ## Roadmap
 - Run the API suite and the smoke checks in a CI pipeline.
-- Translate the invite email (it is sent in Portuguese today).
 - Let builder templates be edited after saving (today they can be duplicated, renamed or deleted).
 
 ## Stripe & Billing
