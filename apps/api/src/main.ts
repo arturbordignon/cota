@@ -1,4 +1,5 @@
 import env from '@cota/config';
+
 import { buildServer } from './app.js';
 
 async function start() {
