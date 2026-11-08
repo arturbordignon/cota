@@ -835,7 +835,7 @@ export const enMessages = {
         },
         "upload": {
           "label": "Upload template",
-          "description": "Import PDF or DOCX and map fields"
+          "description": "Import an HTML layout"
         }
       },
       "filters": {
@@ -845,8 +845,9 @@ export const enMessages = {
         "search": "Search templates"
       },
       "upload": {
-        "description": "Drag and drop PDF or DOCX files to make them fillable templates. You can map fields after the upload.",
-        "button": "Upload file"
+        "description": "Choose an HTML file to turn it into a template. Use variables such as '{{company.name}}' and '{{job.projectName}}' where the proposal data should appear.",
+        "button": "Upload file",
+        "invalid": "The file is empty or is not valid HTML."
       },
       "cards": {
         "noDescription": "No description available.",

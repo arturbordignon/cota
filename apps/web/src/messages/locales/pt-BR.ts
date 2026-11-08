@@ -835,7 +835,7 @@ export const ptBRMessages = {
         },
         "upload": {
           "label": "Carregar modelo",
-          "description": "Importe PDF ou DOCX e mapeie campos"
+          "description": "Importe um layout em HTML"
         }
       },
       "filters": {
@@ -845,8 +845,9 @@ export const ptBRMessages = {
         "search": "Buscar modelos"
       },
       "upload": {
-        "description": "Arraste e solte arquivos PDF ou DOCX para transformá-los em modelos preenchíveis. Você poderá mapear campos depois do upload.",
-        "button": "Carregar arquivo"
+        "description": "Escolha um arquivo HTML para transformá-lo em modelo. Use variáveis como '{{company.name}}' e '{{job.projectName}}' onde os dados da proposta devem aparecer.",
+        "button": "Carregar arquivo",
+        "invalid": "O arquivo está vazio ou não é um HTML válido."
       },
       "cards": {
         "noDescription": "Sem descrição disponível.",

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -36,12 +36,14 @@ function CreateTemplateDialog({
   onSubmit,
   isSubmitting,
   errorMessage,
+  importado,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (values: CreateTemplatePayload) => Promise<void>;
   isSubmitting: boolean;
   errorMessage?: string;
+  importado?: { name: string; htmlBody: string } | null;
 }) {
   const t = useTranslations("templates.dialog");
   const currentLocale = useLocale();
@@ -61,6 +63,13 @@ function CreateTemplateDialog({
     setLocale(currentLocale === "pt-BR" ? "pt-BR" : "en");
     setHtmlBody(defaultHtml);
   };
+
+  // A file chosen on the "Upload template" tab fills the form.
+  useEffect(() => {
+    if (!importado) return;
+    setName(importado.name);
+    setHtmlBody(importado.htmlBody);
+  }, [importado]);
 
   const handleOpenChange = (next: boolean) => {
     if (!next) resetForm();
@@ -173,6 +182,21 @@ export default function TemplatesPage() {
   const api = useApi();
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [importado, setImportado] = useState<{ name: string; htmlBody: string } | null>(null);
+  const [erroImportacao, setErroImportacao] = useState<string | null>(null);
+  const arquivoRef = useRef<HTMLInputElement | null>(null);
+
+  const importarArquivo = async (arquivo: File | undefined) => {
+    setErroImportacao(null);
+    if (!arquivo) return;
+    const html = (await arquivo.text()).trim();
+    if (html.length < 10) {
+      setErroImportacao(t("upload.invalid"));
+      return;
+    }
+    setImportado({ name: arquivo.name.replace(/\.html?$/i, ""), htmlBody: html });
+    setDialogOpen(true);
+  };
 
   const tabItems = useMemo(
     () => [
@@ -349,16 +373,34 @@ export default function TemplatesPage() {
       </Tabs>
 
       {showUpload ? (
-        <EmptyState
-          icon={<UploadSimple size={24} weight="bold" />}
-          title={t("upload.button")}
-          description={t("upload.description")}
-          action={
-            <Button variant="secondary" size="lg">
-              {t("upload.button")}
-            </Button>
-          }
-        />
+        <div className="space-y-3">
+          <EmptyState
+            icon={<UploadSimple size={24} weight="bold" />}
+            title={t("upload.button")}
+            description={t("upload.description")}
+            action={
+              <Button
+                variant="secondary"
+                size="lg"
+                disabled={isTokenMissing}
+                onClick={() => arquivoRef.current?.click()}
+              >
+                {t("upload.button")}
+              </Button>
+            }
+          />
+          <input
+            ref={arquivoRef}
+            type="file"
+            accept=".html,.htm,text/html"
+            className="hidden"
+            onChange={(event) => {
+              void importarArquivo(event.target.files?.[0]);
+              event.target.value = "";
+            }}
+          />
+          {erroImportacao ? <Notice tone="danger">{erroImportacao}</Notice> : null}
+        </div>
       ) : (
         <div className="space-y-5">
           {loadError ? (
@@ -425,7 +467,11 @@ export default function TemplatesPage() {
       {!isTokenMissing ? (
         <CreateTemplateDialog
           open={dialogOpen}
-          onOpenChange={setDialogOpen}
+          onOpenChange={(aberto) => {
+            setDialogOpen(aberto);
+            if (!aberto) setImportado(null);
+          }}
+          importado={importado}
           onSubmit={handleCreateTemplate}
           isSubmitting={createTemplate.isPending}
           errorMessage={createTemplate.error?.message}
