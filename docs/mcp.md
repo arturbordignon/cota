@@ -33,6 +33,9 @@ O usuário só descreve a operação. O MCP resolve cliente, modelo, serviços e
 
 `montar_proposta` usa o mesmo payload da tela Nova proposta: `job`, `equipment`, `team`, `terms`, `pricing` e totais de mobilização + diária × dias.
 
+Sem `idModelo`, usa um modelo da própria conta; se não houver, o modelo padrão no idioma da conta (há um em
+português e outro em inglês).
+
 ## Como a IA deve usar
 
 1. Se faltar contexto, chama `listar_clientes`, `listar_servicos` e `listar_modelos`.
@@ -43,7 +46,8 @@ O usuário só descreve a operação. O MCP resolve cliente, modelo, serviços e
 
 ## Configuração
 
-No `.env` da raiz (ou no `env` do cliente MCP):
+No `.env` da raiz (ou no `env` do cliente MCP). O servidor lê o `.env` da pasta onde roda e o da raiz do
+projeto, então `pnpm dev:mcp` funciona sem exportar nada:
 
 ```env
 COTA_API_URL=http://localhost:3333/api/v1
