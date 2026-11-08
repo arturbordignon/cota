@@ -85,8 +85,22 @@ pnpm build    # compiles all packages
 pnpm test     # API security suite (needs the Docker Postgres, Redis and MinIO running)
 ```
 The API suite in `apps/api/test` covers tenant isolation, sessions, rate limits, uploads, Stripe webhooks,
-the proposal limit, public proposals and account deletion. It talks to the real services from
+the proposal limit, public proposals, account deletion, clients, services, templates, the pipeline, reports,
+notifications and the activity log. It talks to the real services from
 `docker compose up -d postgres redis minio`.
+
+### Smoke checks against a running stack
+With everything up (`pnpm local:up`), two scripts exercise the real app end to end:
+
+```bash
+pnpm smoke:api   # calls every API endpoint with a throwaway account, then deletes it
+pnpm smoke:web   # opens every page in Portuguese and English as the demo owner
+SMOKE_SCREENSHOTS=./shots pnpm smoke:web   # also saves a screenshot of each page
+```
+
+`smoke:api` also waits for the worker to render a PDF and walks a proposal through the client's public page.
+`smoke:web` needs Chrome or Chromium (set `CHROME_PATH` if it isn't in the usual place) and reports script
+errors, server errors and untranslated keys. Set `SMOKE_API_URL` / `SMOKE_WEB_URL` when the ports differ.
 
 ## Docker builds
 The images run as the unprivileged `node` user and contain only production dependencies:
