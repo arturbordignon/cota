@@ -87,7 +87,7 @@ async function main() {
     await prisma.account.update({ where: { id: account.id }, data: { settingsJson } });
   }
 
-  await prisma.user.upsert({
+  const owner = await prisma.user.upsert({
     where: {
       accountId_email: {
         accountId: account.id,
@@ -99,6 +99,8 @@ async function main() {
       email: demo.email,
       passwordHash,
       role: 'OWNER',
+      fullName: 'Ana Ribeiro',
+      jobTitle: 'Diretora comercial',
       preferredLocale: demo.locale,
       isActive: true,
     },
@@ -128,7 +130,36 @@ async function main() {
     });
   }
 
+  // Sample data only goes into an empty account, so running the seed again
+  // never duplicates it or touches what was created by hand.
+  const clientes = await prisma.client.count({ where: { accountId: account.id } });
+  if (clientes === 0) {
+    await seedDemoData(account, owner);
+    console.log('Added sample clients, services, proposals, pipeline and team.');
+  }
+
   console.log('Seeded demo login: cota-demo / admin@cota.local / password123');
+}
+
+const DAY = 24 * 60 * 60 * 1000;
+const daysAgo = (days) => new Date(Date.now() - days * DAY);
+
+async function seedDemoData(account, owner) {
+  await seedClients(account);
+}
+
+async function seedClients(account) {
+  const clients = [
+    { name: 'Marcos Albuquerque', companyName: 'Construtora Atlântica S.A.', email: 'compras@atlantica.com.br', phone: '(11) 98810-2234', notes: 'Obras industriais na Grande SP. Prefere contato por e-mail.', days: 58 },
+    { name: 'Fernanda Lima', companyName: 'Metalúrgica Vale Verde', email: 'fernanda.lima@valeverde.ind.br', phone: '(19) 99712-4410', notes: 'Paradas de manutenção trimestrais.', days: 41 },
+    { name: 'Ricardo Teixeira', companyName: 'Porto Seco Campinas Logística', email: 'operacoes@portoseco.com.br', phone: '(19) 3241-8800', notes: 'Movimentação de contêineres e cargas de projeto.', days: 33 },
+    { name: 'Juliana Prado', companyName: 'Energia Solar Paulista', email: 'juliana@energiasp.com.br', phone: '(11) 97455-1020', notes: 'Montagem de usinas solares no interior.', days: 19 },
+    { name: 'Eduardo Santos', companyName: 'Galpões Modulares Brasil', email: 'eduardo@galpoesbr.com.br', phone: '(13) 99630-7781', notes: 'Estruturas metálicas para galpões logísticos.', days: 6 },
+  ];
+  for (const client of clients) {
+    const { days, ...data } = client;
+    await prisma.client.create({ data: { ...data, accountId: account.id, createdAt: daysAgo(days) } });
+  }
 }
 
 main()
