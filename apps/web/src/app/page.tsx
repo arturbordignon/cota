@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import { Logo } from "@/components/brand/logo";
 import { ProposalSheet } from "@/components/brand/proposal-sheet";
 import { Button } from "@/components/ui/button";
+import { LocaleSwitcher } from "@/components/layout/locale-switcher";
 
 const passos = ["build", "pdf", "send"] as const;
 
@@ -19,6 +20,9 @@ export default function LandingPage() {
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
           <Logo />
           <div className="flex items-center gap-2">
+            <div className="hidden w-[170px] sm:block">
+              <LocaleSwitcher ariaLabel={t("language")} />
+            </div>
             <Button asChild variant="ghost">
               <Link href={"/sign-in" as Route}>{t("signIn")}</Link>
             </Button>
