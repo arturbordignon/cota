@@ -42,6 +42,25 @@ Mailhog `1025`/`8025`, Adminer `5555`); when one is already taken by something e
 picks the next free port, saves it in `.env` and prints the final URLs at the end. It keeps `DATABASE_URL`,
 `REDIS_PORT`, `S3_ENDPOINT`, `SMTP_PORT` and `NEXT_PUBLIC_API_URL` in `.env` aligned with the selected ports.
 
+## Demo data
+`pnpm local:up` seeds a demo workspace you can sign in to right away:
+
+| Who | Account | Email | Password |
+| --- | --- | --- | --- |
+| Owner (Ana Ribeiro) | `cota-demo` | `admin@cota.local` | `password123` |
+| Salesperson (Bruno Carvalho, "Comercial") | `cota-demo` | `bruno@cota.local` | `password123` |
+| Operations, view only (Larissa Souza) | `cota-demo` | `larissa@cota.local` | `password123` |
+
+It comes with company details, five clients, four services, seven proposals in every status (draft, sent,
+viewed, accepted, declined, expired) with their activity and notifications, a sales pipeline with leads,
+two departments and a pending invite. Sample data only goes into an empty workspace, so running the seed
+again never duplicates anything. To start the demo over, for example before recording a video:
+
+```bash
+docker compose exec -T api pnpm local:reset   # with pnpm local:up
+pnpm local:reset                              # when the API runs on your machine
+```
+
 ## Local development
 ```bash
 # Frontend (Next.js + Tailwind)
