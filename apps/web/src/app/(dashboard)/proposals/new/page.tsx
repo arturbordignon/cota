@@ -78,6 +78,40 @@ const formularioVazio: Formulario = {
 
 type DadosModelo = { job?: { scope?: unknown }; team?: unknown; terms?: unknown };
 
+type IdiomaProposta = "pt-BR" | "en";
+
+// Text the wizard writes into the proposal itself. It follows the language of
+// the template (the document the client reads), not the language of the screen.
+const TEXTO_DA_PROPOSTA: Record<
+  IdiomaProposta,
+  {
+    aPartirDe: (data: string) => string;
+    intervalo: (inicio: string, fim: string) => string;
+    capacidade: (toneladas: number) => string;
+    validade: (dias: number) => string;
+    semTitulo: string;
+  }
+> = {
+  "pt-BR": {
+    aPartirDe: (data) => `A partir de ${data}`,
+    intervalo: (inicio, fim) => `${inicio} a ${fim}`,
+    capacidade: (toneladas) => `Capacidade ${toneladas} t`,
+    validade: (dias) => `Valores válidos por ${dias} dias corridos.`,
+    semTitulo: "Proposta sem título",
+  },
+  en: {
+    aPartirDe: (data) => `From ${data}`,
+    intervalo: (inicio, fim) => `${inicio} to ${fim}`,
+    capacidade: (toneladas) => `Capacity ${toneladas} t`,
+    validade: (dias) => `Prices valid for ${dias} calendar days.`,
+    semTitulo: "Untitled proposal",
+  },
+};
+
+function idiomaDoModelo(modelo?: { locale?: string | null }): IdiomaProposta {
+  return modelo?.locale === "en" ? "en" : "pt-BR";
+}
+
 type Totais = { mobilization: number; dailyRate: number; days: number };
 
 function juntarLinhas(valor: unknown) {
@@ -122,42 +156,43 @@ function calcularDiasEntreDatas(inicio: string, fim: string) {
   return String(Math.round(diferenca / UM_DIA) + 1);
 }
 
-function formatarData(data: string) {
+function formatarData(data: string, idioma: IdiomaProposta) {
   if (!data) {
     return "";
   }
-  return new Date(`${data}T00:00:00`).toLocaleDateString("pt-BR");
+  return new Date(`${data}T00:00:00`).toLocaleDateString(idioma);
 }
 
-function montarPeriodo(formulario: Formulario) {
+function montarPeriodo(formulario: Formulario, idioma: IdiomaProposta) {
+  const texto = TEXTO_DA_PROPOSTA[idioma];
   if (!formulario.dataInicio) {
     return "";
   }
   if (!formulario.dataFim) {
-    return `A partir de ${formatarData(formulario.dataInicio)}`;
+    return texto.aPartirDe(formatarData(formulario.dataInicio, idioma));
   }
-  return `${formatarData(formulario.dataInicio)} a ${formatarData(formulario.dataFim)}`;
+  return texto.intervalo(formatarData(formulario.dataInicio, idioma), formatarData(formulario.dataFim, idioma));
 }
 
 function formatarMoeda(valor: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(valor);
 }
 
-function descreverCapacidade(equipamento: EquipmentSummary) {
+function descreverCapacidade(equipamento: EquipmentSummary, idioma: IdiomaProposta) {
   if (!equipamento.capacityTons) {
     return "";
   }
-  return `Capacidade ${equipamento.capacityTons} t`;
+  return TEXTO_DA_PROPOSTA[idioma].capacidade(equipamento.capacityTons);
 }
 
-function montarEquipamentos(formulario: Formulario, catalogo: EquipmentSummary[]) {
+function montarEquipamentos(formulario: Formulario, catalogo: EquipmentSummary[], idioma: IdiomaProposta) {
   const selecionados = catalogo
     .filter((equipamento) => formulario.equipamentosIds.includes(equipamento.id))
     .map((equipamento) => {
       const especificacoes = (equipamento.specsJson || {}) as { description?: string; notes?: string };
       return {
         name: equipamento.name,
-        capacity: descreverCapacidade(equipamento),
+        capacity: descreverCapacidade(equipamento, idioma),
         reach: especificacoes.description || "",
         notes: especificacoes.notes || "",
       };
@@ -171,12 +206,12 @@ function montarEquipamentos(formulario: Formulario, catalogo: EquipmentSummary[]
   return [...selecionados, ...extras];
 }
 
-function montarValidade(formulario: Formulario) {
+function montarValidade(formulario: Formulario, idioma: IdiomaProposta) {
   const dias = converterNumero(formulario.validadeDias);
   if (!dias) {
     return "";
   }
-  return `Valores válidos por ${dias} dias corridos.`;
+  return TEXTO_DA_PROPOSTA[idioma].validade(dias);
 }
 
 function montarDataExpiracao(formulario: Formulario) {
@@ -187,18 +222,18 @@ function montarDataExpiracao(formulario: Formulario) {
   return new Date(Date.now() + dias * UM_DIA).toISOString();
 }
 
-function montarPayload(formulario: Formulario, catalogo: EquipmentSummary[]) {
+function montarPayload(formulario: Formulario, catalogo: EquipmentSummary[], idioma: IdiomaProposta) {
   return {
     job: {
       projectName: formulario.titulo.trim(),
       siteLocation: formulario.localOperacao.trim(),
-      schedule: montarPeriodo(formulario),
+      schedule: montarPeriodo(formulario, idioma),
       scope: separarLinhas(formulario.escopo),
     },
-    equipment: montarEquipamentos(formulario, catalogo),
+    equipment: montarEquipamentos(formulario, catalogo, idioma),
     team: separarLinhas(formulario.equipe),
     terms: separarLinhas(formulario.condicoes),
-    pricing: { validity: montarValidade(formulario) },
+    pricing: { validity: montarValidade(formulario, idioma) },
   };
 }
 
@@ -423,8 +458,8 @@ export default function NewProposalPage() {
       const response = await api.post<CreateProposalResponse>("/proposals", {
         templateId: modeloId,
         clientId,
-        title: formulario.titulo.trim() || modeloAtivo?.name || "Proposta sem título",
-        payload: montarPayload(formulario, catalogo),
+        title: formulario.titulo.trim() || modeloAtivo?.name || TEXTO_DA_PROPOSTA[idiomaDoModelo(modeloAtivo)].semTitulo,
+        payload: montarPayload(formulario, catalogo, idiomaDoModelo(modeloAtivo)),
         totals: totais,
         expiresAt: montarDataExpiracao(formulario),
       });
@@ -483,7 +518,7 @@ export default function NewProposalPage() {
     { rotulo: "Modelo", valor: modeloAtivo?.name },
     { rotulo: "Projeto", valor: formulario.titulo },
     { rotulo: "Local", valor: formulario.localOperacao },
-    { rotulo: "Período", valor: montarPeriodo(formulario) },
+    { rotulo: "Período", valor: montarPeriodo(formulario, idiomaDoModelo(modeloAtivo)) },
   ];
 
   const resumo = (
@@ -673,7 +708,7 @@ export default function NewProposalPage() {
                       />
                       <span className="min-w-0 truncate font-medium">{equipamento.name}</span>
                       <span className="tabular ml-auto shrink-0 text-xs text-muted">
-                        {descreverCapacidade(equipamento)}
+                        {descreverCapacidade(equipamento, idiomaDoModelo(modeloAtivo))}
                       </span>
                     </label>
                   ))}
