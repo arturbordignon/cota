@@ -1,8 +1,18 @@
 import { existsSync, readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-function lerEnvArquivo() {
-  const caminho = resolve(process.cwd(), '.env');
+// pnpm runs the server from apps/mcp, so besides the current folder the
+// workspace root .env (two levels above src) is read too.
+const raizDoProjeto = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
+
+function lerEnvArquivos() {
+  for (const caminho of new Set([resolve(process.cwd(), '.env'), resolve(raizDoProjeto, '.env')])) {
+    lerEnvArquivo(caminho);
+  }
+}
+
+function lerEnvArquivo(caminho: string) {
   if (!existsSync(caminho)) {
     return;
   }
@@ -52,7 +62,7 @@ export type ConfiguracaoMcp = {
 };
 
 export function carregarConfiguracao(): ConfiguracaoMcp {
-  lerEnvArquivo();
+  lerEnvArquivos();
 
   const urlApi = buscarTexto(process.env.COTA_API_URL, 'http://localhost:3333/api/v1');
   const urlWeb = buscarTexto(process.env.COTA_WEB_URL, 'http://localhost:3001');
