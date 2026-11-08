@@ -136,8 +136,12 @@ photos and PDFs are always served through signed URLs.
 - Locale detection is cookie-based (with Accept-Language fallback) so routes stay clean: `/dashboard`, `/proposals`, etc.
 - Stripe billing targets proposal-based plans (BR/US) rather than credits; see `/plans` for UI and expect to configure `price_` ids per tier.
 - Design system components live under `apps/web/src/components/ui` & `layout`.
-- Core dashboard routes already scaffolded (Dashboard, Clients, Proposals, Templates, Plans, Services, Team, Auth).
-- Catálogo de templates já inclui um modelo de proposta para serviços pesados (duplicável e editável pelos clientes).
+- Every screen is translated (Portuguese and English); the switcher is in the user menu, on the landing page and on
+  the sign-in pages. The client's public proposal page follows the proposal's language instead.
+- The template catalog ships a crane service template in Portuguese and in English; accounts can duplicate it,
+  import an HTML file or build their own in the visual builder, whose "proposal data" blocks fill in the client,
+  job, prices, photos and terms of each proposal.
+- Money is shown in the currency of the account's plan (BRL or USD), whatever the language on screen.
 
 ## AWS deployment outline
 1. **Infrastructure** – RDS (PostgreSQL), ElastiCache (Redis), S3 for assets, ECS Fargate services for API & worker, optional CloudFront for proposal pages.
