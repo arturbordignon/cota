@@ -97,11 +97,7 @@ minio_console_port="$(resolve_port MINIO_CONSOLE_PORT 9001 minio "MinIO console"
 mailhog_smtp_port="$(resolve_port MAILHOG_SMTP_PORT 1025 mailhog "Mailhog SMTP")"
 mailhog_ui_port="$(resolve_port MAILHOG_UI_PORT 8025 mailhog Mailhog)"
 adminer_port="$(resolve_port ADMINER_PORT 5555 adminer Adminer)"
-web_port="$(get_env_var WEB_PORT || true)"
-if [ -z "$web_port" ]; then
-  web_port="3001"
-fi
-set_env_var WEB_PORT "$web_port"
+web_port="$(resolve_port WEB_PORT 3001 web Web)"
 
 set_env_var DATABASE_URL "postgresql://cota:cota@localhost:$postgres_port/cota?schema=public&options=-c%20TimeZone%3DAmerica%2FSao_Paulo"
 set_env_var NEXT_PUBLIC_API_URL "http://localhost:$api_port/api/v1"
