@@ -99,9 +99,10 @@ const reportsRoutes: FastifyPluginAsync = async (app) => {
 
         const revenueByClient = proposals
           .filter((p) => p.status === 'ACCEPTED')
-          .reduce<Record<string, { client: string; value: number }>>((acc, p) => {
-            const key = p.client?.name ?? 'Sem cliente';
-            const current = acc[key] ?? { client: key, value: 0 };
+          .reduce<Record<string, { client: string | null; value: number }>>((acc, p) => {
+            // null means "no client"; the web app names it in the user's language.
+            const key = p.client?.name ?? '';
+            const current = acc[key] ?? { client: p.client?.name ?? null, value: 0 };
             current.value += getNumericTotal(p.totalsJson);
             acc[key] = current;
             return acc;
@@ -133,10 +134,10 @@ const reportsRoutes: FastifyPluginAsync = async (app) => {
           createdByName: membro.createdById ? (nomes.get(membro.createdById) ?? null) : null,
         }));
 
+        // '' means "no site"; the web app names it in the user's language.
         function buscarCidade(payloadJson: unknown) {
           const payload = payloadJson as { job?: { siteLocation?: unknown } } | null;
-          if (typeof payload?.job?.siteLocation !== 'string') return 'Sem cidade';
-          if (payload.job.siteLocation.trim() === '') return 'Sem cidade';
+          if (typeof payload?.job?.siteLocation !== 'string') return '';
           return payload.job.siteLocation.trim();
         }
 
@@ -146,7 +147,7 @@ const reportsRoutes: FastifyPluginAsync = async (app) => {
           return acc;
         }, {});
         const receitaPorCidade = Object.entries(receitaPorCidadeMap)
-          .map(([city, value]) => ({ city, value }))
+          .map(([city, value]) => ({ city: city || null, value }))
           .sort((a, b) => b.value - a.value)
           .slice(0, 8);
 
