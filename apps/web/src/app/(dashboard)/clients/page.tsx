@@ -19,6 +19,7 @@ import { Notice } from "@/components/ui/notice";
 import { Select, SelectItem } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useApi } from "@/hooks/use-api";
+import { useErrorMessage } from "@/hooks/use-error-message";
 import { useCurrentUser } from "@/components/providers/user-provider";
 import {
   ClientFormFields,
@@ -214,6 +215,7 @@ function ClientDetailsDialog({
 
 export default function ClientsPage() {
   const t = useTranslations("clients");
+  const mensagemDeErro = useErrorMessage();
   const format = useFormatter();
   const api = useApi();
   const queryClient = useQueryClient();
@@ -461,7 +463,7 @@ export default function ClientsPage() {
 
       {error ? (
         <Notice tone="danger">
-          {t("states.error")} {error.message}
+          {t("states.error")}
         </Notice>
       ) : null}
 
@@ -655,7 +657,7 @@ export default function ClientsPage() {
             await createClient.mutateAsync(values);
           }}
           isLoading={createClient.isPending}
-          errorMessage={createClient.error?.message}
+          errorMessage={createClient.error ? mensagemDeErro(createClient.error) : undefined}
         />
       ) : null}
 
@@ -681,7 +683,7 @@ export default function ClientsPage() {
             await updateClient.mutateAsync({ id: editingClient.id, values });
           }}
           isLoading={updateClient.isPending}
-          errorMessage={updateClient.error?.message}
+          errorMessage={updateClient.error ? mensagemDeErro(updateClient.error) : undefined}
         />
       ) : null}
 
@@ -696,7 +698,7 @@ export default function ClientsPage() {
       >
         {deleteClient.error ? (
           <ModalBody>
-            <Notice tone="danger">{deleteClient.error.message}</Notice>
+            <Notice tone="danger">{mensagemDeErro(deleteClient.error)}</Notice>
           </ModalBody>
         ) : null}
         <ModalFooter>
@@ -722,7 +724,7 @@ export default function ClientsPage() {
           onOpenChange={closeDetails}
           client={formattedClient}
           isLoading={clientDetailsQuery.isLoading}
-          errorMessage={clientDetailsQuery.error?.message}
+          errorMessage={clientDetailsQuery.error ? mensagemDeErro(clientDetailsQuery.error) : undefined}
         />
       ) : null}
     </section>

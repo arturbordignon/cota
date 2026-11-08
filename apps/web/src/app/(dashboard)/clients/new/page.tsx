@@ -19,10 +19,12 @@ import {
   type ClientFormValues,
 } from "@/components/clients/client-form-fields";
 import { useApi } from "@/hooks/use-api";
+import { useErrorMessage } from "@/hooks/use-error-message";
 
 export default function NewClientPage() {
   const t = useTranslations("clients.newPage");
   const tDialog = useTranslations("clients.dialog");
+  const mensagemDeErro = useErrorMessage();
   const api = useApi();
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -50,7 +52,7 @@ export default function NewClientPage() {
         >
           <ClientFormFields form={form} disabled={createClient.isPending} autoFocus />
 
-          {createClient.error ? <Notice tone="danger">{createClient.error.message}</Notice> : null}
+          {createClient.error ? <Notice tone="danger">{mensagemDeErro(createClient.error)}</Notice> : null}
 
           <div className="flex justify-end gap-2 border-t border-border pt-5">
             <Button asChild variant="ghost">
