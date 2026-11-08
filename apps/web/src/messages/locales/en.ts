@@ -846,7 +846,8 @@ export const enMessages = {
       "filters": {
         "category": {
           "all": "All segments"
-        }
+        },
+        "search": "Search templates"
       },
       "upload": {
         "description": "Drag and drop PDF or DOCX files to make them fillable templates. You can map fields after the upload.",

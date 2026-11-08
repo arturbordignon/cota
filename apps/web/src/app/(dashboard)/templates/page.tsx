@@ -5,7 +5,7 @@ import type { FormEvent } from "react";
 import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CaretRight, Files, PaintBrush, Plus, UploadSimple } from "@phosphor-icons/react";
+import { CaretRight, Files, MagnifyingGlass, PaintBrush, Plus, UploadSimple } from "@phosphor-icons/react";
 
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
@@ -168,6 +168,7 @@ export default function TemplatesPage() {
   const t = useTranslations("templates.page");
   const [activeTab, setActiveTab] = useState<TabValue>("catalog");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [busca, setBusca] = useState("");
   const api = useApi();
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -224,13 +225,18 @@ export default function TemplatesPage() {
   }, [templates]);
 
   const filteredTemplates = useMemo(() => {
-    if (categoryFilter === "all") {
-      return templates;
-    }
-    return templates.filter((template) =>
-      template.category?.toLowerCase() === categoryFilter.toLowerCase()
-    );
-  }, [categoryFilter, templates]);
+    const termo = busca.trim().toLowerCase();
+    return templates.filter((template) => {
+      if (categoryFilter !== "all" && template.category?.toLowerCase() !== categoryFilter.toLowerCase()) {
+        return false;
+      }
+      if (!termo) {
+        return true;
+      }
+      const texto = `${template.name} ${template.description ?? ""} ${template.category ?? ""}`;
+      return texto.toLowerCase().includes(termo);
+    });
+  }, [busca, categoryFilter, templates]);
 
   const showUpload = activeTab === "upload";
   const isTokenMissing = !api.token;
@@ -292,19 +298,32 @@ export default function TemplatesPage() {
             ))}
           </TabsList>
           {activeTab !== "upload" ? (
-            <div className="w-full pb-2 sm:max-w-[220px]">
-              <Select
-                value={categoryFilter}
-                onValueChange={setCategoryFilter}
-                aria-label={t("filters.category.all")}
-              >
-                <SelectItem value="all">{t("filters.category.all")}</SelectItem>
-                {categories.map((category) => (
-                  <SelectItem key={category} value={category}>
-                    {category}
-                  </SelectItem>
-                ))}
-              </Select>
+            <div className="flex w-full flex-col gap-2 pb-2 sm:max-w-[460px] sm:flex-row">
+              <label className="flex h-10 min-w-0 flex-1 items-center gap-2 rounded-lg border border-outline bg-white px-3 shadow-card focus-within:border-primary focus-within:ring-[3px] focus-within:ring-primary/25">
+                <MagnifyingGlass size={16} className="shrink-0 text-muted" />
+                <input
+                  type="search"
+                  value={busca}
+                  onChange={(event) => setBusca(event.target.value)}
+                  placeholder={t("filters.search")}
+                  aria-label={t("filters.search")}
+                  className="h-full min-w-0 flex-1 bg-transparent text-sm text-ink placeholder:text-muted focus:outline-none"
+                />
+              </label>
+              <div className="sm:w-[200px] sm:shrink-0">
+                <Select
+                  value={categoryFilter}
+                  onValueChange={setCategoryFilter}
+                  aria-label={t("filters.category.all")}
+                >
+                  <SelectItem value="all">{t("filters.category.all")}</SelectItem>
+                  {categories.map((category) => (
+                    <SelectItem key={category} value={category}>
+                      {category}
+                    </SelectItem>
+                  ))}
+                </Select>
+              </div>
             </div>
           ) : null}
         </div>

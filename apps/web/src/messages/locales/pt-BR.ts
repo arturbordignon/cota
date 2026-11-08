@@ -846,7 +846,8 @@ export const ptBRMessages = {
       "filters": {
         "category": {
           "all": "Todos os segmentos"
-        }
+        },
+        "search": "Buscar modelos"
       },
       "upload": {
         "description": "Arraste e solte arquivos PDF ou DOCX para transformá-los em modelos preenchíveis. Você poderá mapear campos depois do upload.",
