@@ -16,6 +16,7 @@ import { Select, SelectItem } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useApi } from "@/hooks/use-api";
+import { useErrorMessage } from "@/hooks/use-error-message";
 import { CreateTemplateDialog, type CreateTemplatePayload } from "@/components/templates/template-dialog";
 import { useCurrentUser } from "@/components/providers/user-provider";
 import { TemplateSummary, TemplatesResponse } from "@/types/api";
@@ -24,6 +25,7 @@ type TabValue = "catalog" | "mine" | "upload";
 
 export default function TemplatesPage() {
   const t = useTranslations("templates.page");
+  const mensagemDeErro = useErrorMessage();
   const tIdiomas = useTranslations("templates.dialog.localeLabels");
   const [activeTab, setActiveTab] = useState<TabValue>("catalog");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
@@ -339,7 +341,7 @@ export default function TemplatesPage() {
           importado={importado}
           onSubmit={handleCreateTemplate}
           isSubmitting={createTemplate.isPending}
-          errorMessage={createTemplate.error?.message}
+          errorMessage={createTemplate.error ? mensagemDeErro(createTemplate.error) : undefined}
         />
       ) : null}
     </section>

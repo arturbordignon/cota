@@ -17,6 +17,7 @@ import { Modal, ModalBody, ModalClose, ModalFooter } from "@/components/ui/modal
 import { Notice } from "@/components/ui/notice";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useApi } from "@/hooks/use-api";
+import { useErrorMessage } from "@/hooks/use-error-message";
 import { useCurrentUser } from "@/components/providers/user-provider";
 import { CreateTemplateDialog, type CreateTemplatePayload } from "@/components/templates/template-dialog";
 import type { TemplateDetailResponse } from "@/types/api";
@@ -31,6 +32,7 @@ export default function TemplateDetailPage() {
   const templateId = params.templateId;
   const api = useApi();
   const t = useTranslations("templates.detail");
+  const mensagemDeErro = useErrorMessage();
   const formatter = useFormatter();
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -83,7 +85,7 @@ export default function TemplateDetailPage() {
       router.push("/templates?scope=custom");
     },
     onError: (error: unknown) => {
-      const message = error instanceof Error ? error.message : t("errors.duplicate");
+      const message = mensagemDeErro(error, { padrao: t("errors.duplicate") });
       setFeedback({ tone: "danger", message });
     },
   });
@@ -285,7 +287,7 @@ export default function TemplateDetailPage() {
             await updateMutation.mutateAsync(values);
           }}
           isSubmitting={updateMutation.isPending}
-          errorMessage={updateMutation.error?.message}
+          errorMessage={updateMutation.error ? mensagemDeErro(updateMutation.error) : undefined}
         />
       ) : null}
       <Modal
@@ -297,7 +299,7 @@ export default function TemplateDetailPage() {
       >
         {deleteMutation.error ? (
           <ModalBody>
-            <Notice tone="danger">{deleteMutation.error.message}</Notice>
+            <Notice tone="danger">{mensagemDeErro(deleteMutation.error)}</Notice>
           </ModalBody>
         ) : null}
         <ModalFooter>
