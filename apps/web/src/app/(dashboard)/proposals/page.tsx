@@ -40,7 +40,7 @@ export default function ProposalsPage() {
     enabled: Boolean(api.token),
   });
 
-  const proposals = proposalsQuery.data?.data ?? [];
+  const proposals = useMemo(() => proposalsQuery.data?.data ?? [], [proposalsQuery.data]);
   const [busca, setBusca] = useState("");
   const [statusFiltro, setStatusFiltro] = useState("all");
   const isTokenMissing = !api.token;
