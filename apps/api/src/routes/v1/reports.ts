@@ -4,6 +4,12 @@ import dayjs from 'dayjs';
 
 import { CACHE_RESOURCES } from '../../constants/cache.js';
 import { exigirPermissao } from '../../utils/permissions.js';
+import {
+  diasPedidos,
+  escolherIntencao,
+  responderPergunta,
+  sqlDaIntencao,
+} from '../../services/report-questions.js';
 
 const reportBodySchema = z.object({
   question: z.string().min(1),
@@ -181,93 +187,31 @@ const reportsRoutes: FastifyPluginAsync = async (app) => {
   app.post('/run', async (request, reply) => {
     const body = reportBodySchema.parse(request.body);
 
+    const intencao = escolherIntencao(body.question);
+    if (!intencao) {
+      return reply.status(400).send({
+        message: 'This question is not supported yet.',
+        code: 'REPORT_QUESTION_UNSUPPORTED',
+      });
+    }
+
     const defaultEnd = dayjs();
-    const defaultStart = defaultEnd.subtract(30, 'day');
-
-    const start = parseDate(body.dateRange?.start, defaultStart).startOf('day');
     const end = parseDate(body.dateRange?.end, defaultEnd).endOf('day');
+    const dias = diasPedidos(body.question);
+    const start = dias
+      ? end.subtract(dias - 1, 'day').startOf('day')
+      : parseDate(body.dateRange?.start, defaultEnd.subtract(30, 'day')).startOf('day');
 
-    const lowerQuestion = body.question.toLowerCase();
+    const result = await responderPergunta(app, request.user.accountId, intencao, { start, end });
 
-    if (lowerQuestion.includes('taxa') || lowerQuestion.includes('conversion')) {
-      const total = await app.prisma.proposal.count({
-        where: {
-          accountId: request.user.accountId,
-          createdAt: {
-            gte: start.toDate(),
-            lte: end.toDate(),
-          },
-        },
-      });
-
-      const accepted = await app.prisma.proposal.count({
-        where: {
-          accountId: request.user.accountId,
-          status: 'ACCEPTED',
-          createdAt: {
-            gte: start.toDate(),
-            lte: end.toDate(),
-          },
-        },
-      });
-
-      const conversion = total === 0 ? 0 : (accepted / total) * 100;
-
-      const sql = `SELECT\n  COUNT(*) FILTER (WHERE status = 'ACCEPTED')::float / NULLIF(COUNT(*), 0) * 100 AS conversion_rate\nFROM proposals\nWHERE account_id = '${request.user.accountId}'\n  AND created_at BETWEEN '${start.toISOString()}' AND '${end.toISOString()}';`;
-
-      return reply.send({
-        data: {
-          sql,
-          visualization: body.visualization,
-          range: {
-            start: start.toISOString(),
-            end: end.toISOString(),
-          },
-          result: {
-            total,
-            accepted,
-            conversionRate: Number(conversion.toFixed(2)),
-          },
-        },
-      });
-    }
-
-    if (lowerQuestion.includes('proposta') && lowerQuestion.includes('membro')) {
-      const rows = await app.prisma.proposal.groupBy({
-        by: ['createdById'],
-        where: {
-          accountId: request.user.accountId,
-          createdAt: {
-            gte: start.toDate(),
-            lte: end.toDate(),
-          },
-        },
-        _count: {
-          _all: true,
-        },
-      });
-
-      const sql = `SELECT created_by_id, COUNT(*) AS total_proposals\nFROM proposals\nWHERE account_id = '${request.user.accountId}'\n  AND created_at BETWEEN '${start.toISOString()}' AND '${end.toISOString()}'\nGROUP BY created_by_id;`;
-
-      return reply.send({
-        data: {
-          sql,
-          visualization: body.visualization,
-          range: {
-            start: start.toISOString(),
-            end: end.toISOString(),
-          },
-          result: rows.map((row) => ({
-            createdById: row.createdById,
-            proposals: row._count._all,
-          })),
-        },
-      });
-    }
-
-    return reply.status(400).send({
-      message:
-        'Ainda não temos um template para esta pergunta. Tente perguntar sobre a taxa de conversão ou propostas por membro da equipe.',
+    return reply.send({
+      data: {
+        intent: intencao,
+        sql: sqlDaIntencao(intencao),
+        visualization: body.visualization,
+        range: { start: start.toISOString(), end: end.toISOString() },
+        result,
+      },
     });
   });
 };
