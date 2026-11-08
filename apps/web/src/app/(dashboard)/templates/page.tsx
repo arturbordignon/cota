@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CaretRight, Files, MagnifyingGlass, PaintBrush, Plus, UploadSimple } from "@phosphor-icons/react";
@@ -197,6 +198,24 @@ export default function TemplatesPage() {
   useEffect(() => {
     setCategoryFilter("all");
   }, [activeTab]);
+
+  // The global search lands here with ?search=, and duplicating or saving a
+  // template comes back with ?scope=custom to show it under "My templates".
+  const searchParams = useSearchParams();
+  const termoDaUrl = searchParams.get("search");
+  const escopoDaUrl = searchParams.get("scope");
+  useEffect(() => {
+    if (termoDaUrl !== null) {
+      setBusca(termoDaUrl);
+    }
+  }, [termoDaUrl]);
+  useEffect(() => {
+    if (escopoDaUrl === "custom") {
+      setActiveTab("mine");
+    } else if (escopoDaUrl === "system") {
+      setActiveTab("catalog");
+    }
+  }, [escopoDaUrl]);
 
   const scope = activeTab === "mine" ? "custom" : "system";
   const shouldFetch = activeTab !== "upload" && Boolean(api.token);
