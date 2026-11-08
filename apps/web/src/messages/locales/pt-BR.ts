@@ -525,7 +525,7 @@ export const ptBRMessages = {
       "title": "Destaques",
       "badge": "Neste período",
       "topPerformer": "Melhor desempenho",
-      "totalSent": "{value} propostas enviadas",
+      "totalSent": "{value} propostas no período",
       "unknown": "Indefinido",
       "noPerformer": "Exibiremos os destaques assim que houver propostas no período.",
       "upcoming": "Propostas mais recentes",

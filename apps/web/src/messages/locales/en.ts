@@ -525,7 +525,7 @@ export const enMessages = {
       "title": "Highlights",
       "badge": "This period",
       "topPerformer": "Top performer",
-      "totalSent": "{value} proposals sent",
+      "totalSent": "{value} proposals in this period",
       "unknown": "Unknown",
       "noPerformer": "We will highlight performance as soon as proposals arrive.",
       "upcoming": "Most recent proposals",
