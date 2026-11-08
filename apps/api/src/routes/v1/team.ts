@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { randomBytes, createHash } from 'crypto';
 import dayjs from 'dayjs';
 import { criarNotificacoes, type DepartmentPreset as PrismaDepartmentPreset, type PermissionModule } from '@cota/db';
+import env from '@cota/config';
 
 import { CACHE_RESOURCES } from '../../constants/cache.js';
 import { toDepartmentSlug } from '../../utils/slug.js';
@@ -13,8 +14,6 @@ import {
   mapFromDb,
 } from '../../utils/permissions.js';
 import type { PermissionKey, PermissionMap } from '../../utils/permissions.js';
-import env from '@cota/config';
-
 import { sendInviteEmail } from '../../lib/mailer.js';
 import { gerarHashDeSenha } from '../../utils/senhas.js';
 
