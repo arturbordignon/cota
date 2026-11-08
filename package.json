@@ -13,6 +13,7 @@
     "local:seed": "node ./scripts/local-seed-demo.mjs",
     "local:reset": "node ./scripts/local-seed-demo.mjs --reset",
     "smoke:api": "node ./scripts/smoke/api.mjs",
+    "smoke:web": "node ./scripts/smoke/web.mjs",
     "dev:api": "pnpm --filter api dev",
     "dev:worker": "pnpm --filter worker dev",
     "migrate:dev": "pnpm --filter db run prisma:migrate",
