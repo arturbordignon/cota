@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
+import type { Prisma } from '@cota/db';
 import argon2 from 'argon2';
 import dayjs from 'dayjs';
 import env from '@cota/config';
@@ -220,7 +221,12 @@ const authRoutes: FastifyPluginAsync = async (app) => {
           entityType: 'Account',
           entityId: result.account.id,
           summary: `Account ${result.account.name} created`,
-          metadataJson: { locale, at: dayjs().toISOString() },
+          metadataJson: {
+            locale,
+            at: dayjs().toISOString(),
+            summaryKey: 'accountCreated',
+            summaryParams: { account: result.account.name },
+          },
         },
       })
       .catch((err) => app.log.error({ err }, 'Failed to create audit log'));
@@ -323,7 +329,11 @@ const authRoutes: FastifyPluginAsync = async (app) => {
 
       await app.redis.del(chaveFalhas);
 
-      const auditMetadata: Record<string, string | null> = { at: dayjs().toISOString() };
+      const auditMetadata: Prisma.JsonObject = {
+        at: dayjs().toISOString(),
+        summaryKey: 'login',
+        summaryParams: { email: user.email },
+      };
       const auditData: Parameters<typeof app.prisma.auditEvent.create>[0]['data'] = {
         accountId: user.accountId,
         userId: user.id,
