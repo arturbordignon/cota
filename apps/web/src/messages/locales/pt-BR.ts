@@ -220,12 +220,7 @@ export const ptBRMessages = {
         "clients": "Clientes",
         "templates": "Modelos"
       },
-      "recentLabel": "Buscas recentes",
-      "recentSamples": [
-        "Contrato manutenção",
-        "Proposta 2418",
-        "Cliente: Capixaba"
-      ]
+      "recentLabel": "Buscas recentes"
     },
     "topbar": {
       "openSearch": "Abrir busca",

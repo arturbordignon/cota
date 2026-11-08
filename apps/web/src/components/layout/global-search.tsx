@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { MagnifyingGlass, ClockCounterClockwise } from "@phosphor-icons/react";
 
@@ -15,6 +15,31 @@ interface GlobalSearchProps {
   autoFocus?: boolean;
 }
 
+const CHAVE_RECENTES = "cota:recent-searches";
+const MAX_RECENTES = 5;
+
+function lerRecentes(): string[] {
+  try {
+    const salvos = JSON.parse(window.localStorage.getItem(CHAVE_RECENTES) ?? "[]");
+    if (!Array.isArray(salvos)) {
+      return [];
+    }
+    return salvos.filter((item): item is string => typeof item === "string").slice(0, MAX_RECENTES);
+  } catch {
+    return [];
+  }
+}
+
+function guardarRecente(termo: string) {
+  const recentes = [termo, ...lerRecentes().filter((item) => item !== termo)].slice(0, MAX_RECENTES);
+  try {
+    window.localStorage.setItem(CHAVE_RECENTES, JSON.stringify(recentes));
+  } catch {
+    // Private windows can refuse storage; the search itself still works.
+  }
+  return recentes;
+}
+
 export function GlobalSearch({ onSearch, autoFocus = false }: GlobalSearchProps) {
   const [query, setQuery] = useState("");
   const [scope, setScope] = useState<SearchScope>("all");
@@ -26,18 +51,17 @@ export function GlobalSearch({ onSearch, autoFocus = false }: GlobalSearchProps)
     [scope, tSearch, tScopes]
   );
 
-  const recentSearches = useMemo(() => {
-    const amostras = tSearch.raw("recentSamples");
-    if (!Array.isArray(amostras)) {
-      return [] as string[];
-    }
-    return amostras.filter((item) => typeof item === "string");
-  }, [tSearch]);
+  // Only what this person searched before, kept in this browser.
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  useEffect(() => {
+    setRecentSearches(lerRecentes());
+  }, []);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const trimmed = query.trim();
     if (!trimmed) return;
+    setRecentSearches(guardarRecente(trimmed));
     onSearch?.(trimmed, scope);
   }
 

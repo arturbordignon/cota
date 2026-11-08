@@ -220,12 +220,7 @@ export const enMessages = {
         "clients": "Clients",
         "templates": "Templates"
       },
-      "recentLabel": "Recent searches",
-      "recentSamples": [
-        "Maintenance contract",
-        "Proposal 2418",
-        "Client: Capixaba"
-      ]
+      "recentLabel": "Recent searches"
     },
     "topbar": {
       "openSearch": "Open search",
