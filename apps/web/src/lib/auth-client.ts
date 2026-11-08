@@ -1,5 +1,17 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333/api/v1";
 
+// Keeps the HTTP status so screens can show their own, translated message
+// instead of the API's text.
+export class AuthRequestError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+  ) {
+    super(message);
+    this.name = "AuthRequestError";
+  }
+}
+
 async function handleResponse<T>(response: Response): Promise<T> {
   if (response.ok) {
     const text = await response.text();
@@ -19,7 +31,7 @@ async function handleResponse<T>(response: Response): Promise<T> {
     // ignore parse error
   }
 
-  throw new Error(message);
+  throw new AuthRequestError(message, response.status);
 }
 
 export interface TokensResponse {
