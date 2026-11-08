@@ -2,6 +2,7 @@ import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import type Stripe from 'stripe';
 import env from '@cota/config';
+
 import { getStripe, isStripeEnabled } from '../../lib/stripe.js';
 import { getBillingOverview, getDefaultPlanSlug } from '../../services/billing.js';
 import { exigirPermissao } from '../../utils/permissions.js';
