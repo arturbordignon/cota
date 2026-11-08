@@ -96,6 +96,7 @@ redis_port="$(resolve_port REDIS_PORT 6379 redis Redis)"
 minio_console_port="$(resolve_port MINIO_CONSOLE_PORT 9001 minio "MinIO console")"
 mailhog_smtp_port="$(resolve_port MAILHOG_SMTP_PORT 1025 mailhog "Mailhog SMTP")"
 mailhog_ui_port="$(resolve_port MAILHOG_UI_PORT 8025 mailhog Mailhog)"
+adminer_port="$(resolve_port ADMINER_PORT 5555 adminer Adminer)"
 web_port="$(get_env_var WEB_PORT || true)"
 if [ -z "$web_port" ]; then
   web_port="3001"
@@ -165,7 +166,7 @@ URLs:
   API docs:  http://localhost:$api_port/docs
   Mailhog:   http://localhost:$mailhog_ui_port
   MinIO:     http://localhost:$minio_console_port
-  Adminer:   http://localhost:5555
+  Adminer:   http://localhost:$adminer_port
 EOF
 
 cat <<'EOF'
