@@ -40,6 +40,13 @@ export default function TemplateDetailPage() {
     enabled: Boolean(api.token),
   });
 
+  // Rendered by the API with sample data; falls back to the raw HTML.
+  const previewQuery = useQuery({
+    queryKey: ["template", templateId, "preview"],
+    queryFn: () => api.get<{ data: { html: string } }>(`/templates/${templateId}/preview`),
+    enabled: Boolean(api.token),
+  });
+
   const template = templateQuery.data?.data;
   const isSystemTemplate = useMemo(() => !template?.accountId, [template?.accountId]);
   const localeLabel = useMemo(() => {
@@ -193,7 +200,7 @@ export default function TemplateDetailPage() {
                   with no scripts and no access to this page or its stored session. */}
               <iframe
                 title={t("preview.title")}
-                srcDoc={template.htmlBody}
+                srcDoc={previewQuery.data?.data.html ?? template.htmlBody}
                 sandbox=""
                 className="mx-auto block h-[75vh] w-full max-w-[820px] rounded-lg border border-border bg-white shadow-card"
               />
