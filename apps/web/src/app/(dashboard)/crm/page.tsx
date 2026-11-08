@@ -17,6 +17,7 @@ import { Select, SelectItem } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { useApi } from "@/hooks/use-api";
+import { useErrorMessage } from "@/hooks/use-error-message";
 import { useAccountCurrency } from "@/hooks/use-account-currency";
 import { PipelineLeadSummary, PipelineStagesResponse } from "@/types/api";
 import { cn } from "@/lib/utils";
@@ -80,6 +81,7 @@ export default function CrmBoardPage() {
   const { temPermissao } = useCurrentUser();
   const podeEditar = temPermissao('crm', 'edit');
   const t = useTranslations("crm.page");
+  const mensagemDeErro = useErrorMessage();
   const api = useApi();
   const queryClient = useQueryClient();
   const [columns, setColumns] = useState<ColumnState[]>([]);
@@ -192,7 +194,7 @@ export default function CrmBoardPage() {
       queryClient.invalidateQueries({ queryKey: ['pipeline', 'stages'] });
     },
     onError: (error) => {
-      setCustomizeError(error instanceof Error ? error.message : t('errors.updateStage'));
+      setCustomizeError(mensagemDeErro(error, { padrao: t('errors.updateStage') }));
       queryClient.invalidateQueries({ queryKey: ['pipeline', 'stages'] });
     },
     onSettled: () => {
@@ -213,7 +215,7 @@ export default function CrmBoardPage() {
       queryClient.invalidateQueries({ queryKey: ['pipeline', 'stages'] });
     },
     onError: (error) => {
-      setCustomizeError(error instanceof Error ? error.message : t('errors.reorderStages'));
+      setCustomizeError(mensagemDeErro(error, { padrao: t('errors.reorderStages') }));
       queryClient.invalidateQueries({ queryKey: ['pipeline', 'stages'] });
     },
     onSettled: () => {
@@ -231,7 +233,7 @@ export default function CrmBoardPage() {
       queryClient.invalidateQueries({ queryKey: ['pipeline', 'stages'] });
     },
     onError: (error) => {
-      setCustomizeError(error instanceof Error ? error.message : t('errors.deleteStage'));
+      setCustomizeError(mensagemDeErro(error, { 400: t('errors.deleteStageBlocked'), padrao: t('errors.deleteStage') }));
       queryClient.invalidateQueries({ queryKey: ['pipeline', 'stages'] });
     },
     onSettled: () => {
@@ -251,7 +253,7 @@ export default function CrmBoardPage() {
       setNewStageColor('info');
     },
     onError: (error) => {
-      setCustomizeError(error instanceof Error ? error.message : t('errors.createStage'));
+      setCustomizeError(mensagemDeErro(error, { 400: t('errors.invalidStageName'), padrao: t('errors.createStage') }));
     },
   });
 

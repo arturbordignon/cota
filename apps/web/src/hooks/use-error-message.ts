@@ -5,7 +5,10 @@ import { useTranslations } from "next-intl";
 
 import { ApiError } from "@/hooks/use-api";
 
-type MensagensPorStatus = Partial<Record<number, string>>;
+type MensagensPorStatus = Partial<Record<number, string>> & {
+  /** Used when the status has no message of its own (server errors, network). */
+  padrao?: string;
+};
 
 const CHAVES: Record<number, string> = {
   400: "invalid",
@@ -29,7 +32,7 @@ export function useErrorMessage() {
         const chave = CHAVES[error.status];
         if (chave) return t(chave);
       }
-      return t("generic");
+      return especificas.padrao ?? t("generic");
     },
     [t],
   );
