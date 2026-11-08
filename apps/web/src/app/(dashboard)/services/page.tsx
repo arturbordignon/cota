@@ -231,12 +231,13 @@ export default function ServicesPage() {
 
   const updateService = useMutation({
     mutationFn: ({ id, payload }: { id: string; payload: ServicePayload }) =>
+      // Emptied fields go out as null / "" so they are cleared, not kept.
       api.put<{ data: EquipmentSummary }>(`/equipment/${id}`, {
         name: payload.name,
-        capacityTons: payload.capacityTons ?? undefined,
-        dailyRate: payload.dailyRate ?? undefined,
-        description: payload.description ?? undefined,
-        notes: payload.notes ?? undefined,
+        capacityTons: payload.capacityTons ?? null,
+        dailyRate: payload.dailyRate ?? null,
+        description: payload.description ?? "",
+        notes: payload.notes ?? "",
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['equipment'] });
