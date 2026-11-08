@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, Copy, EnvelopeSimple, LinkSimple, SquaresFour, Trash, UserPlus } from "@phosphor-icons/react";
 
@@ -21,6 +21,7 @@ import { Select, SelectItem } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { permissionModules, type PermissionModuleKey } from "@/config/permission-modules";
 import { useApi } from "@/hooks/use-api";
+import { useAccountCurrency } from "@/hooks/use-account-currency";
 import {
   DepartmentSummary,
   TeamMemberSummary,
@@ -234,6 +235,7 @@ interface MemberRow extends TeamMemberSummary {
 export default function TeamPage() {
   const { isAdmin } = useCurrentUser();
   const t = useTranslations("team");
+  const locale = useLocale();
   const tRoles = useTranslations("team.roles");
   const tInvite = useTranslations("team.invite");
   const api = useApi();
@@ -559,14 +561,15 @@ export default function TeamPage() {
     [t]
   );
 
+  const moeda = useAccountCurrency();
   const currencyFormatter = useMemo(
     () =>
-      new Intl.NumberFormat(undefined, {
+      new Intl.NumberFormat(locale, {
         style: 'currency',
-        currency: 'BRL',
+        currency: moeda,
         maximumFractionDigits: 0,
       }),
-    []
+    [locale, moeda]
   );
 
   const formatCurrency = (value: number) => currencyFormatter.format(value);
