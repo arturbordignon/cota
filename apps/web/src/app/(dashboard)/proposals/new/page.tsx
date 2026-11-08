@@ -2,7 +2,7 @@
 
 import type { Route } from "next";
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { CaretLeft, CaretRight, CheckCircle, FilePlus, ImageSquare, Plus } from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -245,6 +245,7 @@ function buscarMensagemErro(error: unknown, mensagemPadrao: string) {
 export default function NewProposalPage() {
   const api = useApi();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const queryClient = useQueryClient();
   const { temPermissao } = useCurrentUser();
 
@@ -291,12 +292,17 @@ export default function NewProposalPage() {
   const total = calcularTotal(totais);
   const clienteSelecionado = clientes.find((cliente) => cliente.id === formulario.clientId);
 
+  // "Send proposal" on the clients page opens this page with ?clientId=, so that
+  // client comes preselected instead of the first one in the list.
+  const clienteDaUrl = searchParams.get("clientId");
+
   useEffect(() => {
     if (formulario.clientId || clientes.length === 0) {
       return;
     }
-    setFormulario((anterior) => ({ ...anterior, clientId: clientes[0].id }));
-  }, [clientes, formulario.clientId]);
+    const pedido = clientes.find((cliente) => cliente.id === clienteDaUrl);
+    setFormulario((anterior) => ({ ...anterior, clientId: (pedido ?? clientes[0]).id }));
+  }, [clientes, clienteDaUrl, formulario.clientId]);
 
   const createClient = useMutation({
     mutationFn: (payload: { name: string; companyName?: string }) =>
