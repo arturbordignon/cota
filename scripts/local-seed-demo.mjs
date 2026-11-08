@@ -148,6 +148,7 @@ async function seedDemoData(account, owner) {
   await seedClients(account);
   await seedServices(account);
   await seedProposals(account, owner);
+  await seedPipeline(account);
 }
 
 async function seedClients(account) {
@@ -302,5 +303,35 @@ async function seedProposals(account, owner) {
     await prisma.proposalUsage.update({ where: { id: usage.id }, data: { proposalsUsed: { increment: usedThisMonth } } });
   } else {
     await prisma.proposalUsage.create({ data: { accountId: account.id, periodStart, periodEnd, proposalsUsed: usedThisMonth } });
+  }
+}
+
+async function seedPipeline(account) {
+  if ((await prisma.pipelineStage.count({ where: { accountId: account.id } })) > 0) {
+    return;
+  }
+  const stages = [
+    { name: 'Descoberta', color: 'info', leads: [
+      { companyName: 'Fertilizantes Cerrado', contactName: 'Paulo Mendes', contactEmail: 'paulo@cerrado.agr.br', estimatedValue: 38000, notes: 'Troca de silos em fevereiro.' },
+      { companyName: 'Hospital Santa Clara', contactName: 'Renata Dias', estimatedValue: 12000, notes: 'Içamento de chillers na cobertura.' },
+    ] },
+    { name: 'Qualificação', color: 'warning', leads: [
+      { companyName: 'Usina Bom Retiro', contactName: 'Carlos Moura', contactEmail: 'carlos@bomretiro.com.br', estimatedValue: 95000, notes: 'Parada anual da moenda.' },
+    ] },
+    { name: 'Proposta enviada', color: 'info', leads: [
+      { companyName: 'Energia Solar Paulista', contactName: 'Juliana Prado', contactEmail: 'juliana@energiasp.com.br', estimatedValue: 46000, notes: 'Transformador 15 MVA.' },
+      { companyName: 'Porto Seco Campinas Logística', contactName: 'Ricardo Teixeira', estimatedValue: 29200 },
+    ] },
+    { name: 'Fechado', color: 'success', leads: [
+      { companyName: 'Galpões Modulares Brasil', contactName: 'Eduardo Santos', estimatedValue: 106550, notes: 'Galpão 3 aprovado.' },
+    ] },
+  ];
+  for (const [position, stage] of stages.entries()) {
+    const created = await prisma.pipelineStage.create({
+      data: { accountId: account.id, name: stage.name, color: stage.color, position },
+    });
+    for (const lead of stage.leads) {
+      await prisma.pipelineLead.create({ data: { ...lead, accountId: account.id, stageId: created.id } });
+    }
   }
 }
