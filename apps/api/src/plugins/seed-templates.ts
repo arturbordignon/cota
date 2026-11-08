@@ -183,6 +183,7 @@ const cotaTemplate = {
 
       <section>
         <h2>Recursos técnicos</h2>
+        {{#equipment.length}}
         <h3>Equipamentos principais</h3>
         <table>
           <thead>
@@ -202,6 +203,7 @@ const cotaTemplate = {
             {{/equipment}}
           </tbody>
         </table>
+        {{/equipment.length}}
 
         <h3>Equipe envolvida</h3>
         <ul>

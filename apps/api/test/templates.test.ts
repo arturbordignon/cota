@@ -94,4 +94,18 @@ describe('templates', () => {
     expect(html).toContain('Proposed investment');
     expect(html).not.toMatch(/Proposta|Investimento|Equipe|Condições|Destinatário|operação/);
   });
+
+  it('leaves the equipment table out of a proposal without equipment', async () => {
+    const modelo = (await chamar(app, { method: 'GET', url: '/api/v1/templates?scope=system&locale=pt-BR', token: dono.accessToken })).json().data[0];
+    const proposta = await chamar(app, {
+      method: 'POST',
+      url: '/api/v1/proposals',
+      token: dono.accessToken,
+      payload: { templateId: modelo.id, title: 'Sem equipamentos', payload: { equipment: [] } },
+    });
+    const { id, publicSlug } = proposta.json().data;
+    await chamar(app, { method: 'POST', url: `/api/v1/proposals/${id}/send`, token: dono.accessToken });
+    const pagina = await chamar(app, { method: 'GET', url: `/api/v1/public/proposals/${publicSlug}` });
+    expect(pagina.json().data.html).not.toContain('Equipamentos principais');
+  });
 });
