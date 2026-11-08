@@ -112,7 +112,26 @@ export const enMessages = {
         "tooMany": "Too many accounts created from this network. Try again later.",
         "generic": "We couldn't create the account. Try again."
       }
+    },
+    "panel": {
+      "title": "From the client's request to the accepted proposal, in one flow.",
+      "description": "Plan the job, create the PDF with your brand and send a link for the client to accept or decline.",
+      "loading": "Loading your session..."
     }
+  },
+  "proposalSheet": {
+    "number": "Proposal no. 0142",
+    "title": "Lifting steel trusses",
+    "status": "Accepted",
+    "equipment": "90 t crane",
+    "site": "Port of Santos, SP · May 12–15",
+    "mobilization": "Mobilization and demobilization",
+    "mobilizationValue": "$8,500.00",
+    "daily": "Daily rate × 4 days",
+    "dailyValue": "$24,800.00",
+    "total": "Total",
+    "totalValue": "$33,300.00",
+    "acceptedAt": "Accepted by the client on May 8, 2:32 PM"
   },
   "clients": {
     "title": "Clients",

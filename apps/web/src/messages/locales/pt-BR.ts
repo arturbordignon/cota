@@ -112,7 +112,26 @@ export const ptBRMessages = {
         "tooMany": "Muitas contas criadas a partir desta rede. Tente novamente mais tarde.",
         "generic": "Não foi possível criar a conta. Tente novamente."
       }
+    },
+    "panel": {
+      "title": "Do pedido do cliente à proposta aceita, no mesmo fluxo.",
+      "description": "Monte a operação, gere o PDF com a sua marca e envie um link para o cliente aceitar ou recusar.",
+      "loading": "Carregando sessão..."
     }
+  },
+  "proposalSheet": {
+    "number": "Proposta nº 0142",
+    "title": "Içamento de treliças metálicas",
+    "status": "Aceita",
+    "equipment": "Guindaste 90 t",
+    "site": "Porto de Santos, SP · 12 a 15 de maio",
+    "mobilization": "Mobilização e desmobilização",
+    "mobilizationValue": "R$ 8.500,00",
+    "daily": "Diária operacional × 4 dias",
+    "dailyValue": "R$ 24.800,00",
+    "total": "Total",
+    "totalValue": "R$ 33.300,00",
+    "acceptedAt": "Aceita pelo cliente em 08/05, às 14:32"
   },
   "clients": {
     "title": "Clientes",

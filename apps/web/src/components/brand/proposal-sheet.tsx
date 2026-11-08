@@ -1,14 +1,17 @@
 import { CheckCircle, Truck } from "@phosphor-icons/react/dist/ssr";
 
-import { cn } from "@/lib/utils";
+import { useTranslations } from "next-intl";
 
-const linhas = [
-  { rotulo: "Mobilização e desmobilização", valor: "R$ 8.500,00" },
-  { rotulo: "Diária operacional × 4 dias", valor: "R$ 24.800,00" },
-];
+import { cn } from "@/lib/utils";
 
 // Illustrative proposal used on the marketing and sign-in screens.
 export function ProposalSheet({ className }: { className?: string }) {
+  const t = useTranslations("proposalSheet");
+  const linhas = [
+    { rotulo: t("mobilization"), valor: t("mobilizationValue") },
+    { rotulo: t("daily"), valor: t("dailyValue") },
+  ];
+
   return (
     <div
       aria-hidden
@@ -19,14 +22,14 @@ export function ProposalSheet({ className }: { className?: string }) {
     >
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-medium text-muted">Proposta nº 0142</p>
+          <p className="text-xs font-medium text-muted">{t("number")}</p>
           <p className="mt-1 font-display text-lg font-semibold leading-tight text-ink">
-            Içamento de treliças metálicas
+            {t("title")}
           </p>
         </div>
         <span className="inline-flex items-center gap-1 rounded-full bg-success-soft px-2.5 py-0.5 text-xs font-semibold text-success ring-1 ring-inset ring-success/20">
           <CheckCircle size={12} weight="fill" />
-          Aceita
+          {t("status")}
         </span>
       </div>
 
@@ -35,8 +38,8 @@ export function ProposalSheet({ className }: { className?: string }) {
           <Truck size={18} weight="bold" />
         </span>
         <div className="min-w-0 text-sm">
-          <p className="font-semibold text-ink">Guindaste 90 t</p>
-          <p className="truncate text-xs text-muted">Porto de Santos, SP · 12 a 15 de maio</p>
+          <p className="font-semibold text-ink">{t("equipment")}</p>
+          <p className="truncate text-xs text-muted">{t("site")}</p>
         </div>
       </div>
 
@@ -50,13 +53,13 @@ export function ProposalSheet({ className }: { className?: string }) {
       </dl>
 
       <div className="mt-4 flex items-end justify-between border-t border-dashed border-outline pt-4">
-        <span className="text-sm font-semibold text-ink">Total</span>
+        <span className="text-sm font-semibold text-ink">{t("total")}</span>
         <span className="tabular font-display text-[28px] font-semibold leading-none text-ink">
-          R$ 33.300,00
+          {t("totalValue")}
         </span>
       </div>
 
-      <p className="mt-4 text-xs text-muted">Aceita pelo cliente em 08/05, às 14:32</p>
+      <p className="mt-4 text-xs text-muted">{t("acceptedAt")}</p>
     </div>
   );
 }
