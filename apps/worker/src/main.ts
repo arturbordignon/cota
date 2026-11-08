@@ -21,14 +21,24 @@ const pdfWorker = new Worker(pdfQueueName, createPdfJobProcessor({ logger }), {
 
 pdfWorker.on('completed', async (job, result) => {
   logger.info({ jobId: job.id }, 'PDF job completed');
-  if (result?.pdfObjectKey) {
-    await prisma.proposal.update({
+  if (!result?.pdfObjectKey) {
+    return;
+  }
+  // The proposal (or its whole account) may have been deleted while the PDF was
+  // queued. An error thrown here would stop the worker for everyone, so a
+  // missing proposal is only logged.
+  try {
+    const atualizadas = await prisma.proposal.updateMany({
       where: { id: job.data.proposalId },
       data: { pdfObjectKey: result.pdfObjectKey },
     });
-    await notificarProposta(prisma, job.data.proposalId, 'proposalPdfReady').catch((err) =>
-      logger.error({ err, jobId: job.id }, 'Failed to notify the finished PDF'),
-    );
+    if (atualizadas.count === 0) {
+      logger.warn({ jobId: job.id, proposalId: job.data.proposalId }, 'Proposal deleted before its PDF was ready');
+      return;
+    }
+    await notificarProposta(prisma, job.data.proposalId, 'proposalPdfReady');
+  } catch (err) {
+    logger.error({ err, jobId: job.id }, 'Failed to record the finished PDF');
   }
 });
 
