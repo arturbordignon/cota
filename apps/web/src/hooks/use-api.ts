@@ -6,6 +6,18 @@ import { useCurrentUser } from '@/components/providers/user-provider';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3333/api/v1';
 
+// Keeps the HTTP status so a screen can react to it (e.g. 503 when a service
+// isn't configured) instead of only showing the API's text.
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+  ) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+
 interface RequestOptions extends RequestInit {
   skipAuth?: boolean;
 }
@@ -67,7 +79,7 @@ export function useApi() {
 
       if (!response.ok) {
         const message = await parseError(response);
-        throw new Error(message);
+        throw new ApiError(message, response.status);
       }
 
       if (response.status === 204) {
