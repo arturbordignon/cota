@@ -3,6 +3,7 @@
 // (SMOKE_API_URL defaults to http://localhost:3333/api/v1).
 import { API_URL, chamar, resumo } from './lib.mjs';
 import { verificarAutenticacao } from './auth.mjs';
+import { verificarConta } from './account.mjs';
 
 const contexto = {};
 
@@ -13,5 +14,6 @@ if (!saude || saude.status !== 200) {
 }
 
 await verificarAutenticacao(contexto);
+await verificarConta(contexto);
 
 process.exitCode = resumo() ? 0 : 1;
