@@ -5,6 +5,7 @@ import { API_URL, chamar, resumo } from './lib.mjs';
 import { verificarAutenticacao } from './auth.mjs';
 import { verificarConta } from './account.mjs';
 import { verificarClientes } from './clients.mjs';
+import { verificarServicos } from './services.mjs';
 
 const contexto = {};
 
@@ -17,5 +18,6 @@ if (!saude || saude.status !== 200) {
 await verificarAutenticacao(contexto);
 await verificarConta(contexto);
 await verificarClientes(contexto);
+await verificarServicos(contexto);
 
 process.exitCode = resumo() ? 0 : 1;
