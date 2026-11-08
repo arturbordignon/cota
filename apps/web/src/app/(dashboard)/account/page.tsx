@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { SignOut } from "@phosphor-icons/react";
 
@@ -19,6 +20,7 @@ export default function AccountPage() {
   const { user, signOut, status } = useCurrentUser();
   const t = useTranslations("account.page");
   const tNav = useTranslations("navigation");
+  const [erroCobranca, setErroCobranca] = useState<string | null>(null);
 
   if (status === "loading") {
     return (
@@ -62,8 +64,13 @@ export default function AccountPage() {
               <Button asChild>
                 <Link href="/plans">{tNav("usage.plans")}</Link>
               </Button>
-              <PortalButton label={t("upsell.cta")} variant="secondary" />
+              <PortalButton label={t("upsell.cta")} variant="secondary" onFailure={setErroCobranca} />
             </div>
+            {erroCobranca ? (
+              <Notice tone="danger" className="mt-3">
+                {erroCobranca}
+              </Notice>
+            ) : null}
           </Card>
 
           <DeleteAccountCard />

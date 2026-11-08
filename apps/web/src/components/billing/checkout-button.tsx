@@ -1,25 +1,32 @@
 'use client';
 
+import type { Route } from 'next';
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
+import { useRouter } from 'next/navigation';
 
 import { Button, type ButtonProps } from '@/components/ui/button';
-import { useApi } from '@/hooks/use-api';
+import { ApiError, useApi } from '@/hooks/use-api';
 
 interface CheckoutButtonProps extends ButtonProps {
   planSlug: string;
   label: string;
+  /** Receives a translated message; the page decides where to show it. */
+  onFailure?: (message: string) => void;
 }
 
-function buscarMensagemErro(error: unknown, mensagemPadrao: string) {
-  if (error instanceof Error) {
-    return error.message;
-  }
-  return mensagemPadrao;
+function useMensagemDeCobranca() {
+  const t = useTranslations('billing.errors');
+  return (error: unknown) => {
+    if (error instanceof ApiError && error.status === 503) return t('unavailable');
+    if (error instanceof ApiError && error.status === 403) return t('forbidden');
+    return t('generic');
+  };
 }
 
-export function CheckoutButton({ planSlug, label, onClick, ...props }: CheckoutButtonProps) {
+export function CheckoutButton({ planSlug, label, onClick, onFailure, ...props }: CheckoutButtonProps) {
   const t = useTranslations('common');
+  const mensagem = useMensagemDeCobranca();
   const api = useApi();
   const [isLoading, setIsLoading] = useState(false);
 
@@ -38,7 +45,7 @@ export function CheckoutButton({ planSlug, label, onClick, ...props }: CheckoutB
         window.location.href = data.url;
       }
     } catch (error) {
-      window.alert(buscarMensagemErro(error, 'Não foi possível iniciar a cobrança agora.'));
+      onFailure?.(mensagem(error));
     } finally {
       setIsLoading(false);
     }
@@ -59,10 +66,13 @@ export function CheckoutButton({ planSlug, label, onClick, ...props }: CheckoutB
 
 interface PortalButtonProps extends ButtonProps {
   label: string;
+  onFailure?: (message: string) => void;
 }
 
-export function PortalButton({ label, onClick, ...props }: PortalButtonProps) {
+export function PortalButton({ label, onClick, onFailure, ...props }: PortalButtonProps) {
   const t = useTranslations('common');
+  const mensagem = useMensagemDeCobranca();
+  const router = useRouter();
   const api = useApi();
   const [isLoading, setIsLoading] = useState(false);
 
@@ -77,7 +87,12 @@ export function PortalButton({ label, onClick, ...props }: PortalButtonProps) {
         window.location.href = data.url;
       }
     } catch (error) {
-      window.alert(buscarMensagemErro(error, 'Não foi possível abrir o portal de cobrança.'));
+      // Accounts that never paid have no billing portal yet: show the plans.
+      if (error instanceof ApiError && (error.status === 404 || error.status === 503)) {
+        router.push('/plans' as Route);
+        return;
+      }
+      onFailure?.(mensagem(error));
     } finally {
       setIsLoading(false);
     }

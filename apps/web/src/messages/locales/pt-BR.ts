@@ -186,6 +186,14 @@ export const ptBRMessages = {
       }
     }
   },
+  "billing": {
+    "errors": {
+      "unavailable": "A cobrança online ainda não está configurada nesta instalação. Defina as chaves da Stripe para contratar planos.",
+      "forbidden": "Somente quem administra o plano da conta pode contratar ou alterar planos.",
+      "generic": "Não foi possível iniciar a cobrança agora. Tente novamente."
+    }
+  },
+
   "clients": {
     "title": "Clientes",
     "description": "Centralize dados fiscais, limites de crédito e histórico para negociar com mais confiança.",

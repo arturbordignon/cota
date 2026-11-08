@@ -186,6 +186,14 @@ export const enMessages = {
       }
     }
   },
+  "billing": {
+    "errors": {
+      "unavailable": "Online billing isn't set up on this installation yet. Add the Stripe keys to subscribe to plans.",
+      "forbidden": "Only people who manage the account's plan can subscribe or change plans.",
+      "generic": "We couldn't start the payment right now. Try again."
+    }
+  },
+
   "clients": {
     "title": "Clients",
     "description": "Centralize tax data, credit limits, and history to negotiate with confidence.",
