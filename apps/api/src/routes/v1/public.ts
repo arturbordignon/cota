@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { notificarProposta, type Prisma } from '@cota/db';
 import { createDownloadUrl } from '@cota/storage';
 
-import { buscarEmpresa, formatarMoeda, montarHtmlProposta } from '../../services/proposal-render.js';
+import { buscarEmpresa, formatarMoeda, moedaDaConta, montarHtmlProposta } from '../../services/proposal-render.js';
 import { invalidateReportsOverviewCache, invalidateTeamRankingCache } from '../../utils/cache.js';
 import { registrarEvento } from '../../utils/audit.js';
 
@@ -19,7 +19,7 @@ async function buscarPropostaPublica(app: FastifyInstance, slug: string) {
     where: { publicSlug: slug, status: { in: [...STATUS_PUBLICOS] } },
     include: {
       client: { select: { name: true, companyName: true } },
-      account: { select: { name: true, settingsJson: true } },
+      account: { select: { name: true, settingsJson: true, currentPlan: { select: { currency: true } } } },
     },
   });
 
@@ -40,7 +40,7 @@ async function buscarPropostaPublica(app: FastifyInstance, slug: string) {
     data: { status: 'EXPIRED' },
     include: {
       client: { select: { name: true, companyName: true } },
-      account: { select: { name: true, settingsJson: true } },
+      account: { select: { name: true, settingsJson: true, currentPlan: { select: { currency: true } } } },
     },
   });
 }
@@ -95,7 +95,7 @@ const publicRoutes: FastifyPluginAsync = async (app) => {
         declinedAt: proposta.declinedAt,
         companyName: buscarEmpresa(proposta.account).name,
         clientName: proposta.client?.companyName || proposta.client?.name || null,
-        total: formatarMoeda(totais?.total, proposta.locale),
+        total: formatarMoeda(totais?.total, proposta.locale, moedaDaConta(proposta.account)),
         pdfUrl,
         html,
       },

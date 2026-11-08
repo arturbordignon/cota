@@ -35,6 +35,19 @@ describe('public proposal page', () => {
     return chamar(app, { method: 'POST', url: `/api/v1/public/proposals/${slug}/${resposta}` });
   }
 
+  it("shows the total in the account's currency even when the proposal is in English", async () => {
+    const proposta = await propostaEnviada();
+    await chamar(app, {
+      method: 'PATCH',
+      url: `/api/v1/proposals/${proposta.id}`,
+      token: conta.accessToken,
+      payload: { locale: 'en' },
+    });
+
+    const pagina = await ver(proposta.publicSlug);
+    expect(pagina.json().data.total).toBe('R$200.00');
+  });
+
   it('keeps drafts private', async () => {
     const rascunho = await criarProposta(app, conta);
     expect((await ver(rascunho.publicSlug)).statusCode).toBe(404);
