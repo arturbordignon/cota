@@ -10,15 +10,33 @@ const listQuerySchema = z.object({
   limit: z.coerce.number().min(1).max(100).default(50),
 });
 
-function resolveCategory(
-  action: string,
-): 'proposal' | 'department' | 'notifications' | 'billing' | 'user' | 'system' {
-  if (action.startsWith('proposal.')) return 'proposal';
-  if (action.startsWith('department.')) return 'department';
-  if (action.startsWith('notifications.')) return 'notifications';
-  if (action.startsWith('billing.')) return 'billing';
-  if (action.startsWith('user.')) return 'user';
+type Categoria = 'proposal' | 'department' | 'notifications' | 'billing' | 'user' | 'system';
+
+// Sign-ins and the account itself belong with the people who use it; anything
+// that matches no category is "system".
+const PREFIXOS: Record<Exclude<Categoria, 'system'>, string[]> = {
+  proposal: ['proposal.'],
+  department: ['department.'],
+  notifications: ['notifications.'],
+  billing: ['billing.'],
+  user: ['user.', 'auth.', 'account.'],
+};
+
+function resolveCategory(action: string): Categoria {
+  for (const [categoria, prefixos] of Object.entries(PREFIXOS)) {
+    if (prefixos.some((prefixo) => action.startsWith(prefixo))) {
+      return categoria as Categoria;
+    }
+  }
   return 'system';
+}
+
+function filtroDaCategoria(categoria: Categoria): Prisma.AuditEventWhereInput {
+  if (categoria === 'system') {
+    const todos = Object.values(PREFIXOS).flat();
+    return { NOT: { OR: todos.map((prefixo) => ({ action: { startsWith: prefixo } })) } };
+  }
+  return { OR: PREFIXOS[categoria].map((prefixo) => ({ action: { startsWith: prefixo } })) };
 }
 
 const auditEventRoutes: FastifyPluginAsync = async (app) => {
@@ -35,19 +53,24 @@ const auditEventRoutes: FastifyPluginAsync = async (app) => {
       accountId: request.user.accountId,
     };
 
+    const condicoes: Prisma.AuditEventWhereInput[] = [];
     if (query.category) {
-      where.action = {
-        startsWith: `${query.category}.`,
-      };
+      condicoes.push(filtroDaCategoria(query.category));
     }
 
     if (query.search) {
       const search = query.search.trim();
-      where.OR = [
-        { summary: { contains: search, mode: 'insensitive' } },
-        { action: { contains: search, mode: 'insensitive' } },
-        { user: { email: { contains: search, mode: 'insensitive' } } },
-      ];
+      condicoes.push({
+        OR: [
+          { summary: { contains: search, mode: 'insensitive' } },
+          { action: { contains: search, mode: 'insensitive' } },
+          { user: { email: { contains: search, mode: 'insensitive' } } },
+        ],
+      });
+    }
+
+    if (condicoes.length > 0) {
+      where.AND = condicoes;
     }
 
     const events = await app.prisma.auditEvent.findMany({

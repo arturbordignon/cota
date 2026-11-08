@@ -47,4 +47,13 @@ describe('activity log', () => {
     const resposta = await chamar(app, { method: 'GET', url: '/api/v1/audit-events', token: membro.accessToken });
     expect(resposta.statusCode).toBe(403);
   });
+
+  it('files sign-ins under users and keeps the system filter for everything else', async () => {
+    const usuarios = await eventos('?category=user');
+    expect(usuarios.some((evento) => evento.event === 'auth.login' || evento.event === 'account.created')).toBe(true);
+    expect(usuarios.every((evento) => evento.category === 'user')).toBe(true);
+
+    const sistema = await eventos('?category=system');
+    expect(sistema.every((evento) => evento.category === 'system')).toBe(true);
+  });
 });
