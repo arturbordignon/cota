@@ -273,6 +273,9 @@ export const enMessages = {
       "description": "Check the link you received or ask the company for a new one."
     }
   },
+  "meta": {
+    "description": "Commercial proposals for cranes, tow trucks, boom trucks and other heavy services."
+  },
   "clients": {
     "title": "Clients",
     "description": "Centralize tax data, credit limits, and history to negotiate with confidence.",

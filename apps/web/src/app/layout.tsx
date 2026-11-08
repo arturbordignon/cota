@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { NextIntlClientProvider } from "next-intl";
+import { getTranslations } from "next-intl/server";
 
 import "./globals.css";
 
@@ -9,13 +10,16 @@ import { loadMessages } from "@/messages/load-messages";
 import { fontBrand, fontDisplay, fontSans } from "@/lib/fonts";
 import { cn } from "@/lib/utils";
 
-export const metadata: Metadata = {
-  title: {
-    default: "Cota",
-    template: "%s | Cota",
-  },
-  description: "Propostas comerciais para guindaste, guincho, munck e outros serviços pesados.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("meta");
+  return {
+    title: {
+      default: "Cota",
+      template: "%s | Cota",
+    },
+    description: t("description"),
+  };
+}
 
 export default async function RootLayout({
   children,

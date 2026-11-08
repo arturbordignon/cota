@@ -273,6 +273,9 @@ export const ptBRMessages = {
       "description": "Verifique o link recebido ou peça um novo à empresa."
     }
   },
+  "meta": {
+    "description": "Propostas comerciais para guindaste, guincho, munck e outros serviços pesados."
+  },
   "clients": {
     "title": "Clientes",
     "description": "Centralize dados fiscais, limites de crédito e histórico para negociar com mais confiança.",
