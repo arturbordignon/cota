@@ -1205,6 +1205,17 @@ export const enMessages = {
       "back": "Back to templates",
       "blocksTitle": "Blocks",
       "blocksHint": "Click to add a component to the layout.",
+      "dataBlocksTitle": "Proposal data",
+      "dataBlocksHint": "Filled with what is entered when each proposal is created.",
+      "dataBlocks": {
+        "company": "Your company name, tagline and contact (My account).",
+        "client": "Client name, company, email and phone.",
+        "job": "Project, site and period of the job.",
+        "scope": "Scope items, equipment and crew.",
+        "investment": "Mobilization, daily rate × days and total.",
+        "photos": "Photos attached to the proposal.",
+        "terms": "Terms of the proposal."
+      },
       "blocks": {
         "heading": "Heading",
         "paragraph": "Paragraph",
@@ -1212,7 +1223,14 @@ export const enMessages = {
         "divider": "Divider",
         "pricing": "Price table",
         "button": "CTA button",
-        "signature": "Signature"
+        "signature": "Signature",
+        "company": "Company",
+        "client": "Client",
+        "job": "Job",
+        "scope": "Scope and resources",
+        "investment": "Investment",
+        "photos": "Photos",
+        "terms": "Terms"
       },
       "export": {
         "title": "Export",
@@ -1251,7 +1269,8 @@ export const enMessages = {
         "buttonText": "Button text",
         "buttonLink": "Link",
         "done": "Done editing",
-        "noSelection": "Select a block to edit."
+        "noSelection": "Select a block to edit.",
+        "automatic": "This block is filled automatically with each proposal's data."
       },
       "save": "Save template",
       "saved": "Template saved!",

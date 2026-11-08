@@ -1205,6 +1205,17 @@ export const ptBRMessages = {
       "back": "Voltar para modelos",
       "blocksTitle": "Blocos",
       "blocksHint": "Clique para adicionar um componente ao layout.",
+      "dataBlocksTitle": "Dados da proposta",
+      "dataBlocksHint": "Preenchidos com o que for informado ao criar cada proposta.",
+      "dataBlocks": {
+        "company": "Nome, slogan e contato da sua empresa (Minha conta).",
+        "client": "Nome, empresa, e-mail e telefone do cliente.",
+        "job": "Projeto, local e período da operação.",
+        "scope": "Itens do escopo, equipamentos e equipe.",
+        "investment": "Mobilização, diária × dias e total.",
+        "photos": "Fotos anexadas à proposta.",
+        "terms": "Condições gerais da proposta."
+      },
       "blocks": {
         "heading": "Título",
         "paragraph": "Parágrafo",
@@ -1212,7 +1223,14 @@ export const ptBRMessages = {
         "divider": "Divisor",
         "pricing": "Tabela de preços",
         "button": "Botão CTA",
-        "signature": "Assinatura"
+        "signature": "Assinatura",
+        "company": "Empresa",
+        "client": "Cliente",
+        "job": "Operação",
+        "scope": "Escopo e recursos",
+        "investment": "Investimento",
+        "photos": "Fotos",
+        "terms": "Condições"
       },
       "export": {
         "title": "Exportar",
@@ -1251,7 +1269,8 @@ export const ptBRMessages = {
         "buttonText": "Texto do botão",
         "buttonLink": "Link",
         "done": "Encerrar edição",
-        "noSelection": "Selecione um bloco para editar."
+        "noSelection": "Selecione um bloco para editar.",
+        "automatic": "Este bloco é preenchido automaticamente com os dados de cada proposta."
       },
       "save": "Salvar modelo",
       "saved": "Modelo salvo com sucesso!",

@@ -29,7 +29,24 @@ const BLOCK_TYPES = [
   { type: "signature" },
 ] as const;
 
-type BlockType = (typeof BLOCK_TYPES)[number]["type"];
+// Blocks filled with the proposal's own data when it is created.
+const DATA_BLOCK_TYPES = [
+  { type: "company" },
+  { type: "client" },
+  { type: "job" },
+  { type: "scope" },
+  { type: "investment" },
+  { type: "photos" },
+  { type: "terms" },
+] as const;
+
+type DataBlockType = (typeof DATA_BLOCK_TYPES)[number]["type"];
+
+function blocoDeDados(type: string): type is DataBlockType {
+  return DATA_BLOCK_TYPES.some((item) => item.type === type);
+}
+
+type BlockType = (typeof BLOCK_TYPES)[number]["type"] | (typeof DATA_BLOCK_TYPES)[number]["type"];
 
 type IdiomaDocumento = "pt-BR" | "en";
 
@@ -85,6 +102,92 @@ type BuilderBlock = {
   button?: { label: string; link: string };
 };
 
+// Labels printed in the document next to the proposal data.
+const ROTULOS_DOCUMENTO: Record<IdiomaDocumento, Record<string, string>> = {
+  "pt-BR": {
+    client: "Destinatário",
+    project: "Projeto",
+    site: "Local",
+    period: "Período",
+    scope: "Escopo",
+    equipment: "Equipamentos",
+    team: "Equipe",
+    mobilization: "Mobilização e desmobilização",
+    daily: "Diária operacional",
+    days: "dia(s)",
+    total: "Total",
+    photos: "Fotos da operação",
+    terms: "Condições gerais",
+  },
+  en: {
+    client: "Prepared for",
+    project: "Project",
+    site: "Site",
+    period: "Period",
+    scope: "Scope",
+    equipment: "Equipment",
+    team: "Crew",
+    mobilization: "Mobilization and demobilization",
+    daily: "Daily rate",
+    days: "day(s)",
+    total: "Total",
+    photos: "Job photos",
+    terms: "Terms",
+  },
+};
+
+// Saved with the template so its preview shows a realistic proposal; real
+// proposals replace all of it with what was entered in the wizard.
+const AMOSTRA: Record<IdiomaDocumento, Record<string, unknown>> = {
+  "pt-BR": {
+    job: {
+      projectName: "Montagem de estrutura metálica",
+      siteLocation: "Porto de Santos, SP",
+      schedule: "12/05 a 15/05",
+      scope: ["Içamento e posicionamento de treliças", "Supervisor técnico durante o turno"],
+    },
+    equipment: [{ name: "Guindaste 90 t", capacity: "Capacidade 90 t" }],
+    team: ["Operador de guindaste certificado", "Rigger responsável"],
+    terms: ["Pagamento: 40% na confirmação + 60% após a conclusão"],
+    pricing: { mobilization: "R$ 8.500,00", dailyRate: "R$ 6.200,00", days: 4, total: "R$ 33.300,00" },
+  },
+  en: {
+    job: {
+      projectName: "Steel structure assembly",
+      siteLocation: "Port of Santos, SP",
+      schedule: "May 12 to 15",
+      scope: ["Lifting and placing steel trusses", "Technical supervisor during the shift"],
+    },
+    equipment: [{ name: "90 t crane", capacity: "Capacity 90 t" }],
+    team: ["Certified crane operator", "Lead rigger"],
+    terms: ["Payment: 40% on confirmation + 60% after completion"],
+    pricing: { mobilization: "$8,500.00", dailyRate: "$6,200.00", days: 4, total: "$33,300.00" },
+  },
+};
+
+const ESTILO_ROTULO = 'style="margin:0;color:#64748b;font-size:13px;"';
+const ESTILO_CAIXA = 'style="margin:16px 0;padding:18px;border-radius:16px;background:#f8fafc;border:1px solid #e2e8f0;"';
+
+function renderDataBlock(type: DataBlockType, idioma: IdiomaDocumento) {
+  const r = ROTULOS_DOCUMENTO[idioma];
+  switch (type) {
+    case "company":
+      return `<header style="margin:0 0 24px;"><h1 style="margin:0;font-size:30px;color:#0f172a;">{{company.name}}</h1>{{#company.tagline}}<p style="margin:6px 0 0;color:#475569;">{{company.tagline}}</p>{{/company.tagline}}<p ${ESTILO_ROTULO}>{{company.email}}{{#company.phone}} · {{company.phone}}{{/company.phone}}</p></header>`;
+    case "client":
+      return `{{#client}}<div ${ESTILO_CAIXA}><p ${ESTILO_ROTULO}>${r.client}</p><p style="margin:4px 0 0;font-weight:600;">{{name}}</p>{{#companyName}}<p style="margin:0;">{{companyName}}</p>{{/companyName}}{{#email}}<p style="margin:0;">{{email}}</p>{{/email}}{{#phone}}<p style="margin:0;">{{phone}}</p>{{/phone}}</div>{{/client}}`;
+    case "job":
+      return `<div ${ESTILO_CAIXA}><p ${ESTILO_ROTULO}>${r.project}</p><p style="margin:2px 0 10px;font-weight:600;">{{job.projectName}}</p><p ${ESTILO_ROTULO}>${r.site}</p><p style="margin:2px 0 10px;">{{job.siteLocation}}</p><p ${ESTILO_ROTULO}>${r.period}</p><p style="margin:2px 0 0;">{{job.schedule}}</p></div>`;
+    case "scope":
+      return `<h3 style="margin:24px 0 8px;">${r.scope}</h3><ul>{{#job.scope}}<li>{{.}}</li>{{/job.scope}}</ul>{{#equipment.length}}<h3 style="margin:24px 0 8px;">${r.equipment}</h3><ul>{{#equipment}}<li><strong>{{name}}</strong>{{#capacity}} · {{capacity}}{{/capacity}}</li>{{/equipment}}</ul>{{/equipment.length}}{{#team.length}}<h3 style="margin:24px 0 8px;">${r.team}</h3><ul>{{#team}}<li>{{.}}</li>{{/team}}</ul>{{/team.length}}`;
+    case "investment":
+      return `<table style="width:100%;margin:24px 0;border-collapse:collapse;font-size:15px;color:#0f172a;"><tbody><tr><td style="padding:12px 16px;border-bottom:1px solid #e2e8f0;">${r.mobilization}</td><td style="padding:12px 16px;border-bottom:1px solid #e2e8f0;text-align:right;">{{pricing.mobilization}}</td></tr><tr><td style="padding:12px 16px;border-bottom:1px solid #e2e8f0;">${r.daily}{{#pricing.days}} × {{pricing.days}} ${r.days}{{/pricing.days}}</td><td style="padding:12px 16px;border-bottom:1px solid #e2e8f0;text-align:right;">{{pricing.dailyRate}}</td></tr><tr><td style="padding:12px 16px;font-weight:700;">${r.total}</td><td style="padding:12px 16px;text-align:right;font-weight:700;font-size:18px;">{{pricing.total}}</td></tr></tbody></table>{{#pricing.validity}}<p ${ESTILO_ROTULO}>{{pricing.validity}}</p>{{/pricing.validity}}`;
+    case "photos":
+      return `{{#hasPhotos}}<h3 style="margin:24px 0 8px;">${r.photos}</h3><div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;">{{#photos}}<img src="{{url}}" alt="" style="width:100%;height:220px;object-fit:cover;border-radius:12px;" />{{/photos}}</div>{{/hasPhotos}}`;
+    case "terms":
+      return `<h3 style="margin:24px 0 8px;">${r.terms}</h3><ul>{{#terms}}<li>{{.}}</li>{{/terms}}</ul>`;
+  }
+}
+
 function createDefaultBlock(type: BlockType, idioma: IdiomaDocumento): BuilderBlock {
   const id = crypto.randomUUID();
   const texto = TEXTO_INICIAL[idioma];
@@ -120,6 +223,9 @@ function escaparHtml(texto: string) {
 function renderHtml(blocks: BuilderBlock[], idioma: IdiomaDocumento) {
   const blockHtml = blocks
     .map((block) => {
+      if (blocoDeDados(block.type)) {
+        return renderDataBlock(block.type, idioma);
+      }
       switch (block.type) {
         case "heading":
           return `<h2 style="font-size:28px;margin:0 0 16px;color:#0f172a;">${escaparHtml(block.content ?? "")}</h2>`;
@@ -218,7 +324,7 @@ export default function TemplateBuilderPage() {
         category: category.trim() || undefined,
         htmlBody,
         inputSchemaJson: { builderVersion: 1 },
-        defaultDataJson: { builderBlocks: blocks },
+        defaultDataJson: { ...AMOSTRA[locale], builderBlocks: blocks },
         pdfLayoutOptionsJson: {},
         isActive: true,
       });
@@ -332,6 +438,23 @@ export default function TemplateBuilderPage() {
             ))}
           </div>
           <div className="space-y-2 border-t border-border pt-4">
+            <p className="meta-label">{t("dataBlocksTitle")}</p>
+            <p className="text-xs text-muted">{t("dataBlocksHint")}</p>
+            <div className="grid grid-cols-2 gap-1.5 lg:grid-cols-1">
+              {DATA_BLOCK_TYPES.map((block) => (
+                <button
+                  key={block.type}
+                  type="button"
+                  onClick={() => addBlock(block.type)}
+                  className="flex h-9 items-center gap-2 rounded-lg border border-dashed border-primary/40 bg-primary-tint/40 px-3 text-left text-[13px] font-semibold text-ink-muted transition-colors hover:border-primary/60 hover:bg-primary-tint hover:text-ink"
+                >
+                  <Plus size={12} weight="bold" className="shrink-0 text-primary-strong" />
+                  {t(`blocks.${block.type}`)}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="space-y-2 border-t border-border pt-4">
             <p className="meta-label">{t("export.title")}</p>
             <div className="flex flex-col gap-1.5">
               <Button variant="secondary" size="sm" className="justify-start" disabled={blocks.length === 0} onClick={handleExportHtml}>
@@ -422,6 +545,9 @@ export default function TemplateBuilderPage() {
                         {block.content}
                       </div>
                     )}
+                    {blocoDeDados(block.type) && (
+                      <p className="text-sm text-ink-muted">{t(`dataBlocks.${block.type}`)}</p>
+                    )}
                   </div>
                 </div>
               );
@@ -477,6 +603,9 @@ export default function TemplateBuilderPage() {
             <CardTitle>{t("editor.title")}</CardTitle>
             {selectedBlockData ? (
               <div className="space-y-3 text-sm">
+                {blocoDeDados(selectedBlockData.type) && (
+                  <p className="rounded-lg bg-surface-muted px-3 py-2.5 text-xs text-ink-muted">{t("editor.automatic")}</p>
+                )}
                 {(selectedBlockData.type === "heading" || selectedBlockData.type === "paragraph" || selectedBlockData.type === "signature") && (
                   <div className="space-y-2">
                     <Label>{t("editor.content")}</Label>
