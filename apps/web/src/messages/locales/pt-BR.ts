@@ -1192,6 +1192,32 @@ export const ptBRMessages = {
         "description": "Faça upgrade do seu plano a qualquer momento e libere limites maiores para a sua equipe.",
         "cta": "Upgrade de plano"
       }
+    },
+    "company": {
+      "title": "Dados da empresa",
+      "description": "Estas informações aparecem no cabeçalho e no rodapé de todas as propostas.",
+      "accountId": "Endereço da conta (usado no login):",
+      "fields": {
+        "name": "Nome da empresa",
+        "cnpj": "CNPJ",
+        "phone": "Telefone",
+        "email": "E-mail comercial",
+        "address": "Endereço",
+        "tagline": "Slogan"
+      },
+      "placeholders": {
+        "name": "Guindastes Exemplo Ltda",
+        "cnpj": "00.000.000/0001-00",
+        "phone": "(11) 0000-0000",
+        "email": "contato@empresa.com.br",
+        "address": "Rua, número - Cidade/UF",
+        "tagline": "Içamentos com segurança e precisão"
+      },
+      "save": "Salvar dados da empresa",
+      "saving": "Salvando...",
+      "saved": "Dados da empresa atualizados.",
+      "error": "Não foi possível salvar os dados da empresa.",
+      "ownerOnly": "Somente o proprietário da conta pode alterar estes dados."
     }
   },
   "team": {

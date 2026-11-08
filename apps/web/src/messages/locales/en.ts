@@ -1192,6 +1192,32 @@ export const enMessages = {
         "description": "Upgrade your plan at any time to unlock higher limits for your team.",
         "cta": "Upgrade plan"
       }
+    },
+    "company": {
+      "title": "Company details",
+      "description": "This information shows in the header and footer of every proposal.",
+      "accountId": "Account address (used to sign in):",
+      "fields": {
+        "name": "Company name",
+        "cnpj": "Tax ID (CNPJ)",
+        "phone": "Phone",
+        "email": "Business email",
+        "address": "Address",
+        "tagline": "Tagline"
+      },
+      "placeholders": {
+        "name": "Example Cranes Ltd.",
+        "cnpj": "00.000.000/0001-00",
+        "phone": "+1 555 0100",
+        "email": "contact@company.com",
+        "address": "Street, number - City/State",
+        "tagline": "Safe and precise lifting"
+      },
+      "save": "Save company details",
+      "saving": "Saving...",
+      "saved": "Company details updated.",
+      "error": "We couldn't save the company details.",
+      "ownerOnly": "Only the account owner can change these details."
     }
   },
   "team": {
