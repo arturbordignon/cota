@@ -92,6 +92,7 @@ find_available_port() {
 postgres_port="$(resolve_port POSTGRES_PORT 5433 postgres Postgres)"
 api_port="$(resolve_port API_PORT 3333 api API)"
 minio_port="$(resolve_port MINIO_API_PORT 9000 minio MinIO)"
+redis_port="$(resolve_port REDIS_PORT 6379 redis Redis)"
 web_port="$(get_env_var WEB_PORT || true)"
 if [ -z "$web_port" ]; then
   web_port="3001"
