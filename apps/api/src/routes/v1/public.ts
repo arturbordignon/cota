@@ -5,6 +5,7 @@ import { createDownloadUrl } from '@cota/storage';
 
 import { buscarEmpresa, formatarMoeda, montarHtmlProposta } from '../../services/proposal-render.js';
 import { invalidateReportsOverviewCache, invalidateTeamRankingCache } from '../../utils/cache.js';
+import { registrarEvento } from '../../utils/audit.js';
 
 const STATUS_PUBLICOS = ['SENT', 'ACCEPTED', 'DECLINED', 'EXPIRED'] as const;
 
@@ -118,6 +119,17 @@ const publicRoutes: FastifyPluginAsync = async (app) => {
       return reply.status(409).send({ message: 'Proposal can no longer be answered' });
     }
 
+    await registrarEvento(app, request.log, {
+      accountId: proposta.accountId,
+      userId: null,
+      action: 'proposal.accepted',
+      entityType: 'Proposal',
+      entityId: proposta.id,
+      summary: `Proposta ${proposta.title} aceita pelo cliente`,
+      summaryKey: 'proposalAccepted',
+      summaryParams: { proposal: proposta.title ?? '' },
+    });
+
     await notificarProposta(app.prisma, proposta.id, 'proposalAccepted').catch((err) =>
       request.log.error({ err }, 'Failed to notify the proposal answer'),
     );
@@ -146,6 +158,17 @@ const publicRoutes: FastifyPluginAsync = async (app) => {
     if (!respondida) {
       return reply.status(409).send({ message: 'Proposal can no longer be answered' });
     }
+
+    await registrarEvento(app, request.log, {
+      accountId: proposta.accountId,
+      userId: null,
+      action: 'proposal.declined',
+      entityType: 'Proposal',
+      entityId: proposta.id,
+      summary: `Proposta ${proposta.title} recusada pelo cliente`,
+      summaryKey: 'proposalDeclined',
+      summaryParams: { proposal: proposta.title ?? '' },
+    });
 
     await notificarProposta(app.prisma, proposta.id, 'proposalDeclined').catch((err) =>
       request.log.error({ err }, 'Failed to notify the proposal answer'),
