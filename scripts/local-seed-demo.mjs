@@ -147,6 +147,7 @@ const daysAgo = (days) => new Date(Date.now() - days * DAY);
 async function seedDemoData(account, owner) {
   await seedClients(account);
   await seedServices(account);
+  await seedProposals(account, owner);
 }
 
 async function seedClients(account) {
@@ -185,5 +186,121 @@ async function seedServices(account) {
     if (description) specs.description = description;
     if (notes) specs.notes = notes;
     await prisma.equipment.create({ data: { ...data, accountId: account.id, specsJson: specs } });
+  }
+}
+
+const CRANE_TEMPLATE_ID = 'a3a92568-5d5f-4de8-9f7c-6f9b4a0e9d3f';
+
+function slugify(text) {
+  return text
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '');
+}
+
+async function seedProposals(account, owner) {
+  // The crane template is created by the API on startup, which runs before the seed.
+  const template = await prisma.proposalTemplate.findUnique({ where: { id: CRANE_TEMPLATE_ID } });
+  if (!template) {
+    console.warn('Crane template not found: start the API once before seeding proposals.');
+    return;
+  }
+  const clients = await prisma.client.findMany({ where: { accountId: account.id } });
+  const client = (company) => clients.find((item) => item.companyName === company);
+
+  const proposals = [
+    { title: 'Montagem de estrutura metálica - Galpão 3', company: 'Galpões Modulares Brasil', site: 'Cajamar, SP', schedule: '03/11 a 07/11', mobilization: 12800, dailyRate: 18750, days: 5, status: 'ACCEPTED', created: 14, sent: 13, viewed: 12, answered: 10, equipment: 'Guindaste todo-terreno 100 t', scope: ['Içamento e posicionamento de treliças de até 48 m.', 'Supervisor técnico durante todo o turno.'] },
+    { title: 'Parada de manutenção - Forno 2', company: 'Metalúrgica Vale Verde', site: 'Sumaré, SP', schedule: '14/10 a 16/10', mobilization: 6000, dailyRate: 9800, days: 3, status: 'ACCEPTED', created: 30, sent: 29, viewed: 27, answered: 25, equipment: 'Guindaste veicular 50 t', scope: ['Remoção e reinstalação da tampa do forno.', 'Movimentação de refratários.'] },
+    { title: 'Içamento de transformador 15 MVA', company: 'Energia Solar Paulista', site: 'Itapetininga, SP', schedule: '20/11 a 21/11', mobilization: 8500, dailyRate: 18750, days: 2, status: 'SENT', created: 4, sent: 3, viewed: 2, equipment: 'Guindaste todo-terreno 100 t', scope: ['Içamento do transformador da carreta até a base.', 'Plano de rigging com ART.'] },
+    { title: 'Movimentação de cargas de projeto', company: 'Porto Seco Campinas Logística', site: 'Campinas, SP', schedule: '25/11 a 30/11', mobilization: 4000, dailyRate: 4200, days: 6, status: 'SENT', created: 2, sent: 1, equipment: 'Caminhão munck 30 t', scope: ['Descarga e posicionamento de equipamentos importados.'] },
+    { title: 'Remoção de prensa hidráulica', company: 'Construtora Atlântica S.A.', site: 'São Bernardo do Campo, SP', schedule: '22/10 a 23/10', mobilization: 5000, dailyRate: 9800, days: 2, status: 'DECLINED', created: 20, sent: 19, viewed: 18, answered: 15, equipment: 'Guindaste veicular 50 t', scope: ['Desmontagem e remoção da prensa para a área externa.'] },
+    { title: 'Içamento de vigas - Ponte rolante', company: 'Construtora Atlântica S.A.', site: 'Guarulhos, SP', schedule: '29/09 a 30/09', mobilization: 4500, dailyRate: 9800, days: 2, status: 'EXPIRED', created: 45, sent: 44, viewed: 43, equipment: 'Guindaste veicular 50 t', scope: ['Içamento das vigas da ponte rolante.'] },
+    { title: 'Montagem de usina solar - Etapa 2', company: 'Energia Solar Paulista', site: 'Itapetininga, SP', schedule: 'A partir de 02/12', mobilization: 3000, dailyRate: 1600, days: 10, status: 'DRAFT', created: 0, equipment: 'Plataforma elevatória 20 m', scope: ['Apoio à montagem das estruturas dos painéis.'] },
+  ];
+
+  const base = template.defaultDataJson ?? {};
+  const periodStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+  const periodEnd = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0, 23, 59, 59, 999);
+  let usedThisMonth = 0;
+
+  for (const item of proposals) {
+    const total = item.mobilization + item.dailyRate * item.days;
+    const createdAt = daysAgo(item.created);
+    const at = (days) => (days === undefined ? null : daysAgo(days));
+    const proposal = await prisma.proposal.create({
+      data: {
+        accountId: account.id,
+        templateId: template.id,
+        clientId: client(item.company)?.id,
+        createdById: owner.id,
+        title: item.title,
+        locale: 'pt-BR',
+        status: item.status,
+        publicSlug: `${slugify(item.title)}-${Math.random().toString(36).slice(2, 8)}`,
+        payloadJson: {
+          ...base,
+          job: { projectName: item.title, siteLocation: item.site, schedule: item.schedule, scope: item.scope },
+          equipment: [{ name: item.equipment, capacity: '', reach: '', notes: '' }],
+          pricing: { validity: 'Valores válidos por 15 dias corridos.' },
+        },
+        totalsJson: { mobilization: item.mobilization, dailyRate: item.dailyRate, days: item.days, total },
+        createdAt,
+        sentAt: at(item.sent),
+        viewedAt: at(item.viewed),
+        acceptedAt: item.status === 'ACCEPTED' ? at(item.answered) : null,
+        declinedAt: item.status === 'DECLINED' ? at(item.answered) : null,
+        expiresAt: item.status === 'EXPIRED' ? daysAgo(item.created - 15) : new Date(createdAt.getTime() + 15 * DAY),
+      },
+    });
+    if (createdAt >= periodStart) usedThisMonth += 1;
+
+    // What the activity log and the bell would have recorded for this proposal.
+    const events = [{ action: 'proposal.created', key: 'proposalCreated', when: createdAt, userId: owner.id }];
+    if (item.sent !== undefined) events.push({ action: 'proposal.sent', key: 'proposalSent', when: at(item.sent), userId: owner.id });
+    if (item.status === 'ACCEPTED') events.push({ action: 'proposal.accepted', key: 'proposalAccepted', when: at(item.answered), userId: null });
+    if (item.status === 'DECLINED') events.push({ action: 'proposal.declined', key: 'proposalDeclined', when: at(item.answered), userId: null });
+    for (const event of events) {
+      await prisma.auditEvent.create({
+        data: {
+          accountId: account.id,
+          userId: event.userId,
+          action: event.action,
+          entityType: 'Proposal',
+          entityId: proposal.id,
+          summary: `${event.action} ${item.title}`,
+          metadataJson: { summaryKey: event.key, summaryParams: { proposal: item.title } },
+          createdAt: event.when,
+        },
+      });
+    }
+
+    const notices = [];
+    if (item.viewed !== undefined) notices.push({ key: 'proposalViewed', tone: 'INFO', when: at(item.viewed), title: 'Proposta visualizada', body: `O cliente abriu a proposta ${item.title}.` });
+    if (item.status === 'ACCEPTED') notices.push({ key: 'proposalAccepted', tone: 'SUCCESS', when: at(item.answered), title: 'Proposta aceita', body: `O cliente aceitou a proposta ${item.title}.` });
+    if (item.status === 'DECLINED') notices.push({ key: 'proposalDeclined', tone: 'WARNING', when: at(item.answered), title: 'Proposta recusada', body: `O cliente recusou a proposta ${item.title}.` });
+    for (const notice of notices) {
+      await prisma.notification.create({
+        data: {
+          accountId: account.id,
+          recipientId: owner.id,
+          title: notice.title,
+          body: notice.body,
+          tone: notice.tone,
+          // Older news is already read; the last few days stay unread.
+          isRead: notice.when < daysAgo(3),
+          metadataJson: { key: notice.key, params: { proposal: item.title }, link: `/proposals/${proposal.publicSlug}` },
+          createdAt: notice.when,
+        },
+      });
+    }
+  }
+
+  const usage = await prisma.proposalUsage.findFirst({ where: { accountId: account.id, periodStart, periodEnd } });
+  if (usage) {
+    await prisma.proposalUsage.update({ where: { id: usage.id }, data: { proposalsUsed: { increment: usedThisMonth } } });
+  } else {
+    await prisma.proposalUsage.create({ data: { accountId: account.id, periodStart, periodEnd, proposalsUsed: usedThisMonth } });
   }
 }
