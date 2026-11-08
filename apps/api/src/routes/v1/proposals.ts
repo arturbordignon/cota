@@ -344,7 +344,7 @@ const proposalRoutes: FastifyPluginAsync = async (app) => {
     }
 
     const locale = resolveLocale(request);
-    const html = await montarHtmlProposta(app, proposal.id);
+    const html = await montarHtmlProposta(app, proposal.id, { paraPdf: true });
     if (!html) {
       return reply.status(404).send({ message: 'Proposal not found' });
     }

@@ -52,7 +52,13 @@ function montarValores(proposta: { totalsJson: unknown; payloadJson: unknown; lo
   };
 }
 
-export async function montarHtmlProposta(app: FastifyInstance, proposalId: string) {
+// For the PDF the photos must be fetched by the worker, which reaches storage
+// at the internal address; the public page needs links the client's browser opens.
+export async function montarHtmlProposta(
+  app: FastifyInstance,
+  proposalId: string,
+  { paraPdf = false }: { paraPdf?: boolean } = {},
+) {
   const proposta = await app.prisma.proposal.findUnique({
     where: { id: proposalId },
     include: {
@@ -69,7 +75,7 @@ export async function montarHtmlProposta(app: FastifyInstance, proposalId: strin
 
   const fotos = await Promise.all(
     proposta.assets.map(async (asset) => ({
-      url: await createDownloadUrl({ key: asset.s3ObjectKey, expiresIn: VALIDADE_FOTOS_SEGUNDOS }),
+      url: await createDownloadUrl({ key: asset.s3ObjectKey, expiresIn: VALIDADE_FOTOS_SEGUNDOS, interno: paraPdf }),
     })),
   );
 
