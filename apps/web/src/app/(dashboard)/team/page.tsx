@@ -21,6 +21,7 @@ import { Select, SelectItem } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { permissionModules, type PermissionModuleKey } from "@/config/permission-modules";
 import { useApi } from "@/hooks/use-api";
+import { useErrorMessage } from "@/hooks/use-error-message";
 import { useAccountCurrency } from "@/hooks/use-account-currency";
 import {
   DepartmentSummary,
@@ -238,6 +239,8 @@ export default function TeamPage() {
   const locale = useLocale();
   const tRoles = useTranslations("team.roles");
   const tInvite = useTranslations("team.invite");
+  const tInviteErrors = useTranslations("team.inviteErrors");
+  const mensagemDeErro = useErrorMessage();
   const api = useApi();
   const queryClient = useQueryClient();
 
@@ -471,9 +474,9 @@ export default function TeamPage() {
       await removeMember.mutateAsync(deleteTarget.id);
     } catch (error) {
       console.error('Failed to delete pending invite', error);
-      setDeleteError(error instanceof Error ? error.message : tInvite('deleteError'));
+      setDeleteError(mensagemDeErro(error, { padrao: tInvite('deleteError') }));
     }
-  }, [deleteTarget, removeMember, tInvite]);
+  }, [deleteTarget, mensagemDeErro, removeMember, tInvite]);
 
   const inviteMember = useMutation({
     mutationFn: async () => {
@@ -867,7 +870,15 @@ export default function TeamPage() {
         onDraftChange={handleDraftChange}
         onSubmit={() => inviteMember.mutate()}
         isSubmitting={inviteMember.isPending}
-        errorMessage={inviteMember.error instanceof Error ? inviteMember.error.message : undefined}
+        errorMessage={
+          inviteMember.error
+            ? mensagemDeErro(inviteMember.error, {
+                409: tInviteErrors('duplicate'),
+                400: tInviteErrors('invalidDepartment'),
+                padrao: tInviteErrors('generic'),
+              })
+            : undefined
+        }
         inviteLink={inviteLink}
         onCopyInvite={handleCopyInvite}
         copySuccess={copySuccess}

@@ -1777,6 +1777,11 @@ export const ptBRMessages = {
       },
       "empty": "Ainda não há dados suficientes para montar o ranking nesse período.",
       "error": "Não foi possível carregar o ranking: {message}"
+    },
+    "inviteErrors": {
+      "duplicate": "Já existe alguém com este e-mail na equipe.",
+      "invalidDepartment": "Escolha um departamento válido.",
+      "generic": "Não foi possível enviar o convite. Tente novamente."
     }
   }
 } as const;

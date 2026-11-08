@@ -1777,6 +1777,11 @@ export const enMessages = {
       },
       "empty": "There isn't enough data to build the ranking for this period yet.",
       "error": "Couldn't load the ranking: {message}"
+    },
+    "inviteErrors": {
+      "duplicate": "Someone on the team already uses this email.",
+      "invalidDepartment": "Pick a valid department.",
+      "generic": "We couldn't send the invite. Try again."
     }
   }
 } as const;
