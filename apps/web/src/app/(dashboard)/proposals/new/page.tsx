@@ -306,14 +306,18 @@ export default function NewProposalPage() {
 
   const clientes = useMemo(() => clientsQuery.data?.data || [], [clientsQuery.data]);
   const catalogo = useMemo(() => equipmentQuery.data?.data || [], [equipmentQuery.data]);
+  // Templates in the account's language come first.
+  const idiomaPreferido = user?.account.locale === "en" ? "en" : "pt-BR";
   const modelos = useMemo(
-    () => (templatesQuery.data?.data || []) as TemplateDetail[],
-    [templatesQuery.data],
+    () =>
+      [...((templatesQuery.data?.data || []) as TemplateDetail[])].sort(
+        (a, b) => Number(a.locale !== idiomaPreferido) - Number(b.locale !== idiomaPreferido),
+      ),
+    [idiomaPreferido, templatesQuery.data],
   );
   // A blank proposal starts from the standard template in the account's language.
-  const idiomaDaConta = user?.account.locale === "en" ? "en" : "pt-BR";
   const modeloPadrao =
-    modelos.find((modelo) => !modelo.accountId && modelo.locale === idiomaDaConta) ??
+    modelos.find((modelo) => !modelo.accountId && modelo.locale === idiomaPreferido) ??
     modelos.find((modelo) => !modelo.accountId);
   const modeloAtivo = modelos.find((modelo) => modelo.id === modeloId);
   const totais = montarTotais(formulario);

@@ -99,9 +99,15 @@ export default function TemplatesPage() {
     enabled: shouldFetch,
   });
 
+  // Templates in the account's language come first.
+  const { user } = useCurrentUser();
+  const idiomaPreferido = user?.account.locale === "en" ? "en" : "pt-BR";
   const templates = useMemo(
-    () => ((templatesQuery.data?.data ?? []) as TemplateSummary[]),
-    [templatesQuery.data]
+    () =>
+      [...((templatesQuery.data?.data ?? []) as TemplateSummary[])].sort(
+        (a, b) => Number(a.locale !== idiomaPreferido) - Number(b.locale !== idiomaPreferido),
+      ),
+    [idiomaPreferido, templatesQuery.data]
   );
   const isLoading = templatesQuery.isLoading;
   const loadError = templatesQuery.error as Error | null;
