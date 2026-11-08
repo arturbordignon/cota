@@ -181,36 +181,27 @@ export function UserProvider({ children }: PropsWithChildren) {
     return refreshPromiseRef.current;
   }, [refreshToken, loadProfile, saveTokens, signOut]);
 
+  // The sign-in and sign-up pages show their own progress. Switching the
+  // session to "loading" here would unmount the form, losing what was typed
+  // and the error message when the attempt fails.
   const signIn = useCallback(
     async (payload: authClient.LoginPayload) => {
-      setStatus('loading');
-      try {
-        const result = await authClient.login(payload);
-        saveTokens(result.tokens);
-        persistItem(ACCOUNT_SLUG_KEY, result.account?.slug ?? payload.accountSlug);
-        await loadProfile(result.tokens.accessToken);
-      } catch (error) {
-        setStatus(accessToken ? 'authenticated' : 'unauthenticated');
-        throw error;
-      }
+      const result = await authClient.login(payload);
+      saveTokens(result.tokens);
+      persistItem(ACCOUNT_SLUG_KEY, result.account?.slug ?? payload.accountSlug);
+      await loadProfile(result.tokens.accessToken);
     },
-    [loadProfile, saveTokens, accessToken],
+    [loadProfile, saveTokens],
   );
 
   const signUp = useCallback(
     async ({ locale = 'pt-BR', ...payload }: authClient.RegisterPayload) => {
-      setStatus('loading');
-      try {
-        const result = await authClient.register({ ...payload, locale });
-        saveTokens(result.tokens);
-        persistItem(ACCOUNT_SLUG_KEY, result.account.slug);
-        await loadProfile(result.tokens.accessToken);
-      } catch (error) {
-        setStatus(accessToken ? 'authenticated' : 'unauthenticated');
-        throw error;
-      }
+      const result = await authClient.register({ ...payload, locale });
+      saveTokens(result.tokens);
+      persistItem(ACCOUNT_SLUG_KEY, result.account.slug);
+      await loadProfile(result.tokens.accessToken);
     },
-    [loadProfile, saveTokens, accessToken],
+    [loadProfile, saveTokens],
   );
 
   const updateUser = useCallback((updates: Partial<CurrentUser>) => {
