@@ -165,15 +165,19 @@ export function casarClientePorNome(nome: string, clientes: ClienteResumo[]) {
   return clientes.find((cliente) => cliente.name.toLowerCase() === alvo);
 }
 
-export function escolherModelo(modelos: ModeloResumo[], idModelo?: string) {
+// Without an id: the account's own template, else the standard one in the
+// account's language (there is one per language), else any active one.
+export function escolherModelo(modelos: ModeloResumo[], idModelo?: string, idioma?: string) {
   if (idModelo) {
     return modelos.find((modelo) => modelo.id === idModelo);
   }
-  const daConta = modelos.find((modelo) => modelo.accountId && modelo.isActive !== false);
+  const ativos = modelos.filter((modelo) => modelo.isActive !== false);
+  const daConta = ativos.find((modelo) => modelo.accountId);
   if (daConta) {
     return daConta;
   }
-  return modelos.find((modelo) => modelo.isActive !== false);
+  const noIdioma = ativos.find((modelo) => modelo.locale === (idioma === 'en' ? 'en' : 'pt-BR'));
+  return noIdioma ?? ativos[0];
 }
 
 export function montarValidade(dias: number) {

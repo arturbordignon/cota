@@ -414,7 +414,8 @@ async function montarPropostaSalva(api: ClienteCota, dados: DadosMontagem) {
   const catalogo = lista(servicosResposta);
   const modelos = lista(modelosResposta);
 
-  const modelo = escolherModelo(modelos, dados.idModelo);
+  const sessao = (await api.get('/auth/me')) as { account?: { locale?: string } };
+  const modelo = escolherModelo(modelos, dados.idModelo, sessao.account?.locale);
   if (!modelo) {
     throw new Error('Nenhum modelo de proposta disponível.');
   }
