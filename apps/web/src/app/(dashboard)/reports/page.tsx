@@ -120,6 +120,7 @@ const BarChartViz = memo(function BarChartViz({
           <YAxis
             tickLine={false}
             axisLine={false}
+            allowDecimals={false}
             tick={axisTick}
             tickFormatter={(value) => formatter(Number(value))}
             width={72}
