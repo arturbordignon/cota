@@ -11,6 +11,30 @@ const STATUS_PAGOS = ['active', 'trialing'];
 // Stripe retries for up to three days; remembering ids a bit longer is enough.
 const VALIDADE_EVENTO_SEGUNDOS = 4 * 24 * 60 * 60;
 
+// Plan changes made through Stripe show up under "Billing" in the activity log.
+async function registrarTrocaDePlano(
+  app: FastifyInstance,
+  conta: { id: string; currentPlan: { name: string } | null },
+  planoNovoId: string,
+) {
+  const novo = await app.prisma.plan.findUnique({ where: { id: planoNovoId }, select: { name: true } });
+  const de = conta.currentPlan?.name ?? '—';
+  const para = novo?.name ?? '—';
+  await app.prisma.auditEvent
+    .create({
+      data: {
+        accountId: conta.id,
+        userId: null,
+        action: 'billing.plan.changed',
+        entityType: 'Account',
+        entityId: conta.id,
+        summary: `Plano alterado de ${de} para ${para}`,
+        metadataJson: { summaryKey: 'planChanged', summaryParams: { from: de, to: para } },
+      },
+    })
+    .catch((err) => app.log.error({ err }, 'Failed to record the plan change'));
+}
+
 // Webhook bodies can arrive late or out of order, so the subscription is read
 // back from Stripe and the account gets a paid plan only while it is paid.
 async function sincronizarAssinatura(app: FastifyInstance, subscriptionId: string) {
@@ -59,10 +83,13 @@ async function sincronizarAssinatura(app: FastifyInstance, subscriptionId: strin
   }
 
   if (plan && STATUS_PAGOS.includes(assinatura.status)) {
-    await app.prisma.account.update({
-      where: { id: account.id },
-      data: { currentPlanId: plan.id },
-    });
+    if (plan.id !== account.currentPlanId) {
+      await app.prisma.account.update({
+        where: { id: account.id },
+        data: { currentPlanId: plan.id },
+      });
+      await registrarTrocaDePlano(app, account, plan.id);
+    }
     return;
   }
 
@@ -92,6 +119,7 @@ async function sincronizarAssinatura(app: FastifyInstance, subscriptionId: strin
       where: { id: account.id },
       data: { currentPlanId: planoSeguinte },
     });
+    await registrarTrocaDePlano(app, account, planoSeguinte);
   }
 }
 

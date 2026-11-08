@@ -62,7 +62,8 @@ export const ptBRMessages = {
       "proposalCreated": "Proposta {proposal} criada",
       "proposalSent": "Proposta {proposal} enviada ao cliente",
       "proposalAccepted": "O cliente aceitou a proposta {proposal}",
-      "proposalDeclined": "O cliente recusou a proposta {proposal}"
+      "proposalDeclined": "O cliente recusou a proposta {proposal}",
+      "planChanged": "Plano alterado de {from} para {to}"
     }
   },
   "auth": {

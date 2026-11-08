@@ -62,7 +62,8 @@ export const enMessages = {
       "proposalCreated": "Proposal {proposal} created",
       "proposalSent": "Proposal {proposal} sent to the client",
       "proposalAccepted": "The client accepted the proposal {proposal}",
-      "proposalDeclined": "The client declined the proposal {proposal}"
+      "proposalDeclined": "The client declined the proposal {proposal}",
+      "planChanged": "Plan changed from {from} to {to}"
     }
   },
   "auth": {

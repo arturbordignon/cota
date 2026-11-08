@@ -161,6 +161,22 @@ describe('stripe subscription sync', () => {
     expect(await planoAtual(conta)).toBe(plano.id);
   });
 
+  it('records the plan change in the activity log', async () => {
+    const { conta, customer, preco } = await prepararConta();
+    const sub = `sub_${sufixo()}`;
+    estados.set(sub, { status: 'active', price: preco, customer });
+    await enviarEvento(app, evento('customer.subscription.created', sub));
+
+    const eventos = await app.prisma.auditEvent.findMany({
+      where: { accountId: conta.accountId, action: 'billing.plan.changed' },
+    });
+    expect(eventos).toHaveLength(1);
+    expect(eventos[0].metadataJson).toMatchObject({
+      summaryKey: 'planChanged',
+      summaryParams: { from: 'Plano Essencial', to: 'Ilimitado de teste' },
+    });
+  });
+
   it('does not grant the plan when the body says active but Stripe says unpaid', async () => {
     const { conta, customer, preco, padrao } = await prepararConta();
     const sub = `sub_${sufixo()}`;
