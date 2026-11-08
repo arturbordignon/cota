@@ -338,14 +338,6 @@ export default function ClientsPage() {
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     return createdAt >= thirtyDaysAgo;
   }).length;
-  const highlightedClients = useMemo(
-    () =>
-      [...clients]
-        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-        .slice(0, 3),
-    [clients],
-  );
-
   const clientDetailsQuery = useQuery<ClientResponse, Error>({
     queryKey: ["clients", selectedClientId],
     queryFn: () => api.get<ClientResponse>(`/clients/${selectedClientId}`),
