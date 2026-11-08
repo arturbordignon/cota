@@ -264,10 +264,15 @@ function renderHtml(blocks: BuilderBlock[], idioma: IdiomaDocumento) {
 <html lang="${idioma}">
   <head>
     <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Template</title>
     <style>
       body { font-family: 'Inter', Arial, sans-serif; background: #f1f5f9; padding: 40px; }
       main { max-width: 1024px; margin: 0 auto; background: #ffffff; border-radius: 20px; padding: 56px; box-shadow: 0 24px 70px rgba(15, 23, 42, 0.08); }
+      @media (max-width: 640px) {
+        body { padding: 0; }
+        main { padding: 24px 18px; border-radius: 0; box-shadow: none; }
+      }
     </style>
   </head>
   <body>
