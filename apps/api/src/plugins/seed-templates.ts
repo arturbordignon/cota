@@ -97,6 +97,7 @@ const cotaTemplate = {
 <html lang="pt-BR">
   <head>
     <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Proposta de Serviço de Guindaste</title>
     <style>
       body { font-family: "Inter", Arial, sans-serif; color: #2a1e12; margin: 0; padding: 0; background: #f8f5ef; }
@@ -119,6 +120,18 @@ const cotaTemplate = {
       .terms p { margin-bottom: 10px; }
       .photos { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
       .photos img { width: 100%; height: 220px; object-fit: cover; border-radius: 12px; border: 1px solid #f0e4cf; }
+      /* Clients often open the link on a phone: stack the columns there. */
+      @media (max-width: 640px) {
+        .wrapper { padding: 24px 18px; }
+        .header, .footer { flex-direction: column; align-items: flex-start; }
+        .header .panel { max-width: none !important; width: 100%; box-sizing: border-box; }
+        .grid-two { grid-template-columns: 1fr; }
+        h1 { font-size: 24px; }
+        table { font-size: 13px; }
+        th, td { padding: 8px 10px; }
+        .photos { grid-template-columns: 1fr; }
+        .photos img { height: 200px; }
+      }
     </style>
   </head>
   <body>
