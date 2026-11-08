@@ -43,14 +43,26 @@ export const enMessages = {
         "ip": "IP",
         "agent": "Agent",
         "technicalDetails": "Technical details"
+      },
+      "actors": {
+        "client": "Client (proposal link)",
+        "system": "System"
       }
     },
     "entries": {
-      "proposalAccepted": "Proposal {proposal} accepted by {client}",
-      "departmentUpdated": "Department {department} updated permissions for {module}",
-      "userInvited": "Invited {invitee} to the {department} department",
-      "planChanged": "Plan updated from {from} to {to}",
-      "notificationsDispatch": "Daily summary sent to {recipients, plural, one {# member} other {# members}}"
+      "login": "{email} signed in",
+      "accountCreated": "Account {account} created",
+      "departmentCreated": "Department {department} created",
+      "departmentUpdated": "Department {department} updated",
+      "departmentDeleted": "Department {department} removed",
+      "userInvited": "Invite sent to {email}",
+      "inviteAccepted": "{email} accepted the invite",
+      "inviteDeleted": "Invite for {email} removed",
+      "memberUpdated": "Details of {email} updated",
+      "proposalCreated": "Proposal {proposal} created",
+      "proposalSent": "Proposal {proposal} sent to the client",
+      "proposalAccepted": "The client accepted the proposal {proposal}",
+      "proposalDeclined": "The client declined the proposal {proposal}"
     }
   },
   "clients": {

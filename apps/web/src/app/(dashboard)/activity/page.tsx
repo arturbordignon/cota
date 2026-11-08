@@ -129,7 +129,7 @@ export default function ActivityPage() {
                     <span className="text-xs text-muted">{log.event}</span>
                   </div>
                   <p className="text-[15px] font-semibold leading-snug text-ink">
-                    {log.summaryKey
+                    {log.summaryKey && t.has(`entries.${log.summaryKey}`)
                       ? t(`entries.${log.summaryKey}`, log.summaryParams ?? {})
                       : log.summary}
                   </p>
@@ -149,7 +149,11 @@ export default function ActivityPage() {
                 <dl className="grid content-start gap-3 text-sm sm:grid-cols-2 md:grid-cols-1">
                   <div>
                     <dt className="meta-label">{t('card.labels.responsible')}</dt>
-                    <dd className="mt-0.5 font-medium text-ink">{log.actor}</dd>
+                    <dd className="mt-0.5 font-medium text-ink">
+                      {log.actorEmail
+                        ? log.actor
+                        : t(log.event.startsWith('proposal.') ? 'card.actors.client' : 'card.actors.system')}
+                    </dd>
                     {log.actorEmail ? <dd className="truncate text-xs text-muted">{log.actorEmail}</dd> : null}
                   </div>
                   <div>

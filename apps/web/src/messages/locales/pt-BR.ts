@@ -43,14 +43,26 @@ export const ptBRMessages = {
         "ip": "IP",
         "agent": "Agente",
         "technicalDetails": "Detalhes técnicos"
+      },
+      "actors": {
+        "client": "Cliente (link da proposta)",
+        "system": "Sistema"
       }
     },
     "entries": {
-      "proposalAccepted": "Proposta {proposal} aceita por {client}",
-      "departmentUpdated": "Departamento {department} alterou permissões de {module}",
-      "userInvited": "Convidou {invitee} para o departamento {department}",
-      "planChanged": "Plano atualizado de {from} para {to}",
-      "notificationsDispatch": "Resumo diário enviado para {recipients, plural, one {# membro} other {# membros}}"
+      "login": "{email} entrou na conta",
+      "accountCreated": "Conta {account} criada",
+      "departmentCreated": "Departamento {department} criado",
+      "departmentUpdated": "Departamento {department} atualizado",
+      "departmentDeleted": "Departamento {department} removido",
+      "userInvited": "Convite enviado para {email}",
+      "inviteAccepted": "{email} aceitou o convite",
+      "inviteDeleted": "Convite de {email} removido",
+      "memberUpdated": "Dados de {email} atualizados",
+      "proposalCreated": "Proposta {proposal} criada",
+      "proposalSent": "Proposta {proposal} enviada ao cliente",
+      "proposalAccepted": "O cliente aceitou a proposta {proposal}",
+      "proposalDeclined": "O cliente recusou a proposta {proposal}"
     }
   },
   "clients": {
