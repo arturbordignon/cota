@@ -276,6 +276,16 @@ export const enMessages = {
   "meta": {
     "description": "Commercial proposals for cranes, tow trucks, boom trucks and other heavy services."
   },
+  "errors": {
+    "invalid": "Check the information and try again.",
+    "unauthorized": "Your session expired. Sign in again.",
+    "forbidden": "You're not allowed to do this.",
+    "notFound": "We couldn't find this record. It may have been removed.",
+    "conflict": "A record with these details already exists.",
+    "tooMany": "Too many attempts in a row. Wait a moment and try again.",
+    "unavailable": "This feature isn't available right now.",
+    "generic": "Something went wrong. Try again."
+  },
   "clients": {
     "title": "Clients",
     "description": "Centralize tax data, credit limits, and history to negotiate with confidence.",

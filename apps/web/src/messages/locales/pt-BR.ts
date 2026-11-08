@@ -276,6 +276,16 @@ export const ptBRMessages = {
   "meta": {
     "description": "Propostas comerciais para guindaste, guincho, munck e outros serviços pesados."
   },
+  "errors": {
+    "invalid": "Confira os dados informados e tente novamente.",
+    "unauthorized": "Sua sessão expirou. Entre novamente.",
+    "forbidden": "Você não tem permissão para fazer isso.",
+    "notFound": "Não encontramos este registro. Ele pode ter sido removido.",
+    "conflict": "Já existe um registro com esses dados.",
+    "tooMany": "Muitas tentativas seguidas. Aguarde um instante e tente de novo.",
+    "unavailable": "Este recurso não está disponível agora.",
+    "generic": "Algo deu errado. Tente novamente."
+  },
   "clients": {
     "title": "Clientes",
     "description": "Centralize dados fiscais, limites de crédito e histórico para negociar com mais confiança.",
