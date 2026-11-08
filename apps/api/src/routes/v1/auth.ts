@@ -2,13 +2,13 @@ import { randomUUID } from 'node:crypto';
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import type { Prisma } from '@cota/db';
-import argon2 from 'argon2';
 import dayjs from 'dayjs';
 import env from '@cota/config';
 import { toAccountSlug } from '../../utils/slug.js';
 import { resolveLocale } from '../../utils/locale.js';
 import { getDefaultPlanSlug } from '../../services/billing.js';
 import { carregarPermissoes } from '../../utils/permissions.js';
+import { conferirSenha, gerarHashDeSenha } from '../../utils/senhas.js';
 
 type TokenPayload = {
   sub: string;
@@ -72,16 +72,9 @@ const refreshBodySchema = z.object({
   refreshToken: z.string().min(1),
 });
 
-const PARAMETROS_ARGON = {
-  type: argon2.argon2id,
-  memoryCost: 2 ** 15,
-  timeCost: 2,
-  parallelism: 1,
-};
-
 // Compared against when the user doesn't exist, so a wrong email takes as long
 // as a wrong password and response times don't reveal who has an account.
-const hashFicticio = argon2.hash(randomUUID(), PARAMETROS_ARGON);
+const hashFicticio = gerarHashDeSenha(randomUUID());
 
 const LIMITE_FALHAS_LOGIN = 10;
 const JANELA_FALHAS_LOGIN_SEGUNDOS = 15 * 60;
@@ -163,7 +156,7 @@ const authRoutes: FastifyPluginAsync = async (app) => {
       attempt += 1;
     }
 
-    const hashedPassword = await argon2.hash(body.password, PARAMETROS_ARGON);
+    const hashedPassword = await gerarHashDeSenha(body.password);
 
     const result = await app.prisma.$transaction(async (tx) => {
       const account = await tx.account.create({
@@ -319,7 +312,7 @@ const authRoutes: FastifyPluginAsync = async (app) => {
       }
 
       const verifyStart = Date.now();
-      const validPassword = await argon2.verify(hashParaComparar, body.password);
+      const validPassword = await conferirSenha(hashParaComparar, body.password);
       app.log.info(`Argon2 verify took ${Date.now() - verifyStart}ms`);
 
       if (!user || !user.isActive || !validPassword) {

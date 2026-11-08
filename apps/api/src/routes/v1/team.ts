@@ -1,6 +1,5 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
-import argon2 from 'argon2';
 import { randomBytes, createHash } from 'crypto';
 import dayjs from 'dayjs';
 import { criarNotificacoes, type DepartmentPreset as PrismaDepartmentPreset, type PermissionModule } from '@cota/db';
@@ -17,6 +16,7 @@ import type { PermissionKey, PermissionMap } from '../../utils/permissions.js';
 import env from '@cota/config';
 
 import { sendInviteEmail } from '../../lib/mailer.js';
+import { gerarHashDeSenha } from '../../utils/senhas.js';
 
 const departmentPresetSchema = z.enum(['none', 'view', 'all', 'custom']);
 type DepartmentPresetInput = z.infer<typeof departmentPresetSchema>;
@@ -659,7 +659,7 @@ const teamRoutes: FastifyPluginAsync = async (app) => {
       return reply.status(410).send({ message: 'Convite expirado. Solicite um novo convite ao administrador.' });
     }
 
-    const passwordHash = await argon2.hash(body.password);
+    const passwordHash = await gerarHashDeSenha(body.password);
 
     await app.prisma.user.update({
       where: { id: invitee.id },
@@ -749,7 +749,7 @@ const teamRoutes: FastifyPluginAsync = async (app) => {
     }
 
     const temporaryPassword = randomBytes(16).toString('hex');
-    const passwordHash = await argon2.hash(temporaryPassword);
+    const passwordHash = await gerarHashDeSenha(temporaryPassword);
     const inviteToken = randomBytes(INVITE_TOKEN_BYTES).toString('hex');
     const inviteTokenHash = hashInviteToken(inviteToken);
     const inviteTokenExpiresAt = dayjs().add(INVITE_EXPIRATION_DAYS, 'day').toDate();

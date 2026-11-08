@@ -1,11 +1,11 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
-import argon2 from 'argon2';
 import type { Prisma } from '@cota/db';
 import { apagarPrefixo } from '@cota/storage';
 
 import { getStripe, isStripeEnabled } from '../../lib/stripe.js';
 import { buscarEmpresa } from '../../services/proposal-render.js';
+import { conferirSenha } from '../../utils/senhas.js';
 
 const companySchema = z.object({
   name: z.string().trim().min(1),
@@ -99,7 +99,7 @@ const accountRoutes: FastifyPluginAsync = async (app) => {
       where: { id: request.user.sub },
       select: { passwordHash: true },
     });
-    if (!dono || !(await argon2.verify(dono.passwordHash, body.password))) {
+    if (!dono || !(await conferirSenha(dono.passwordHash, body.password))) {
       return reply.status(403).send({ message: 'Senha incorreta.' });
     }
 
