@@ -86,7 +86,10 @@ async function percorrer(navegador, idioma) {
     const texto = await pagina.evaluate(() => document.body.innerText);
     // A message key left on screen looks like "section.subsection.key".
     const chaves = texto.match(/\b[a-z]+[A-Za-z]*(\.[a-z][A-Za-z]+){2,}\b/g) ?? [];
-    const suspeitas = chaves.filter((chave) => !/\.(com|br|local|example)\b/.test(chave));
+    // Email domains and the activity log's event codes (user.invite.accepted) are fine.
+    const suspeitas = chaves.filter(
+      (chave) => !/\.(com|br|local|example)\b/.test(chave) && !/^(user|auth|account|proposal|department|billing)\./.test(chave),
+    );
     if (suspeitas.length > 0) problemas.push(`[${atual}] untranslated keys: ${[...new Set(suspeitas)].join(', ')}`);
     if (PASTA_FOTOS) {
       mkdirSync(PASTA_FOTOS, { recursive: true });
