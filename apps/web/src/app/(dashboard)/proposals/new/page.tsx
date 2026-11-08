@@ -250,13 +250,6 @@ function formatarTamanhoArquivo(tamanho: number) {
   return `${Math.max(1, Math.round(tamanho / 1024))} KB`;
 }
 
-function buscarMensagemErro(error: unknown, mensagemPadrao: string) {
-  if (error instanceof Error) {
-    return error.message;
-  }
-  return mensagemPadrao;
-}
-
 export default function NewProposalPage() {
   const api = useApi();
   const router = useRouter();
@@ -468,7 +461,7 @@ export default function NewProposalPage() {
       try {
         await enviarFotos(proposalId);
       } catch (error) {
-        erroFotos = buscarMensagemErro(error, t("errors.photosNotAttached"));
+        erroFotos = t("errors.photosNotAttached");
       }
 
       if (gerarPdf) {
@@ -497,7 +490,12 @@ export default function NewProposalPage() {
     },
     onError: (error: unknown) => {
       setSubmissionError(
-        error instanceof ApiError && error.status === 402 ? t("errors.limit") : buscarMensagemErro(error, t("errors.finish")),
+        // Errors raised here already carry translated text; API ones are mapped.
+        error instanceof ApiError
+          ? mensagemDeErro(error, { 402: t("errors.limit"), padrao: t("errors.finish") })
+          : error instanceof Error
+            ? error.message
+            : t("errors.finish"),
       );
     },
   });
