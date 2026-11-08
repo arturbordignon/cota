@@ -19,6 +19,7 @@ import { Notice } from "@/components/ui/notice";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { useApi } from "@/hooks/use-api";
+import { useErrorMessage } from "@/hooks/use-error-message";
 import { useCurrentUser } from "@/components/providers/user-provider";
 import { useAccountCurrency } from "@/hooks/use-account-currency";
 import { EquipmentResponse, EquipmentSummary } from "@/types/api";
@@ -209,6 +210,7 @@ function extractSpecs(equipment: EquipmentSummary) {
 
 export default function ServicesPage() {
   const t = useTranslations("services");
+  const mensagemDeErro = useErrorMessage();
   const api = useApi();
   const moeda = useAccountCurrency();
   const format = useFormatter();
@@ -259,7 +261,7 @@ export default function ServicesPage() {
       setDeleteTarget(null);
     },
     onError: (error) => {
-      setDeleteError(t("deleteDialog.error"));
+      setDeleteError(mensagemDeErro(error, { padrao: t("deleteDialog.error") }));
     },
   });
 
@@ -398,7 +400,7 @@ export default function ServicesPage() {
             await updateService.mutateAsync({ id: editingService.id, payload: values });
           }}
           isSubmitting={updateService.isPending}
-          errorMessage={updateService.error?.message}
+          errorMessage={updateService.error ? mensagemDeErro(updateService.error, { padrao: t("form.saveError") }) : undefined}
           title={t("editDialog.title")}
           description={t("editDialog.description")}
           submitLabel={t("editDialog.submit")}
