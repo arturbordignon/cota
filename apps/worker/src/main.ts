@@ -4,6 +4,8 @@ import env from '@cota/config';
 import { notificarProposta, prisma } from '@cota/db';
 import { createPdfJobProcessor } from '@cota/pdf';
 
+import { registrarPdfPronto } from './pdf-pronto.js';
+
 const logger = pino({ level: env.LOG_LEVEL });
 
 const connection = {
@@ -24,22 +26,11 @@ pdfWorker.on('completed', async (job, result) => {
   if (!result?.pdfObjectKey) {
     return;
   }
-  // The proposal (or its whole account) may have been deleted while the PDF was
-  // queued. An error thrown here would stop the worker for everyone, so a
-  // missing proposal is only logged.
-  try {
-    const atualizadas = await prisma.proposal.updateMany({
-      where: { id: job.data.proposalId },
-      data: { pdfObjectKey: result.pdfObjectKey },
-    });
-    if (atualizadas.count === 0) {
-      logger.warn({ jobId: job.id, proposalId: job.data.proposalId }, 'Proposal deleted before its PDF was ready');
-      return;
-    }
-    await notificarProposta(prisma, job.data.proposalId, 'proposalPdfReady');
-  } catch (err) {
-    logger.error({ err, jobId: job.id }, 'Failed to record the finished PDF');
-  }
+  await registrarPdfPronto(
+    { prisma, logger, notificar: (proposalId) => notificarProposta(prisma, proposalId, 'proposalPdfReady') },
+    { id: job.id, proposalId: job.data.proposalId },
+    result.pdfObjectKey,
+  );
 });
 
 pdfWorker.on('failed', async (job, err) => {
