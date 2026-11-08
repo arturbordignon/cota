@@ -162,6 +162,30 @@ export const enMessages = {
     "totalValue": "$33,300.00",
     "acceptedAt": "Accepted by the client on May 8, 2:32 PM"
   },
+  "landing": {
+    "signIn": "Sign in",
+    "signUp": "Create account",
+    "language": "Language",
+    "eyebrow": "Cranes, tow trucks, boom trucks and other heavy services",
+    "title": "The proposal comes out ready for the client to open and answer.",
+    "description": "Add your services, plan the job and send a link. The client sees the price, downloads the PDF and accepts or declines.",
+    "start": "Get started",
+    "haveAccount": "I have an account",
+    "steps": {
+      "build": {
+        "title": "Build the proposal",
+        "text": "Pick the client, the equipment, the dates and the rates. The total is mobilization plus the daily rate."
+      },
+      "pdf": {
+        "title": "Create the PDF",
+        "text": "The document carries your company details, the scope and the photos of the job."
+      },
+      "send": {
+        "title": "Send the link",
+        "text": "The client opens the proposal, downloads the PDF and accepts or declines without an account."
+      }
+    }
+  },
   "clients": {
     "title": "Clients",
     "description": "Centralize tax data, credit limits, and history to negotiate with confidence.",

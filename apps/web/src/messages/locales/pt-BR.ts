@@ -162,6 +162,30 @@ export const ptBRMessages = {
     "totalValue": "R$ 33.300,00",
     "acceptedAt": "Aceita pelo cliente em 08/05, às 14:32"
   },
+  "landing": {
+    "signIn": "Entrar",
+    "signUp": "Criar conta",
+    "language": "Idioma",
+    "eyebrow": "Guindaste, guincho, munck e outros serviços pesados",
+    "title": "A proposta sai pronta para o cliente abrir e responder.",
+    "description": "Cadastre o serviço, monte a operação e envie um link. O cliente vê o valor, baixa o PDF e aceita ou recusa.",
+    "start": "Começar",
+    "haveAccount": "Já tenho conta",
+    "steps": {
+      "build": {
+        "title": "Monte a proposta",
+        "text": "Escolha o cliente, o equipamento, o período e os valores. O total sai da mobilização mais a diária."
+      },
+      "pdf": {
+        "title": "Gere o PDF",
+        "text": "O documento sai com os dados da sua empresa, o escopo e as fotos da operação."
+      },
+      "send": {
+        "title": "Envie o link",
+        "text": "O cliente abre a proposta, baixa o PDF e aceita ou recusa sem criar conta."
+      }
+    }
+  },
   "clients": {
     "title": "Clientes",
     "description": "Centralize dados fiscais, limites de crédito e histórico para negociar com mais confiança.",
