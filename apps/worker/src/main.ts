@@ -1,7 +1,7 @@
 import { Queue, Worker } from 'bullmq';
 import { pino } from 'pino';
 import env from '@cota/config';
-import { prisma } from '@cota/db';
+import { notificarProposta, prisma } from '@cota/db';
 import { createPdfJobProcessor } from '@cota/pdf';
 
 const logger = pino({ level: env.LOG_LEVEL });
@@ -26,6 +26,9 @@ pdfWorker.on('completed', async (job, result) => {
       where: { id: job.data.proposalId },
       data: { pdfObjectKey: result.pdfObjectKey },
     });
+    await notificarProposta(prisma, job.data.proposalId, 'proposalPdfReady').catch((err) =>
+      logger.error({ err, jobId: job.id }, 'Failed to notify the finished PDF'),
+    );
   }
 });
 
