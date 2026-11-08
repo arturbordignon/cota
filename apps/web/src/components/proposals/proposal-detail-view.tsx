@@ -247,6 +247,9 @@ export function ProposalDetailView({ proposalId }: ProposalDetailViewProps) {
           size: item.size,
         }));
 
+  // The public page only opens once the proposal was sent to the client.
+  const linkPublicoAtivo = proposal ? !["DRAFT", "PENDING"].includes(proposal.status) : false;
+
   // Photos the API could sign a viewing link for are shown as thumbnails.
   const fotos = (proposal?.assets ?? []).filter(
     (asset): asset is typeof asset & { url: string } => Boolean(asset.url),
@@ -416,7 +419,25 @@ export function ProposalDetailView({ proposalId }: ProposalDetailViewProps) {
                 <div className="sm:col-span-2">
                   <dt className="meta-label">Link público</dt>
                   <dd className="mt-1 break-all text-sm text-ink-muted">
-                    {proposal.publicSlug ? `/p/${proposal.publicSlug}` : "—"}
+                    {proposal.publicSlug && linkPublicoAtivo ? (
+                      <a
+                        href={`/p/${proposal.publicSlug}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-medium text-primary-strong underline-offset-2 hover:underline"
+                      >
+                        /p/{proposal.publicSlug}
+                      </a>
+                    ) : proposal.publicSlug ? (
+                      <>
+                        /p/{proposal.publicSlug}
+                        <span className="mt-1 block text-xs text-muted">
+                          O cliente consegue abrir o link depois que a proposta for enviada.
+                        </span>
+                      </>
+                    ) : (
+                      "—"
+                    )}
                   </dd>
                 </div>
               </dl>
