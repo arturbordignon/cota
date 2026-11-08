@@ -94,6 +94,8 @@ api_port="$(resolve_port API_PORT 3333 api API)"
 minio_port="$(resolve_port MINIO_API_PORT 9000 minio MinIO)"
 redis_port="$(resolve_port REDIS_PORT 6379 redis Redis)"
 minio_console_port="$(resolve_port MINIO_CONSOLE_PORT 9001 minio "MinIO console")"
+mailhog_smtp_port="$(resolve_port MAILHOG_SMTP_PORT 1025 mailhog "Mailhog SMTP")"
+mailhog_ui_port="$(resolve_port MAILHOG_UI_PORT 8025 mailhog Mailhog)"
 web_port="$(get_env_var WEB_PORT || true)"
 if [ -z "$web_port" ]; then
   web_port="3001"
@@ -103,6 +105,8 @@ set_env_var WEB_PORT "$web_port"
 set_env_var DATABASE_URL "postgresql://cota:cota@localhost:$postgres_port/cota?schema=public&options=-c%20TimeZone%3DAmerica%2FSao_Paulo"
 set_env_var NEXT_PUBLIC_API_URL "http://localhost:$api_port/api/v1"
 set_env_var S3_ENDPOINT "http://localhost:$minio_port"
+set_env_var SMTP_HOST "localhost"
+set_env_var SMTP_PORT "$mailhog_smtp_port"
 set_env_var FRONTEND_BASE_URL "http://localhost:$web_port"
 set_env_var CDN_BASE_URL "http://localhost:$web_port"
 
@@ -159,7 +163,7 @@ Local Docker services are running.
 URLs:
   Web:       http://localhost:$web_port
   API docs:  http://localhost:$api_port/docs
-  Mailhog:   http://localhost:8025
+  Mailhog:   http://localhost:$mailhog_ui_port
   MinIO:     http://localhost:$minio_console_port
   Adminer:   http://localhost:5555
 EOF
