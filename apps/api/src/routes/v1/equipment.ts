@@ -11,7 +11,15 @@ const createEquipmentSchema = z.object({
   notes: z.string().optional(),
 });
 
-const updateEquipmentSchema = createEquipmentSchema.partial();
+// Editing sends null for a number the user emptied and "" for emptied text,
+// so either can be cleared.
+const updateEquipmentSchema = z.object({
+  name: z.string().min(2).optional(),
+  capacityTons: z.number().nonnegative().nullable().optional(),
+  dailyRate: z.number().nonnegative().nullable().optional(),
+  description: z.string().optional(),
+  notes: z.string().optional(),
+});
 
 const equipmentRoutes: FastifyPluginAsync = async (app) => {
   app.addHook('preHandler', app.authenticate);
