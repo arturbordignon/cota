@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { chamar, criarApp, criarMembro, registrarConta, type Conta } from './helpers.js';
+import { chamar, criarApp, criarMembro, criarProposta, registrarConta, type Conta } from './helpers.js';
 
 describe('notifications', () => {
   let app: FastifyInstance;
@@ -75,5 +75,48 @@ describe('notifications', () => {
     const resposta = await chamar(app, { method: 'POST', url: '/api/v1/notifications/read-all', token: dono.accessToken });
     expect(resposta.statusCode).toBe(204);
     expect((await listar(dono)).unreadCount).toBe(0);
+  });
+});
+
+describe('proposal notifications', () => {
+  let app: FastifyInstance;
+  let dono: Conta;
+  let vendedor: Conta;
+
+  beforeAll(async () => {
+    app = await criarApp();
+    dono = await registrarConta(app);
+    vendedor = await criarMembro(app, dono);
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  async function chaves(conta: Conta) {
+    const resposta = await chamar(app, { method: 'GET', url: '/api/v1/notifications', token: conta.accessToken });
+    return (resposta.json().data as { key: string }[]).map((item) => item.key);
+  }
+
+  it('tells the owner when a client opens, accepts or declines a proposal', async () => {
+    const aceita = await criarProposta(app, dono, 'Proposta aceita');
+    const recusada = await criarProposta(app, dono, 'Proposta recusada');
+    for (const proposta of [aceita, recusada]) {
+      await chamar(app, { method: 'POST', url: `/api/v1/proposals/${proposta.id}/send`, token: dono.accessToken });
+    }
+
+    await chamar(app, { method: 'GET', url: `/api/v1/public/proposals/${aceita.publicSlug}` });
+    await chamar(app, { method: 'GET', url: `/api/v1/public/proposals/${aceita.publicSlug}` });
+    await chamar(app, { method: 'POST', url: `/api/v1/public/proposals/${aceita.publicSlug}/accept` });
+    await chamar(app, { method: 'POST', url: `/api/v1/public/proposals/${recusada.publicSlug}/decline` });
+
+    const recebidas = await chaves(dono);
+    expect(recebidas.filter((chave) => chave === 'proposalViewed')).toHaveLength(1);
+    expect(recebidas).toContain('proposalAccepted');
+    expect(recebidas).toContain('proposalDeclined');
+  });
+
+  it("doesn't tell a member about proposals they didn't write", async () => {
+    expect(await chaves(vendedor)).toEqual([]);
   });
 });

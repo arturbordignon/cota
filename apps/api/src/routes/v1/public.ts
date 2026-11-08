@@ -1,6 +1,6 @@
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
-import type { Prisma } from '@cota/db';
+import { notificarProposta, type Prisma } from '@cota/db';
 import { createDownloadUrl } from '@cota/storage';
 
 import { buscarEmpresa, formatarMoeda, montarHtmlProposta } from '../../services/proposal-render.js';
@@ -64,10 +64,16 @@ const publicRoutes: FastifyPluginAsync = async (app) => {
     }
 
     if (!proposta.viewedAt) {
-      await app.prisma.proposal.update({
-        where: { id: proposta.id },
+      // Only the request that records the first view notifies, so reloads don't.
+      const primeiraVez = await app.prisma.proposal.updateMany({
+        where: { id: proposta.id, viewedAt: null },
         data: { viewedAt: new Date() },
       });
+      if (primeiraVez.count === 1) {
+        await notificarProposta(app.prisma, proposta.id, 'proposalViewed').catch((err) =>
+          request.log.error({ err }, 'Failed to notify the proposal view'),
+        );
+      }
     }
 
     const html = await montarHtmlProposta(app, proposta.id);
@@ -112,6 +118,10 @@ const publicRoutes: FastifyPluginAsync = async (app) => {
       return reply.status(409).send({ message: 'Proposal can no longer be answered' });
     }
 
+    await notificarProposta(app.prisma, proposta.id, 'proposalAccepted').catch((err) =>
+      request.log.error({ err }, 'Failed to notify the proposal answer'),
+    );
+
     await Promise.all([
       invalidateReportsOverviewCache(app, proposta.accountId),
       invalidateTeamRankingCache(app, proposta.accountId),
@@ -136,6 +146,10 @@ const publicRoutes: FastifyPluginAsync = async (app) => {
     if (!respondida) {
       return reply.status(409).send({ message: 'Proposal can no longer be answered' });
     }
+
+    await notificarProposta(app.prisma, proposta.id, 'proposalDeclined').catch((err) =>
+      request.log.error({ err }, 'Failed to notify the proposal answer'),
+    );
 
     await Promise.all([
       invalidateReportsOverviewCache(app, proposta.accountId),
