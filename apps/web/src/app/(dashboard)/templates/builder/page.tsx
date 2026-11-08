@@ -68,16 +68,25 @@ function createDefaultBlock(type: BlockType): BuilderBlock {
   }
 }
 
+// Text typed in a block is shown as text: "<" or "&" must not turn into markup.
+function escaparHtml(texto: string) {
+  return texto
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
 function renderHtml(blocks: BuilderBlock[]) {
   const blockHtml = blocks
     .map((block) => {
       switch (block.type) {
         case "heading":
-          return `<h2 style="font-size:28px;margin:0 0 16px;color:#0f172a;">${block.content ?? ""}</h2>`;
+          return `<h2 style="font-size:28px;margin:0 0 16px;color:#0f172a;">${escaparHtml(block.content ?? "")}</h2>`;
         case "paragraph":
-          return `<p style="margin:0 0 16px;color:#334155;line-height:1.6;">${block.content ?? ""}</p>`;
+          return `<p style="margin:0 0 16px;color:#334155;line-height:1.6;">${escaparHtml(block.content ?? "")}</p>`;
         case "image":
-          return `<img src="${block.url ?? ""}" alt="" style="max-width:100%;border-radius:16px;margin:24px 0;" />`;
+          return `<img src="${escaparHtml(block.url ?? "")}" alt="" style="max-width:100%;border-radius:16px;margin:24px 0;" />`;
         case "divider":
           return `<hr style="margin:36px 0;border:none;border-top:1px solid #e2e8f0;" />`;
         case "pricing":
@@ -88,19 +97,17 @@ function renderHtml(blocks: BuilderBlock[]) {
                   .map(
                     (item) => `
                     <tr>
-                      <td style="padding:12px 16px;border-bottom:1px solid #e2e8f0;">${item.label}</td>
-                      <td style="padding:12px 16px;border-bottom:1px solid #e2e8f0;text-align:right;font-weight:600;">${item.value}</td>
+                      <td style="padding:12px 16px;border-bottom:1px solid #e2e8f0;">${escaparHtml(item.label)}</td>
+                      <td style="padding:12px 16px;border-bottom:1px solid #e2e8f0;text-align:right;font-weight:600;">${escaparHtml(item.value)}</td>
                     </tr>`
                   )
                   .join("")}
               </tbody>
             </table>`;
         case "button":
-          return `<a href="${block.button?.link ?? "#"}" style="display:inline-block;margin:16px 0;padding:14px 28px;border-radius:999px;background:#2563eb;color:#ffffff;text-decoration:none;font-weight:600;">${block.button?.label ?? "Saiba mais"}</a>`;
+          return `<a href="${escaparHtml(block.button?.link ?? "#")}" style="display:inline-block;margin:16px 0;padding:14px 28px;border-radius:999px;background:#2563eb;color:#ffffff;text-decoration:none;font-weight:600;">${escaparHtml(block.button?.label ?? "")}</a>`;
         case "signature":
-          return `<div style="margin-top:40px;padding:18px;border-radius:16px;background:#f8fafc;border:1px dashed #cbd5f5;text-align:center;font-size:14px;color:#0f172a;">${
-            block.content ?? ""
-          }</div>`;
+          return `<div style="margin-top:40px;padding:18px;border-radius:16px;background:#f8fafc;border:1px dashed #cbd5f5;text-align:center;font-size:14px;color:#0f172a;">${escaparHtml(block.content ?? "")}</div>`;
         default:
           return "";
       }
