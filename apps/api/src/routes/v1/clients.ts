@@ -12,7 +12,14 @@ const createClientSchema = z.object({
   notes: z.string().optional()
 });
 
-const updateClientSchema = createClientSchema.partial();
+// Editing sends null for a field the user emptied, so it can be cleared.
+const updateClientSchema = z.object({
+  name: z.string().min(1).optional(),
+  companyName: z.string().nullable().optional(),
+  email: z.string().email().nullable().optional(),
+  phone: z.string().nullable().optional(),
+  notes: z.string().nullable().optional()
+});
 
 const clientRoutes: FastifyPluginAsync = async (app) => {
   app.addHook('preHandler', app.authenticate);
