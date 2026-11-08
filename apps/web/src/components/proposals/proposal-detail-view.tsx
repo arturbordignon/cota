@@ -23,6 +23,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { useApi } from "@/hooks/use-api";
 import { useAccountCurrency } from "@/hooks/use-account-currency";
+import { useErrorMessage } from "@/hooks/use-error-message";
 import type {
   GenerateProposalResponse,
   ProposalDetail,
@@ -60,13 +61,6 @@ const formatFileSize = (size: number | undefined) => {
 
 interface ProposalDetailViewProps {
   proposalId: string;
-}
-
-function buscarMensagemErro(error: unknown, mensagemPadrao: string) {
-  if (error instanceof Error) {
-    return error.message;
-  }
-  return mensagemPadrao;
 }
 
 function copiarTexto(texto: string) {
@@ -119,6 +113,7 @@ export function ProposalDetailView({ proposalId }: ProposalDetailViewProps) {
   const format = useFormatter();
   const tStatus = useTranslations("proposals.status");
   const t = useTranslations("proposals.detail");
+  const mensagemDeErro = useErrorMessage();
   const moeda = useAccountCurrency();
   const formatarMoeda = (valor: number) => format.number(valor, { style: "currency", currency: moeda });
   const queryClient = useQueryClient();
@@ -299,7 +294,7 @@ export function ProposalDetailView({ proposalId }: ProposalDetailViewProps) {
     },
     onError: (error: unknown) => {
       setCopyState("error");
-      setBanner({ tone: "danger", text: buscarMensagemErro(error, t("banners.sendError")) });
+      setBanner({ tone: "danger", text: mensagemDeErro(error, { padrao: t("banners.sendError") }) });
     },
   });
 
@@ -309,7 +304,7 @@ export function ProposalDetailView({ proposalId }: ProposalDetailViewProps) {
       window.open(resposta.url, "_blank", "noopener");
     },
     onError: (error: unknown) => {
-      setBanner({ tone: "danger", text: buscarMensagemErro(error, t("banners.downloadError")) });
+      setBanner({ tone: "danger", text: mensagemDeErro(error, { 404: t("files.notReady"), padrao: t("banners.downloadError") }) });
     },
   });
 
