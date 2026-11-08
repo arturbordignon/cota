@@ -93,4 +93,17 @@ describe('report runs', () => {
     expect(resposta.statusCode).toBe(400);
     expect(resposta.json().code).toBe('REPORT_QUESTION_UNSUPPORTED');
   });
+
+  it('names each consultant in the overview', async () => {
+    const resposta = await chamar(app, { method: 'GET', url: '/api/v1/reports/overview', token: dono.accessToken });
+    const membros = resposta.json().data.propostasPorMembro as { createdByName: string | null }[];
+    expect(membros.length).toBeGreaterThan(0);
+    expect(membros.every((membro) => typeof membro.createdByName === 'string' && !/^[0-9a-f-]{36}$/.test(membro.createdByName))).toBe(true);
+  });
+
+  it('leaves the client unnamed in the overview when a proposal has none', async () => {
+    const resposta = await chamar(app, { method: 'GET', url: '/api/v1/reports/overview', token: dono.accessToken });
+    const clientes = resposta.json().data.topClients as { client: string | null }[];
+    expect(clientes.map((item) => item.client)).not.toContain('Sem cliente');
+  });
 });
