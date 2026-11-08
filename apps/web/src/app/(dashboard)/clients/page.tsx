@@ -8,21 +8,24 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { Check, Copy, DotsThreeVertical, PaperPlaneTilt, Plus, UserCircle, UsersThree } from "@phosphor-icons/react";
-import { z } from "zod";
 
 import { FilterBar } from "@/components/layout/filter-bar";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Field } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
 import { Modal, ModalBody, ModalClose, ModalFooter } from "@/components/ui/modal";
 import { Notice } from "@/components/ui/notice";
 import { Select, SelectItem } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Textarea } from "@/components/ui/textarea";
 import { useApi } from "@/hooks/use-api";
+import {
+  ClientFormFields,
+  clientFormSchema,
+  emptyClientForm,
+  toClientPayload,
+  type ClientFormValues,
+} from "@/components/clients/client-form-fields";
 import { StatCard } from "@/components/reports/stat-card";
 
 interface Client {
@@ -58,15 +61,6 @@ interface ClientDetailsView {
 const menuItemClass =
   "flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm font-medium text-ink-muted transition-colors hover:bg-surface-muted hover:text-ink";
 
-const addClientSchema = z.object({
-  name: z.string().min(2),
-  companyName: z.string().optional(),
-  email: z.string().email().optional().or(z.literal("")),
-  phone: z.string().optional(),
-  notes: z.string().optional(),
-});
-type AddClientForm = z.infer<typeof addClientSchema>;
-
 function AddClientDialog({
   open,
   onOpenChange,
@@ -76,20 +70,14 @@ function AddClientDialog({
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (values: AddClientForm) => Promise<void>;
+  onSubmit: (values: ClientFormValues) => Promise<void>;
   isLoading: boolean;
   errorMessage?: string;
 }) {
   const t = useTranslations("clients.dialog");
-  const form = useForm<AddClientForm>({
-    resolver: zodResolver(addClientSchema),
-    defaultValues: {
-      name: "",
-      companyName: "",
-      email: "",
-      phone: "",
-      notes: "",
-    },
+  const form = useForm<ClientFormValues>({
+    resolver: zodResolver(clientFormSchema),
+    defaultValues: emptyClientForm,
   });
 
   const handleSubmit = form.handleSubmit(async (values) => {
@@ -117,56 +105,7 @@ function AddClientDialog({
       onSubmit={handleSubmit}
     >
       <ModalBody>
-        <Field label={t("fields.name")} htmlFor="client-name" error={form.formState.errors.name ? t("errors.name") : undefined}>
-          <Input
-            id="client-name"
-            {...form.register("name")}
-            placeholder={t("placeholders.name")}
-            disabled={isLoading}
-            aria-invalid={Boolean(form.formState.errors.name)}
-            autoFocus
-          />
-        </Field>
-
-        <Field label={t("fields.company")} htmlFor="client-company">
-          <Input
-            id="client-company"
-            {...form.register("companyName")}
-            placeholder={t("placeholders.company")}
-            disabled={isLoading}
-          />
-        </Field>
-
-        <div className="grid gap-4 md:grid-cols-2">
-          <Field label={t("fields.email")} htmlFor="client-email" error={form.formState.errors.email ? t("errors.email") : undefined}>
-            <Input
-              id="client-email"
-              type="email"
-              {...form.register("email")}
-              placeholder={t("placeholders.email")}
-              disabled={isLoading}
-              aria-invalid={Boolean(form.formState.errors.email)}
-            />
-          </Field>
-          <Field label={t("fields.phone")} htmlFor="client-phone">
-            <Input
-              id="client-phone"
-              {...form.register("phone")}
-              placeholder={t("placeholders.phone")}
-              disabled={isLoading}
-            />
-          </Field>
-        </div>
-
-        <Field label={t("fields.notes")} htmlFor="client-notes">
-          <Textarea
-            id="client-notes"
-            rows={3}
-            {...form.register("notes")}
-            placeholder={t("placeholders.notes")}
-            disabled={isLoading}
-          />
-        </Field>
+        <ClientFormFields form={form} disabled={isLoading} autoFocus />
 
         {errorMessage ? <Notice tone="danger">{errorMessage}</Notice> : null}
       </ModalBody>
@@ -303,15 +242,8 @@ export default function ClientsPage() {
     enabled: Boolean(api.token),
   });
 
-  const createClient = useMutation<{ data: Client }, Error, AddClientForm>({
-    mutationFn: async (values) =>
-      api.post<{ data: Client }>("/clients", {
-        name: values.name,
-        companyName: values.companyName?.trim() || undefined,
-        email: values.email?.trim() || undefined,
-        phone: values.phone?.trim() || undefined,
-        notes: values.notes?.trim() || undefined,
-      }),
+  const createClient = useMutation<{ data: Client }, Error, ClientFormValues>({
+    mutationFn: async (values) => api.post<{ data: Client }>("/clients", toClientPayload(values)),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["clients"] });
       setDialogOpen(false);
