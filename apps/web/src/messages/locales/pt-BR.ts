@@ -932,13 +932,14 @@ export const ptBRMessages = {
           "suggestionValues": {
             "revenue90": "Receita por cliente nos últimos 90 dias",
             "conversionConsultant": "Taxa de conversão mensal por consultor",
-            "cycle": "Tempo médio entre proposta e faturamento",
-            "segment": "Propostas enviadas por segmento"
+            "cycle": "Tempo médio até a resposta do cliente",
+            "segment": "Propostas por status"
           },
           "errors": {
             "intent": "Descreva o que deseja analisar.",
             "auth": "Autentique-se para gerar relatórios.",
-            "unexpected": "Erro inesperado ao gerar relatório."
+            "unexpected": "Erro inesperado ao gerar relatório.",
+              "unsupported": "Ainda não sabemos responder essa pergunta. Pergunte sobre taxa de conversão, receita por cliente, tempo até a resposta, propostas por consultor ou por status."
           }
         },
         "sqlCard": {
@@ -949,7 +950,36 @@ export const ptBRMessages = {
           "title": "Resultados",
           "placeholder": "Solicite um relatório acima e exibiremos os dados aqui.",
           "rawTitle": "Retorno bruto",
-          "waitingTitle": "Aguardando geração"
+          "waitingTitle": "Aguardando geração",
+            "columns": {
+              "conversionByMonth": {
+                "name": "Mês",
+                "value": "Taxa de conversão"
+              },
+              "conversionByMember": {
+                "name": "Consultor",
+                "value": "Taxa de conversão"
+              },
+              "revenueByClient": {
+                "name": "Cliente",
+                "value": "Receita aceita"
+              },
+              "daysToAnswer": {
+                "name": "Mês de envio",
+                "value": "Dias até a resposta"
+              },
+              "proposalsByMember": {
+                "name": "Consultor",
+                "value": "Propostas"
+              },
+              "proposalsByStatus": {
+                "name": "Status",
+                "value": "Propostas"
+              }
+            },
+            "days": "{count, plural, one {# dia} other {# dias}}",
+            "lessThanDay": "menos de 1 dia",
+            "empty": "Nenhum dado no período escolhido."
         }
       }
     },

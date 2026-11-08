@@ -932,13 +932,14 @@ export const enMessages = {
             "suggestionValues": {
               "revenue90": "Revenue by client in the last 90 days",
               "conversionConsultant": "Monthly conversion rate by consultant",
-              "cycle": "Average time between proposal and billing",
-              "segment": "Proposals sent by segment"
+              "cycle": "Average time until the client answers",
+              "segment": "Proposals by status"
             },
             "errors": {
               "intent": "Describe what you want to analyse.",
               "auth": "Sign in to generate reports.",
-              "unexpected": "Unexpected error while generating the report."
+              "unexpected": "Unexpected error while generating the report.",
+              "unsupported": "We can't answer that question yet. Ask about the conversion rate, revenue by client, time to answer, proposals per consultant or by status."
             }
           },
           "sqlCard": {
@@ -949,7 +950,36 @@ export const enMessages = {
             "title": "Results",
             "placeholder": "Request a report above and we will display the data here.",
             "rawTitle": "Raw payload",
-            "waitingTitle": "Waiting for generation"
+            "waitingTitle": "Waiting for generation",
+            "columns": {
+              "conversionByMonth": {
+                "name": "Month",
+                "value": "Conversion rate"
+              },
+              "conversionByMember": {
+                "name": "Consultant",
+                "value": "Conversion rate"
+              },
+              "revenueByClient": {
+                "name": "Client",
+                "value": "Accepted revenue"
+              },
+              "daysToAnswer": {
+                "name": "Month sent",
+                "value": "Days to answer"
+              },
+              "proposalsByMember": {
+                "name": "Consultant",
+                "value": "Proposals"
+              },
+              "proposalsByStatus": {
+                "name": "Status",
+                "value": "Proposals"
+              }
+            },
+            "days": "{count, plural, one {# day} other {# days}}",
+            "lessThanDay": "less than a day",
+            "empty": "No data in the chosen period."
           }
         }
       },

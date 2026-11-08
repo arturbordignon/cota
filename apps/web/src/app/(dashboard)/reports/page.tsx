@@ -31,14 +31,23 @@ import { Select, SelectItem } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { useApi } from "@/hooks/use-api";
+import { ApiError, useApi } from "@/hooks/use-api";
 import { cn } from "@/lib/utils";
 import { ReportsOverviewResponse } from "@/types/api";
 import { StatCard } from "@/components/reports/stat-card";
 import { TeamBarChart } from "@/components/reports/team-bar-chart";
 import { DateRangePicker } from "@/components/reports/date-range-picker";
 
+type ReportIntent =
+  | "conversionByMonth"
+  | "conversionByMember"
+  | "revenueByClient"
+  | "daysToAnswer"
+  | "proposalsByMember"
+  | "proposalsByStatus";
+
 type ReportPayload = {
+  intent?: ReportIntent;
   sql: string;
   visualization: "table" | "bar" | "line";
   range: { start: string; end: string };
@@ -481,8 +490,7 @@ export default function ReportsPage() {
       });
       setReport(payload.data);
     } catch (err) {
-      console.error(err);
-      setError(tCustom("errors.unexpected"));
+      setError(err instanceof ApiError && err.status === 400 ? tCustom("errors.unsupported") : tCustom("errors.unexpected"));
       setReport(null);
     } finally {
       setIsLoading(false);
@@ -927,28 +935,46 @@ export default function ReportsPage() {
                 Array.isArray(report.result) ? (
                   (() => {
                     const arr = report.result as Record<string, unknown>[];
-                    // If the generator already returned a name/value series, render a bar chart
-                    const looksLikeSeries =
-                      arr.length > 0 &&
-                      typeof arr[0].name === "string" &&
-                      (typeof arr[0].value === "number" || !Number.isNaN(Number(arr[0].value)));
-                    if (report.visualization === "bar" && looksLikeSeries) {
-                      const barData = arr.map((r) => ({
-                        name: String(r.name ?? "—"),
-                        value: Number(r.value ?? 0),
-                      }));
+                    const intencao = report.intent;
+                    if (arr.length === 0) {
                       return (
                         <div className="space-y-3">
                           <CardTitle>{tCustomResult("title")}</CardTitle>
-                          <BarChartViz
-                            data={barData}
-                            valueFormatter={(v) => v.toLocaleString("pt-BR")}
-                          />
+                          <p className="text-sm text-muted">{tCustomResult("empty")}</p>
                         </div>
                       );
                     }
 
-                    // Fallback to table
+                    // Rows are name/value pairs: label and format them for the question asked.
+                    const rotulo = (name: unknown) => {
+                      const texto = String(name ?? "—");
+                      if (intencao === "proposalsByStatus") {
+                        return (statusBadges[texto] ?? statusBadges.default).label;
+                      }
+                      if ((intencao === "conversionByMonth" || intencao === "daysToAnswer") && /^\d{4}-\d{2}$/.test(texto)) {
+                        return formatter.dateTime(new Date(`${texto}-01T12:00:00`), { month: "short", year: "numeric" });
+                      }
+                      return texto;
+                    };
+                    const valor = (value: number) => {
+                      if (intencao === "revenueByClient") return formatCurrency(value);
+                      if (intencao === "conversionByMonth" || intencao === "conversionByMember") return formatPercent(value);
+                      if (intencao === "daysToAnswer") {
+                        return value < 1 ? tCustomResult("lessThanDay") : tCustomResult("days", { count: value });
+                      }
+                      return formatNumber(value);
+                    };
+                    const linhas = arr.map((r) => ({ name: rotulo(r.name), value: Number(r.value ?? 0) }));
+
+                    if (report.visualization !== "table") {
+                      return (
+                        <div className="space-y-3">
+                          <CardTitle>{tCustomResult("title")}</CardTitle>
+                          <BarChartViz data={linhas} valueFormatter={valor} />
+                        </div>
+                      );
+                    }
+
                     return (
                       <div className="space-y-3">
                         <CardTitle>{tCustomResult("title")}</CardTitle>
@@ -956,24 +982,17 @@ export default function ReportsPage() {
                           <table className="data-table data-table--compact min-w-[360px]">
                             <thead>
                               <tr>
-                                {Object.keys(arr[0] ?? {}).map((key) => (
-                                  <th key={key}>{key}</th>
-                                ))}
+                                <th>{intencao ? tCustomResult(`columns.${intencao}.name`) : "name"}</th>
+                                <th className="text-right">
+                                  {intencao ? tCustomResult(`columns.${intencao}.value`) : "value"}
+                                </th>
                               </tr>
                             </thead>
                             <tbody>
-                              {arr.map((row, rowIndex) => (
-                                <tr key={rowIndex}>
-                                  {Object.values(row).map((value, cellIndex) => (
-                                    <td
-                                      key={cellIndex}
-                                      className={typeof value === "number" ? "tabular text-ink" : "text-ink"}
-                                    >
-                                      {typeof value === "number"
-                                        ? value.toLocaleString("pt-BR")
-                                        : String(value ?? "—")}
-                                    </td>
-                                  ))}
+                              {linhas.map((linha, indice) => (
+                                <tr key={`${linha.name}-${indice}`}>
+                                  <td className="text-ink">{linha.name}</td>
+                                  <td className="tabular text-right text-ink">{valor(linha.value)}</td>
                                 </tr>
                               ))}
                             </tbody>
