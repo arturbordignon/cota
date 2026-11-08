@@ -568,9 +568,11 @@ export const ptBRMessages = {
         "delta": "{value} vs. mês anterior"
       },
       "time": {
-        "label": "Tempo médio de geração",
+        "label": "Tempo até a resposta do cliente",
         "delta": "{value} vs. mês anterior",
-        "unit": "min"
+        "minutes": "{value} min",
+        "hours": "{value} h",
+        "days": "{value} dias"
       },
       "noData": "Sem dados no período",
       "deltaUnavailable": "Sem comparação disponível"

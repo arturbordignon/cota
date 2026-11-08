@@ -147,18 +147,17 @@ export default function DashboardPage() {
     const acceptanceDelta =
       prevAcceptanceRate == null ? null : acceptanceRate - prevAcceptanceRate;
 
+    // How long clients take to answer: from sending to accepting or declining.
+    const tempoDeResposta = (proposal: (typeof proposals)[number]) => {
+      const resposta = proposal.acceptedAt ?? proposal.declinedAt;
+      return proposal.sentAt && resposta ? minutesBetween(proposal.sentAt, resposta) : null;
+    };
     const currentDurations = currentProposals
-      .map((proposal) => {
-        const endTimestamp = proposal.acceptedAt ?? proposal.declinedAt ?? proposal.sentAt;
-        return endTimestamp ? minutesBetween(proposal.createdAt, endTimestamp) : null;
-      })
+      .map(tempoDeResposta)
       .filter((value): value is number => value != null);
 
     const previousDurations = previousProposals
-      .map((proposal) => {
-        const endTimestamp = proposal.acceptedAt ?? proposal.declinedAt ?? proposal.sentAt;
-        return endTimestamp ? minutesBetween(proposal.createdAt, endTimestamp) : null;
-      })
+      .map(tempoDeResposta)
       .filter((value): value is number => value != null);
 
     const averageMinutes =
@@ -178,6 +177,14 @@ export default function DashboardPage() {
 
     const formatNumber = (value: number, options?: Exclude<Parameters<typeof format.number>[1], string>) =>
       format.number(value, { maximumFractionDigits: 1, ...options });
+
+    // Minutes read badly past an hour: show hours, then days.
+    const formatDuration = (minutos: number) => {
+      const absoluto = Math.abs(minutos);
+      if (absoluto < 60) return t('metrics.time.minutes', { value: formatNumber(minutos, { maximumFractionDigits: 0 }) });
+      if (absoluto < 24 * 60) return t('metrics.time.hours', { value: formatNumber(minutos / 60) });
+      return t('metrics.time.days', { value: formatNumber(minutos / (24 * 60)) });
+    };
 
     const formatSigned = (value: number, unit?: string) => {
       const sign = value > 0 ? '+' : value < 0 ? '-' : '';
@@ -208,15 +215,12 @@ export default function DashboardPage() {
       {
         key: 'time',
         label: t('metrics.time.label'),
-        value:
-          averageMinutes == null
-            ? t('metrics.noData')
-            : `${formatNumber(averageMinutes, { maximumFractionDigits: 0 })} ${t('metrics.time.unit')}`,
+        value: averageMinutes == null ? t('metrics.noData') : formatDuration(averageMinutes),
         delta:
           timeDelta == null
             ? t('metrics.deltaUnavailable')
             : t('metrics.time.delta', {
-                value: formatSigned(timeDelta, ` ${t('metrics.time.unit')}`),
+                value: `${timeDelta > 0 ? '+' : timeDelta < 0 ? '-' : ''}${formatDuration(Math.abs(timeDelta))}`,
               }),
       },
     ];

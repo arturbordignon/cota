@@ -568,9 +568,11 @@ export const enMessages = {
         "delta": "{value} vs. previous month"
       },
       "time": {
-        "label": "Average creation time",
+        "label": "Time until the client answers",
         "delta": "{value} vs. previous month",
-        "unit": "min"
+        "minutes": "{value} min",
+        "hours": "{value} h",
+        "days": "{value} days"
       },
       "noData": "No data yet",
       "deltaUnavailable": "No comparison yet"
