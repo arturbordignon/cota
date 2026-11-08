@@ -420,6 +420,8 @@ const teamRoutes: FastifyPluginAsync = async (app) => {
         summary: `Departamento ${department.name} criado`,
         metadataJson: {
           preset,
+          summaryKey: 'departmentCreated',
+          summaryParams: { department: department.name },
         },
       },
     });
@@ -522,6 +524,8 @@ const teamRoutes: FastifyPluginAsync = async (app) => {
         entityId: existing.id,
         summary: `Departamento ${updated.name} atualizado`,
         metadataJson: {
+          summaryKey: 'departmentUpdated',
+          summaryParams: { department: updated.name },
           preset: targetPreset,
           updatedFields: [
             ...(body.name ? ['name'] : []),
@@ -583,6 +587,8 @@ const teamRoutes: FastifyPluginAsync = async (app) => {
         summary: `Departamento ${department.name} removido`,
         metadataJson: {
           memberCount: membersUsingDepartment,
+          summaryKey: 'departmentDeleted',
+          summaryParams: { department: department.name },
         },
       },
     });
