@@ -30,7 +30,25 @@ const demo = {
   locale: 'pt-BR',
 };
 
+// --reset deletes the demo account first, so it comes back exactly as seeded
+// (handy before recording a demo). Uploaded files of the old account stay in
+// local storage under its old id; nothing points at them anymore.
+async function resetDemoAccount() {
+  const existing = await prisma.account.findUnique({ where: { slug: demo.accountSlug } });
+  if (!existing) return;
+  await prisma.$transaction([
+    // Proposals go first: they reference templates and users with RESTRICT.
+    prisma.proposal.deleteMany({ where: { accountId: existing.id } }),
+    prisma.account.delete({ where: { id: existing.id } }),
+  ]);
+  console.log('Deleted the demo account to seed it again.');
+}
+
 async function main() {
+  if (process.argv.includes('--reset')) {
+    await resetDemoAccount();
+  }
+
   const passwordHash = await argon2.hash(demo.password, {
     type: argon2.argon2id,
     memoryCost: 2 ** 15,
