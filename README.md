@@ -157,10 +157,9 @@ photos and PDFs are always served through signed URLs.
    notifies the author and the owners (`/api/v1/notifications`, the bell in the top bar).
 
 ## Roadmap
-- Implement real PDF rendering + S3 uploads in `@cota/pdf` and worker.
-- Wire frontend forms to backend APIs (clients, templates, proposals) using TanStack Query.
-- Add automated testing (Vitest, Playwright) and CI pipeline.
-- Expand localization namespaces (`emails`, `proposals`, `billing`), add in-app notifications, and template builder UX enhancements.
+- Run the API suite and the smoke checks in a CI pipeline.
+- Translate the invite email (it is sent in Portuguese today).
+- Let builder templates be edited after saving (today they can be duplicated, renamed or deleted).
 
 ## Stripe & Billing
 - Preencha as variáveis `STRIPE_API_KEY` e `STRIPE_WEBHOOK_SECRET` no `.env`, além dos price IDs (`STRIPE_PRICE_*`) gerados no painel da Stripe para cada plano (BRL e USD).
