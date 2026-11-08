@@ -1277,6 +1277,56 @@ export const enMessages = {
       },
       "forms": {
         "notesPlaceholder": "Project summary, next actions..."
+      },
+      "board": {
+        "emptyStage": "No leads in this stage."
+      },
+      "leadDetails": {
+        "stage": "Stage: {stage}",
+        "contact": "Contact",
+        "email": "Email",
+        "phone": "Phone",
+        "value": "Estimated value",
+        "notes": "Notes"
+      },
+      "leadDialog": {
+        "title": "New lead",
+        "fields": {
+          "company": "Company",
+          "contact": "Contact",
+          "email": "Email",
+          "phone": "Phone",
+          "value": "Estimated value",
+          "stage": "Stage",
+          "notes": "Notes"
+        },
+        "placeholders": {
+          "company": "Company name",
+          "contact": "Contact name"
+        },
+        "cancel": "Cancel",
+        "save": "Save lead",
+        "saving": "Saving..."
+      },
+      "customize": {
+        "title": "Edit stages",
+        "description": "Rename, reorder or recolor the pipeline stages. Only stages without leads can be removed.",
+        "empty": "No stages yet. Add a new stage below.",
+        "stageName": "Stage name",
+        "color": "Color",
+        "leadCount": "{count, plural, one {# lead} other {# leads}}",
+        "moveUp": "Move up",
+        "moveDown": "Move down",
+        "delete": "Delete stage",
+        "deleteBlocked": "Remove the leads from this stage before deleting it.",
+        "newStage": "New stage",
+        "newStageName": "New stage name",
+        "newStagePlaceholder": "E.g. Follow-up",
+        "newStageColor": "New stage color",
+        "add": "Add",
+        "adding": "Adding...",
+        "done": "Done",
+        "nameTooShort": "The stage name needs at least 2 characters."
       }
     }
   },

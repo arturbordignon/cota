@@ -277,7 +277,7 @@ export default function CrmBoardPage() {
 
     const trimmed = stage.name.trim();
     if (trimmed.length < 2) {
-      setCustomizeError('O nome da etapa precisa ter pelo menos 2 caracteres.');
+      setCustomizeError(t('customize.nameTooShort'));
       setStageEdits((prev) =>
         prev.map((item) => (item.id === id ? { ...item, name: original.title } : item)),
       );
@@ -485,7 +485,7 @@ export default function CrmBoardPage() {
                     ))}
                     {column.leads.length === 0 ? (
                       <p className="rounded-lg border border-dashed border-outline px-4 py-6 text-center text-xs text-muted">
-                        Nenhum lead nesta etapa.
+                        {t('board.emptyStage')}
                       </p>
                     ) : null}
                   </div>
@@ -500,17 +500,17 @@ export default function CrmBoardPage() {
         open={Boolean(activeLead)}
         onOpenChange={(open) => !open && setActiveLead(null)}
         title={activeLead?.lead.companyName ?? ''}
-        description={activeLead ? `Etapa: ${activeLead.stage}` : undefined}
+        description={activeLead ? t('leadDetails.stage', { stage: activeLead.stage }) : undefined}
         size="sm"
       >
         {activeLead ? (
           <ModalBody>
             <dl className="divide-y divide-border rounded-lg border border-border text-sm">
               {[
-                { rotulo: 'Contato', valor: activeLead.lead.contactName },
-                { rotulo: 'E-mail', valor: activeLead.lead.contactEmail },
-                { rotulo: 'Telefone', valor: activeLead.lead.contactPhone },
-                { rotulo: 'Valor estimado', valor: formatCurrency(activeLead.lead.estimatedValue) },
+                { rotulo: t('leadDetails.contact'), valor: activeLead.lead.contactName },
+                { rotulo: t('leadDetails.email'), valor: activeLead.lead.contactEmail },
+                { rotulo: t('leadDetails.phone'), valor: activeLead.lead.contactPhone },
+                { rotulo: t('leadDetails.value'), valor: formatCurrency(activeLead.lead.estimatedValue) },
               ]
                 .filter((item) => item.valor)
                 .map((item) => (
@@ -522,7 +522,7 @@ export default function CrmBoardPage() {
             </dl>
             {activeLead.lead.notes ? (
               <div>
-                <p className="meta-label">Notas</p>
+                <p className="meta-label">{t('leadDetails.notes')}</p>
                 <p className="mt-1 whitespace-pre-wrap text-sm text-ink">{activeLead.lead.notes}</p>
               </div>
             ) : null}
@@ -533,7 +533,7 @@ export default function CrmBoardPage() {
       <Modal
         open={createDialogOpen}
         onOpenChange={setCreateDialogOpen}
-        title="Novo lead"
+        title={t('leadDialog.title')}
         onSubmit={(event) => {
           event.preventDefault();
           if (!draft.companyName || !draft.stageId || createLeadMutation.isPending) return;
@@ -541,25 +541,25 @@ export default function CrmBoardPage() {
         }}
       >
         <ModalBody>
-          <Field label="Empresa" htmlFor="lead-company">
+          <Field label={t('leadDialog.fields.company')} htmlFor="lead-company">
             <Input
               id="lead-company"
               autoFocus
               value={draft.companyName}
               onChange={(event) => setDraft((prev) => ({ ...prev, companyName: event.target.value }))}
-              placeholder="Nome da empresa"
+              placeholder={t('leadDialog.placeholders.company')}
             />
           </Field>
           <div className="grid gap-4 md:grid-cols-2">
-            <Field label="Contato" htmlFor="lead-contact">
+            <Field label={t('leadDialog.fields.contact')} htmlFor="lead-contact">
               <Input
                 id="lead-contact"
                 value={draft.contactName}
                 onChange={(event) => setDraft((prev) => ({ ...prev, contactName: event.target.value }))}
-                placeholder="Nome do contato"
+                placeholder={t('leadDialog.placeholders.contact')}
               />
             </Field>
-            <Field label="E-mail" htmlFor="lead-email">
+            <Field label={t('leadDialog.fields.email')} htmlFor="lead-email">
               <Input
                 id="lead-email"
                 value={draft.contactEmail}
@@ -568,7 +568,7 @@ export default function CrmBoardPage() {
                 type="email"
               />
             </Field>
-            <Field label="Telefone" htmlFor="lead-phone">
+            <Field label={t('leadDialog.fields.phone')} htmlFor="lead-phone">
               <Input
                 id="lead-phone"
                 value={draft.contactPhone}
@@ -576,7 +576,7 @@ export default function CrmBoardPage() {
                 placeholder="+55 (11) 99999-0000"
               />
             </Field>
-            <Field label="Valor estimado (R$)" htmlFor="lead-value">
+            <Field label={t('leadDialog.fields.value')} htmlFor="lead-value">
               <Input
                 id="lead-value"
                 inputMode="decimal"
@@ -586,7 +586,7 @@ export default function CrmBoardPage() {
               />
             </Field>
           </div>
-          <Field label="Etapa" htmlFor="lead-stage">
+          <Field label={t('leadDialog.fields.stage')} htmlFor="lead-stage">
             {columns.length > 0 ? (
               <Select
                 id="lead-stage"
@@ -603,7 +603,7 @@ export default function CrmBoardPage() {
               <p className="text-sm text-muted">Crie uma etapa antes de adicionar leads.</p>
             )}
           </Field>
-          <Field label="Notas" htmlFor="lead-notes">
+          <Field label={t('leadDialog.fields.notes')} htmlFor="lead-notes">
             <Textarea
               id="lead-notes"
               rows={3}
@@ -619,16 +619,16 @@ export default function CrmBoardPage() {
         <ModalFooter>
           <ModalClose asChild>
             <Button type="button" variant="ghost">
-              Cancelar
+              {t('leadDialog.cancel')}
             </Button>
           </ModalClose>
           <Button
             type="submit"
             disabled={!draft.companyName || !draft.stageId}
             loading={createLeadMutation.isPending}
-            loadingText="Salvando..."
+            loadingText={t('leadDialog.saving')}
           >
-            Salvar lead
+            {t('leadDialog.save')}
           </Button>
         </ModalFooter>
       </Modal>
@@ -644,15 +644,15 @@ export default function CrmBoardPage() {
           setCustomizeDialogOpen(open);
         }}
         size="lg"
-        title="Personalizar etapas"
-        description="Renomeie, reordene ou ajuste as cores das etapas do pipeline. Remova apenas etapas sem leads."
+        title={t('customize.title')}
+        description={t('customize.description')}
       >
         <ModalBody>
           {customizeError ? <Notice tone="danger">{customizeError}</Notice> : null}
 
           {stageEdits.length === 0 ? (
             <p className="rounded-lg border border-dashed border-outline px-4 py-8 text-center text-sm text-muted">
-              Nenhuma etapa cadastrada ainda. Adicione uma nova etapa abaixo.
+              {t('customize.empty')}
             </p>
           ) : (
             <ul className="divide-y divide-border rounded-lg border border-border">
@@ -661,7 +661,7 @@ export default function CrmBoardPage() {
                   <div className="flex items-center gap-2">
                     <span aria-hidden className={cn('h-2.5 w-2.5 shrink-0 rounded-full', STAGE_DOT[stage.color])} />
                     <Input
-                      aria-label="Nome da etapa"
+                      aria-label={t('customize.stageName')}
                       value={stage.name}
                       onChange={(event) => handleStageNameInput(stage.id, event.target.value)}
                       onBlur={() => handleStageNameCommit(stage.id)}
@@ -675,7 +675,7 @@ export default function CrmBoardPage() {
                     />
                   </div>
                   <Select
-                    aria-label="Cor"
+                    aria-label={t('customize.color')}
                     value={stage.color}
                     onValueChange={(value) => handleStageColorChange(stage.id, value as StageColor)}
                     disabled={updatingStageId === stage.id}
@@ -688,7 +688,7 @@ export default function CrmBoardPage() {
                   </Select>
                   <div className="flex items-center justify-between gap-1 sm:justify-end">
                     <span className="tabular mr-2 text-xs text-muted">
-                      {stage.leadCount} {stage.leadCount === 1 ? 'lead' : 'leads'}
+                      {t('customize.leadCount', { count: stage.leadCount })}
                     </span>
                     <div className="flex items-center gap-0.5">
                       <Button
@@ -696,7 +696,7 @@ export default function CrmBoardPage() {
                         size="icon-sm"
                         onClick={() => handleReorderStage(stage.id, -1)}
                         disabled={index === 0 || reorderingStages}
-                        aria-label="Mover para cima"
+                        aria-label={t('customize.moveUp')}
                       >
                         <ArrowUp size={14} />
                       </Button>
@@ -705,7 +705,7 @@ export default function CrmBoardPage() {
                         size="icon-sm"
                         onClick={() => handleReorderStage(stage.id, 1)}
                         disabled={index === stageEdits.length - 1 || reorderingStages}
-                        aria-label="Mover para baixo"
+                        aria-label={t('customize.moveDown')}
                       >
                         <ArrowDown size={14} />
                       </Button>
@@ -714,11 +714,11 @@ export default function CrmBoardPage() {
                         size="icon-sm"
                         onClick={() => handleDeleteStage(stage)}
                         disabled={deletingStageId === stage.id || stage.leadCount > 0}
-                        aria-label="Excluir etapa"
+                        aria-label={t('customize.delete')}
                         title={
                           stage.leadCount > 0
-                            ? 'Remova os leads desta etapa antes de excluir.'
-                            : 'Excluir etapa'
+                            ? t('customize.deleteBlocked')
+                            : t('customize.delete')
                         }
                         className="hover:bg-danger-soft hover:text-danger"
                       >
@@ -732,17 +732,17 @@ export default function CrmBoardPage() {
           )}
 
           <div className="rounded-lg border border-dashed border-outline p-3">
-            <p className="mb-2 text-[13px] font-semibold text-ink">Nova etapa</p>
+            <p className="mb-2 text-[13px] font-semibold text-ink">{t('customize.newStage')}</p>
             <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_150px_auto]">
               <Input
-                aria-label="Nome da nova etapa"
+                aria-label={t('customize.newStageName')}
                 value={newStageName}
                 onChange={(event) => setNewStageName(event.target.value)}
-                placeholder="Ex.: Follow-up"
+                placeholder={t('customize.newStagePlaceholder')}
                 disabled={createStageMutation.isPending}
               />
               <Select
-                aria-label="Cor da nova etapa"
+                aria-label={t('customize.newStageColor')}
                 value={newStageColor}
                 onValueChange={(value) => setNewStageColor(value as StageColor)}
                 disabled={createStageMutation.isPending}
@@ -757,17 +757,17 @@ export default function CrmBoardPage() {
                 variant="secondary"
                 onClick={handleCreateStage}
                 loading={createStageMutation.isPending}
-                loadingText="Adicionando..."
+                loadingText={t('customize.adding')}
               >
                 <Plus size={14} weight="bold" />
-                Adicionar
+                {t('customize.add')}
               </Button>
             </div>
           </div>
         </ModalBody>
         <ModalFooter>
           <ModalClose asChild>
-            <Button variant="secondary">Concluir</Button>
+            <Button variant="secondary">{t('customize.done')}</Button>
           </ModalClose>
         </ModalFooter>
       </Modal>

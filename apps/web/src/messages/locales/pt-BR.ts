@@ -1277,6 +1277,56 @@ export const ptBRMessages = {
       },
       "forms": {
         "notesPlaceholder": "Resumo do projeto, próximas ações..."
+      },
+      "board": {
+        "emptyStage": "Nenhum lead nesta etapa."
+      },
+      "leadDetails": {
+        "stage": "Etapa: {stage}",
+        "contact": "Contato",
+        "email": "E-mail",
+        "phone": "Telefone",
+        "value": "Valor estimado",
+        "notes": "Notas"
+      },
+      "leadDialog": {
+        "title": "Novo lead",
+        "fields": {
+          "company": "Empresa",
+          "contact": "Contato",
+          "email": "E-mail",
+          "phone": "Telefone",
+          "value": "Valor estimado",
+          "stage": "Etapa",
+          "notes": "Notas"
+        },
+        "placeholders": {
+          "company": "Nome da empresa",
+          "contact": "Nome do contato"
+        },
+        "cancel": "Cancelar",
+        "save": "Salvar lead",
+        "saving": "Salvando..."
+      },
+      "customize": {
+        "title": "Personalizar etapas",
+        "description": "Renomeie, reordene ou ajuste as cores das etapas do pipeline. Remova apenas etapas sem leads.",
+        "empty": "Nenhuma etapa cadastrada ainda. Adicione uma nova etapa abaixo.",
+        "stageName": "Nome da etapa",
+        "color": "Cor",
+        "leadCount": "{count, plural, one {# lead} other {# leads}}",
+        "moveUp": "Mover para cima",
+        "moveDown": "Mover para baixo",
+        "delete": "Excluir etapa",
+        "deleteBlocked": "Remova os leads desta etapa antes de excluir.",
+        "newStage": "Nova etapa",
+        "newStageName": "Nome da nova etapa",
+        "newStagePlaceholder": "Ex.: Follow-up",
+        "newStageColor": "Cor da nova etapa",
+        "add": "Adicionar",
+        "adding": "Adicionando...",
+        "done": "Concluir",
+        "nameTooShort": "O nome da etapa precisa ter pelo menos 2 caracteres."
       }
     }
   },
