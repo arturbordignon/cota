@@ -93,6 +93,7 @@ postgres_port="$(resolve_port POSTGRES_PORT 5433 postgres Postgres)"
 api_port="$(resolve_port API_PORT 3333 api API)"
 minio_port="$(resolve_port MINIO_API_PORT 9000 minio MinIO)"
 redis_port="$(resolve_port REDIS_PORT 6379 redis Redis)"
+minio_console_port="$(resolve_port MINIO_CONSOLE_PORT 9001 minio "MinIO console")"
 web_port="$(get_env_var WEB_PORT || true)"
 if [ -z "$web_port" ]; then
   web_port="3001"
@@ -159,7 +160,7 @@ URLs:
   Web:       http://localhost:$web_port
   API docs:  http://localhost:$api_port/docs
   Mailhog:   http://localhost:8025
-  MinIO:     http://localhost:9001
+  MinIO:     http://localhost:$minio_console_port
   Adminer:   http://localhost:5555
 EOF
 
