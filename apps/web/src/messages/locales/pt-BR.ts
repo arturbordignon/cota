@@ -199,7 +199,15 @@ export const ptBRMessages = {
       "basicPlan": "Plano básico",
       "used": "Propostas geradas neste ciclo",
       "remaining": "{count, plural, one {Resta # proposta} other {Restam # propostas}} até {date}",
-      "unlimited": "Propostas ilimitadas"
+      "unlimited": "Propostas ilimitadas",
+      "trialEnded": "Teste grátis encerrado. Escolha um plano para criar novas propostas."
+    },
+    "trial": {
+      "activeTitle": "{count, plural, one {Falta # dia} other {Faltam # dias}} do seu teste grátis",
+      "active": "Você pode criar até 10 propostas até {date}. Depois, escolha um plano para continuar.",
+      "endedTitle": "Seu teste grátis terminou",
+      "ended": "Escolha um plano para criar novas propostas. As propostas já enviadas continuam no ar, e o cliente ainda pode aceitar.",
+      "cta": "Ver planos"
     }
   },
   "plans": {
@@ -1442,7 +1450,8 @@ export const ptBRMessages = {
         "photoUpload": "Falha ao enviar a foto {name}.",
         "photosNotAttached": "A proposta foi criada, mas as fotos não foram anexadas. Abra a proposta para tentar de novo.",
         "finish": "Não foi possível finalizar a proposta.",
-        "limit": "Você atingiu o limite de propostas do seu plano neste mês. Escolha um plano maior para continuar."
+        "limit": "Você atingiu o limite de propostas do seu plano neste mês. Escolha um plano maior para continuar.",
+        "trialEnded": "Seu teste grátis terminou. Escolha um plano em Planos para criar novas propostas."
       },
       "addClient": {
         "title": "Adicionar cliente",

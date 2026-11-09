@@ -492,7 +492,9 @@ export default function NewProposalPage() {
       setSubmissionError(
         // Errors raised here already carry translated text; API ones are mapped.
         error instanceof ApiError
-          ? mensagemDeErro(error, { 402: t("errors.limit"), padrao: t("errors.finish") })
+          ? error.code === "TRIAL_ENDED"
+            ? t("errors.trialEnded")
+            : mensagemDeErro(error, { 402: t("errors.limit"), padrao: t("errors.finish") })
           : error instanceof Error
             ? error.message
             : t("errors.finish"),

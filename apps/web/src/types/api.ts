@@ -112,8 +112,14 @@ export interface BillingOverviewResponse {
       name: string;
       currency: string;
       isUnlimited: boolean;
+      isAnnual?: boolean;
+      isTrial?: boolean;
       proposalsPerMonth: number | null;
     } | null;
+    /** Only while the account is on the free trial. */
+    trial?: { endsAt: string | null; ended: boolean } | null;
+    /** False once the monthly allowance is used or the trial is over. */
+    canCreate?: boolean;
   };
 }
 

@@ -27,9 +27,11 @@ export function PlanUsageSnapshot() {
     return <Skeleton className="h-40 rounded-xl" />;
   }
 
-  const { plan, usage } = overviewQuery.data.data;
-  const remaining = usage.total ? Math.max(usage.total - usage.used, 0) : null;
+  const { plan, usage, trial } = overviewQuery.data.data;
+  const remaining = usage.total !== null ? Math.max(usage.total - usage.used, 0) : null;
   const progress = usage.total ? Math.min((usage.used / usage.total) * 100, 100) : 0;
+  // On the trial the allowance lasts until the trial ends, not the month.
+  const fimDoPeriodo = trial?.endsAt ?? usage.periodEnd;
 
   return (
     <Card className="p-5">
@@ -53,11 +55,13 @@ export function PlanUsageSnapshot() {
         </div>
       ) : null}
 
-      {remaining !== null ? (
+      {trial?.ended ? (
+        <p className="mt-2 text-xs font-semibold text-danger">{t('trialEnded')}</p>
+      ) : remaining !== null ? (
         <p className="mt-2 text-xs text-muted">
           {t('remaining', {
             count: remaining,
-            date: format.dateTime(new Date(usage.periodEnd), { day: '2-digit', month: '2-digit', year: 'numeric' }),
+            date: format.dateTime(new Date(fimDoPeriodo), { day: '2-digit', month: '2-digit', year: 'numeric' }),
           })}
         </p>
       ) : (

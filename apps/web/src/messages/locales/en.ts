@@ -199,7 +199,15 @@ export const enMessages = {
       "basicPlan": "Basic plan",
       "used": "Proposals created this cycle",
       "remaining": "{count, plural, one {# proposal} other {# proposals}} left until {date}",
-      "unlimited": "Unlimited proposals"
+      "unlimited": "Unlimited proposals",
+      "trialEnded": "Free trial ended. Choose a plan to create new proposals."
+    },
+    "trial": {
+      "activeTitle": "{count, plural, one {# day} other {# days}} left in your free trial",
+      "active": "You can create up to 10 proposals until {date}. After that, choose a plan to continue.",
+      "endedTitle": "Your free trial has ended",
+      "ended": "Choose a plan to create new proposals. Proposals already sent stay online, and clients can still accept them.",
+      "cta": "See plans"
     }
   },
   "plans": {
@@ -1442,7 +1450,8 @@ export const enMessages = {
         "photoUpload": "Couldn't upload the photo {name}.",
         "photosNotAttached": "The proposal was created, but the photos weren't attached. Open the proposal to try again.",
         "finish": "We couldn't finish the proposal.",
-        "limit": "You reached this month's proposal limit for your plan. Pick a bigger plan to continue."
+        "limit": "You reached this month's proposal limit for your plan. Pick a bigger plan to continue.",
+        "trialEnded": "Your free trial has ended. Choose a plan under Plans to create new proposals."
       },
       "addClient": {
         "title": "Add client",

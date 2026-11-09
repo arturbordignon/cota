@@ -14,6 +14,7 @@ import { Notice } from "@/components/ui/notice";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PortalButton } from "@/components/billing/checkout-button";
 import { PlanUsageSnapshot } from "@/components/billing/plan-usage";
+import { TrialNotice } from "@/components/billing/trial-notice";
 import { useCurrentUser } from "@/components/providers/user-provider";
 
 export default function AccountPage() {
@@ -50,6 +51,8 @@ export default function AccountPage() {
           </Button>
         }
       />
+
+      <TrialNotice showPlansLink />
 
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
         <CompanyForm />

@@ -7,6 +7,7 @@ import { useFormatter, useTranslations } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
 import { CaretRight, FilePlus, Files, UserPlus } from '@phosphor-icons/react';
 
+import { TrialNotice } from '@/components/billing/trial-notice';
 import { PageHeader } from '@/components/layout/page-header';
 import { useCurrentUser } from '@/components/providers/user-provider';
 import { StatCard } from '@/components/reports/stat-card';
@@ -86,6 +87,7 @@ export default function DashboardPage() {
   );
   const usage = billingQuery.data?.data.usage;
   const plan = billingQuery.data?.data.plan;
+  const podeCriar = billingQuery.data?.data.canCreate;
   const loadError = (proposalsQuery.error ?? billingQuery.error) as Error | null;
 
   const quickActions = useMemo<
@@ -240,9 +242,10 @@ export default function DashboardPage() {
       return t('credits.unlimited');
     }
 
-    const remaining = Math.max((usage.total ?? 0) - usage.used, 0);
+    // An ended trial leaves nothing to use, whatever the count says.
+    const remaining = podeCriar === false ? 0 : Math.max((usage.total ?? 0) - usage.used, 0);
     return format.number(remaining, { maximumFractionDigits: 0 });
-  }, [format, isUnlimited, t, usage]);
+  }, [format, isUnlimited, podeCriar, t, usage]);
 
   const usagePercent =
     usage && usage.total ? Math.min(Math.round((usage.used / usage.total) * 100), 100) : null;
@@ -252,6 +255,8 @@ export default function DashboardPage() {
   return (
     <section className="space-y-8">
       <PageHeader title={t('title')} description={t('description')} />
+
+      <TrialNotice showPlansLink />
 
       {isTokenMissing ? <Notice tone="warning">{t('warnings.tokenMissing')}</Notice> : null}
 
