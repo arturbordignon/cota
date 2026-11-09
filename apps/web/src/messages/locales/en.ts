@@ -1691,6 +1691,17 @@ export const enMessages = {
       "error": "We couldn't save the defaults.",
       "noPermission": "Only people who edit templates can change the defaults."
     },
+    "assistant": {
+      "title": "Assistant in Claude or ChatGPT",
+      "description": "Ask for a proposal in a conversation. The assistant uses your clients, equipment and templates, asks what is missing and saves the proposal here.",
+      "address": "Connector address",
+      "copy": "Copy address",
+      "steps": {
+        "claude": "In Claude: Settings › Connectors › Add custom connector, and paste the address.",
+        "chatgpt": "In ChatGPT: add a custom connector with the same address.",
+        "signIn": "When connecting, sign in with your Cota account address, email and password."
+      }
+    },
     "deleteAccount": {
       "title": "Delete account",
       "description": "Deletes the workspace, the team, clients, proposals, photos and PDFs, and cancels the subscription. This can't be undone.",

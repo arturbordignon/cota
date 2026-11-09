@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { SignOut } from "@phosphor-icons/react";
 
+import { AssistantCard } from "@/components/account/assistant-card";
 import { CompanyForm } from "@/components/account/company-form";
 import { DeleteAccountCard } from "@/components/account/delete-account-card";
 import { ProposalDefaultsForm } from "@/components/account/proposal-defaults-form";
@@ -63,6 +64,8 @@ export default function AccountPage() {
 
         <div className="space-y-6">
           <PlanUsageSnapshot />
+
+          <AssistantCard />
 
           <Card className="p-5">
             <CardTitle>{t("upsell.title")}</CardTitle>

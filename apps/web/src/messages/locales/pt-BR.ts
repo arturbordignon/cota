@@ -1691,6 +1691,17 @@ export const ptBRMessages = {
       "error": "Não foi possível salvar os padrões.",
       "noPermission": "Somente quem edita modelos pode alterar os padrões."
     },
+    "assistant": {
+      "title": "Assistente no Claude ou ChatGPT",
+      "description": "Peça a proposta numa conversa. O assistente usa seus clientes, equipamentos e modelos, pergunta o que falta e salva a proposta aqui.",
+      "address": "Endereço do conector",
+      "copy": "Copiar endereço",
+      "steps": {
+        "claude": "No Claude: Configurações › Conectores › Adicionar conector personalizado, e cole o endereço.",
+        "chatgpt": "No ChatGPT: adicione um conector personalizado com o mesmo endereço.",
+        "signIn": "Ao conectar, entre com o endereço da conta, o seu e-mail e a sua senha do Cota."
+      }
+    },
     "deleteAccount": {
       "title": "Excluir conta",
       "description": "Apaga o workspace, a equipe, os clientes, as propostas, as fotos e os PDFs, e cancela a assinatura. Não é possível desfazer.",
