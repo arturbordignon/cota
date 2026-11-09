@@ -15,6 +15,11 @@ export async function verificarConta({ token }) {
       tagline: 'Içamentos com segurança',
     },
   });
+  await verificar('reads the proposal defaults', 'GET', '/account/proposal-defaults', 200, { token });
+  await verificar('saves the proposal defaults', 'PUT', '/account/proposal-defaults', 200, {
+    token,
+    body: { terms: ['Pagamento: 40% na confirmação e 60% na conclusão.'], team: ['Operador certificado'], validityDays: 15 },
+  });
   await verificar('lists the plans', 'GET', '/billing/plans', 200);
   await verificar('shows the plan usage', 'GET', '/billing/overview', 200, { token });
   // Without Stripe keys these answer 503; with them, checkout returns a URL.
