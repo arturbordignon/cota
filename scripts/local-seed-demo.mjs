@@ -105,6 +105,28 @@ async function main() {
     await prisma.account.update({ where: { id: account.id }, data: { settingsJson } });
   }
 
+  // The usual terms and crew, so the assistant and the wizard start filled in.
+  const atualizada = await prisma.account.findUnique({ where: { id: account.id }, select: { settingsJson: true } });
+  if (!atualizada.settingsJson?.proposalDefaults) {
+    await prisma.account.update({
+      where: { id: account.id },
+      data: {
+        settingsJson: {
+          ...atualizada.settingsJson,
+          proposalDefaults: {
+            terms: [
+              'Pagamento: 40% na confirmação e 60% até 5 dias após a conclusão.',
+              'Inclui operador, combustível e seguro RC. Jornada de 8 horas; hora extra cobrada à parte.',
+              'Cliente responsável por base nivelada e acesso liberado para o equipamento.',
+            ],
+            team: ['Operador de guindaste certificado', 'Rigger com ART e plano de rigging', 'Sinaleiro'],
+            validityDays: 15,
+          },
+        },
+      },
+    });
+  }
+
   const owner = await prisma.user.upsert({
     where: {
       accountId_email: {
