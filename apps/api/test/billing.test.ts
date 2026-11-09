@@ -136,7 +136,7 @@ describe('stripe subscription sync', () => {
     });
     planosCriados.push(plano.id);
     contasCriadas.push(conta.accountId);
-    const padrao = await app.prisma.plan.findUniqueOrThrow({ where: { slug: 'br-50' } });
+    const padrao = await app.prisma.plan.findUniqueOrThrow({ where: { slug: 'br-trial' } });
     return { conta, customer, preco, plano, padrao };
   }
 
@@ -173,7 +173,7 @@ describe('stripe subscription sync', () => {
     expect(eventos).toHaveLength(1);
     expect(eventos[0].metadataJson).toMatchObject({
       summaryKey: 'planChanged',
-      summaryParams: { from: 'Plano Essencial', to: 'Ilimitado de teste' },
+      summaryParams: { from: 'Teste grátis', to: 'Ilimitado de teste' },
     });
   });
 
@@ -185,7 +185,7 @@ describe('stripe subscription sync', () => {
     expect(await planoAtual(conta)).toBe(padrao.id);
   });
 
-  it('drops back to the default plan when the subscription is canceled', async () => {
+  it('drops back to the trial when the subscription is canceled', async () => {
     const { conta, customer, preco, plano, padrao } = await prepararConta();
     const sub = `sub_${sufixo()}`;
     estados.set(sub, { status: 'active', price: preco, customer });
