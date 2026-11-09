@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { chamar, criarApp, criarProposta, registrarConta, type Conta } from './helpers.js';
+import { chamar, criarApp, criarProposta, registrarConta, semLimiteDePropostas, type Conta } from './helpers.js';
 
 describe('public proposal page', () => {
   let app: FastifyInstance;
@@ -10,6 +10,7 @@ describe('public proposal page', () => {
   beforeAll(async () => {
     app = await criarApp();
     conta = await registrarConta(app);
+    await semLimiteDePropostas(app, conta);
   });
 
   afterAll(async () => {

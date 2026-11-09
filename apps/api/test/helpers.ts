@@ -67,6 +67,13 @@ export async function registrarConta(app: FastifyInstance, nome = `Conta ${sufix
   };
 }
 
+// New accounts start on the free trial (10 proposals). Tests that create
+// more than that, and aren't about plans, move the account to unlimited.
+export async function semLimiteDePropostas(app: FastifyInstance, conta: Conta) {
+  const ilimitado = await app.prisma.plan.findUniqueOrThrow({ where: { slug: 'br-unlimited' } });
+  await app.prisma.account.update({ where: { id: conta.accountId }, data: { currentPlanId: ilimitado.id } });
+}
+
 export async function primeiroModelo(app: FastifyInstance, conta: Conta) {
   const resposta = await chamar(app, { method: 'GET', url: '/api/v1/templates', token: conta.accessToken });
   return resposta.json().data[0] as { id: string };
