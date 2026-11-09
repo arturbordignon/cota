@@ -3,13 +3,18 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 // eslint-disable-next-line import/no-unresolved
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 
-import { ClienteCota } from './cliente-api.js';
+import { ClienteCota, SessaoPorSenha } from './cliente-api.js';
 import { carregarConfiguracao } from './config.js';
 import { registrarFerramentas } from './ferramentas.js';
 
 async function iniciar() {
   const configuracao = carregarConfiguracao();
-  const api = new ClienteCota(configuracao);
+  const sessao = new SessaoPorSenha(configuracao.urlApi, {
+    conta: configuracao.slugConta,
+    email: configuracao.email,
+    senha: configuracao.senha,
+  });
+  const api = new ClienteCota(sessao, configuracao);
 
   const servidor = new McpServer({
     name: 'cota',
