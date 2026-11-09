@@ -1,6 +1,8 @@
 import fp from 'fastify-plugin';
 import env from '@cota/config';
 
+// Annual plans cost ten months: two months free. They keep the monthly
+// proposal allowance of the plan they mirror.
 const planDefinitions = [
   {
     slug: 'br-50',
@@ -13,6 +15,16 @@ const planDefinitions = [
     stripePriceId: env.STRIPE_PRICE_BR_50
   },
   {
+    slug: 'br-50-year',
+    name: 'Plano Essencial Anual',
+    currency: 'BRL',
+    amountCents: 49900,
+    proposalsPerMonth: 50,
+    isUnlimited: false,
+    isAnnual: true,
+    stripePriceId: env.STRIPE_PRICE_BR_50_ANNUAL
+  },
+  {
     slug: 'br-100',
     name: 'Plano Profissional',
     currency: 'BRL',
@@ -21,6 +33,16 @@ const planDefinitions = [
     isUnlimited: false,
     isAnnual: false,
     stripePriceId: env.STRIPE_PRICE_BR_100
+  },
+  {
+    slug: 'br-100-year',
+    name: 'Plano Profissional Anual',
+    currency: 'BRL',
+    amountCents: 89900,
+    proposalsPerMonth: 100,
+    isUnlimited: false,
+    isAnnual: true,
+    stripePriceId: env.STRIPE_PRICE_BR_100_ANNUAL
   },
   {
     slug: 'br-unlimited',
@@ -53,6 +75,16 @@ const planDefinitions = [
     stripePriceId: env.STRIPE_PRICE_US_50
   },
   {
+    slug: 'us-50-year',
+    name: 'Essential Annual',
+    currency: 'USD',
+    amountCents: 15000,
+    proposalsPerMonth: 50,
+    isUnlimited: false,
+    isAnnual: true,
+    stripePriceId: env.STRIPE_PRICE_US_50_ANNUAL
+  },
+  {
     slug: 'us-100',
     name: 'Professional',
     currency: 'USD',
@@ -61,6 +93,16 @@ const planDefinitions = [
     isUnlimited: false,
     isAnnual: false,
     stripePriceId: env.STRIPE_PRICE_US_100
+  },
+  {
+    slug: 'us-100-year',
+    name: 'Professional Annual',
+    currency: 'USD',
+    amountCents: 30000,
+    proposalsPerMonth: 100,
+    isUnlimited: false,
+    isAnnual: true,
+    stripePriceId: env.STRIPE_PRICE_US_100_ANNUAL
   },
   {
     slug: 'us-unlimited',
@@ -86,29 +128,21 @@ const planDefinitions = [
 
 export default fp(async (app) => {
   await Promise.all(
-    planDefinitions.map((plan) =>
-      app.prisma.plan.upsert({
+    planDefinitions.map((plan) => {
+      const dados = {
+        name: plan.name,
+        currency: plan.currency,
+        amountCents: plan.amountCents,
+        proposalsPerMonth: plan.proposalsPerMonth,
+        isUnlimited: plan.isUnlimited,
+        isAnnual: plan.isAnnual,
+        stripePriceId: plan.stripePriceId || null
+      };
+      return app.prisma.plan.upsert({
         where: { slug: plan.slug },
-        create: {
-          slug: plan.slug,
-          name: plan.name,
-          currency: plan.currency,
-          amountCents: plan.amountCents,
-          proposalsPerMonth: plan.proposalsPerMonth,
-          isUnlimited: plan.isUnlimited,
-          isAnnual: plan.isAnnual,
-          stripePriceId: plan.stripePriceId || null
-        },
-        update: {
-          name: plan.name,
-          currency: plan.currency,
-          amountCents: plan.amountCents,
-          proposalsPerMonth: plan.proposalsPerMonth,
-          isUnlimited: plan.isUnlimited,
-          isAnnual: plan.isAnnual,
-          stripePriceId: plan.stripePriceId || null
-        }
-      })
-    )
+        create: { slug: plan.slug, ...dados },
+        update: dados
+      });
+    })
   );
 });
