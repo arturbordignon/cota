@@ -66,6 +66,38 @@ describe('proposals', () => {
     expect(depois).toBe(primeira);
   });
 
+  it('moves a proposal to another client without counting a new one', async () => {
+    const criada = await criar({ title: 'Cliente errado' });
+    const id = criada.json().data.id;
+    const certo = await chamar(app, { method: 'POST', url: '/api/v1/clients', token: dono.accessToken, payload: { name: 'Cliente certo' } });
+    const antes = (await chamar(app, { method: 'GET', url: '/api/v1/billing/overview', token: dono.accessToken })).json().data.usage.used;
+
+    const editada = await chamar(app, {
+      method: 'PATCH',
+      url: `/api/v1/proposals/${id}`,
+      token: dono.accessToken,
+      payload: { clientId: certo.json().data.id },
+    });
+    expect(editada.statusCode).toBe(200);
+    expect(editada.json().data.client.name).toBe('Cliente certo');
+
+    const depois = (await chamar(app, { method: 'GET', url: '/api/v1/billing/overview', token: dono.accessToken })).json().data.usage.used;
+    expect(depois).toBe(antes);
+  });
+
+  it('refuses to move a proposal to a client of another account', async () => {
+    const outra = await registrarConta(app);
+    const alheio = await chamar(app, { method: 'POST', url: '/api/v1/clients', token: outra.accessToken, payload: { name: 'Alheio' } });
+    const criada = await criar({ title: 'Minha' });
+    const resposta = await chamar(app, {
+      method: 'PATCH',
+      url: `/api/v1/proposals/${criada.json().data.id}`,
+      token: dono.accessToken,
+      payload: { clientId: alheio.json().data.id },
+    });
+    expect(resposta.statusCode).toBe(404);
+  });
+
   it('counts each new proposal in the monthly usage', async () => {
     const antes = (await chamar(app, { method: 'GET', url: '/api/v1/billing/overview', token: dono.accessToken })).json().data.usage.used;
     await criar({ title: 'Conta no uso' });
