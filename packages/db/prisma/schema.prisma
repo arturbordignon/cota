@@ -389,6 +389,9 @@ model Plan {
   proposalsPerMonth Int?
   isUnlimited      Boolean        @default(false)
   isAnnual         Boolean        @default(false)
+  // The free trial new accounts start on. It is never sold, so the plans page
+  // leaves it out, and it only lets proposals be created until the trial ends.
+  isTrial          Boolean        @default(false)
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
 

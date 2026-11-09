@@ -1,6 +1,7 @@
 import type { FastifyPluginAsync, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import type { Prisma } from '@cota/db';
+import env from '@cota/config';
 import { apagarObjeto, createDownloadUrl } from '@cota/storage';
 
 import { toProposalSlug } from '../../utils/slug.js';
@@ -199,7 +200,12 @@ const proposalRoutes: FastifyPluginAsync = async (app) => {
       });
     } catch (error) {
       if (error instanceof ProposalLimitError) {
-        return reply.status(402).send({ message: error.message, code: 'PROPOSAL_LIMIT_REACHED' });
+        const chave = error.code === 'TRIAL_ENDED' ? 'proposal.trialEnded' : 'proposal.limitReached';
+        return reply.status(402).send({
+          message: request.server.i18n.t(chave, { lng: locale, limit: error.limit ?? '' }),
+          code: error.code,
+          plansUrl: `${env.FRONTEND_BASE_URL.replace(/\/$/, '')}/plans`,
+        });
       }
       throw error;
     }

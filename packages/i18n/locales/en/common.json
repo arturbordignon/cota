@@ -12,6 +12,8 @@
   },
   "proposal": {
     "created": "Proposal created successfully",
-    "queued": "Your proposal is being generated"
+    "queued": "Your proposal is being generated",
+    "limitReached": "You reached the {{limit}} proposals your plan allows this month. Choose a bigger plan to continue.",
+    "trialEnded": "Your free trial has ended. Choose a plan to keep creating proposals. Proposals already sent stay online."
   }
 }

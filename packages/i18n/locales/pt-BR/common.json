@@ -12,6 +12,8 @@
   },
   "proposal": {
     "created": "Proposta criada com sucesso",
-    "queued": "Sua proposta está em processamento"
+    "queued": "Sua proposta está em processamento",
+    "limitReached": "Você atingiu o limite de {{limit}} propostas do seu plano neste mês. Escolha um plano maior para continuar.",
+    "trialEnded": "Seu teste grátis terminou. Escolha um plano para continuar criando propostas. As propostas já enviadas continuam no ar."
   }
 }

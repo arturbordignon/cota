@@ -7,7 +7,7 @@ import env from '@cota/config';
 
 import { toAccountSlug } from '../../utils/slug.js';
 import { resolveLocale } from '../../utils/locale.js';
-import { getDefaultPlanSlug } from '../../services/billing.js';
+import { getTrialPlanSlug, TRIAL_DAYS } from '../../services/billing.js';
 import { carregarPermissoes } from '../../utils/permissions.js';
 import { conferirSenha, gerarHashDeSenha } from '../../utils/senhas.js';
 
@@ -179,8 +179,8 @@ const authRoutes: FastifyPluginAsync = async (app) => {
         },
       });
 
-      const planSlug = getDefaultPlanSlug(body.locale);
-      const plan = await tx.plan.findUnique({ where: { slug: planSlug } });
+      // Every account starts on the free trial; choosing a plan goes through Stripe.
+      const plan = await tx.plan.findUnique({ where: { slug: getTrialPlanSlug(body.locale) } });
 
       if (plan) {
         await tx.account.update({
@@ -193,6 +193,7 @@ const authRoutes: FastifyPluginAsync = async (app) => {
             accountId: account.id,
             planId: plan.id,
             status: 'trialing',
+            currentPeriodEnd: dayjs().add(TRIAL_DAYS, 'day').toDate(),
           },
         });
       }

@@ -1,9 +1,22 @@
 import fp from 'fastify-plugin';
 import env from '@cota/config';
 
+import { TRIAL_PROPOSALS } from '../services/billing.js';
+
 // Annual plans cost ten months: two months free. They keep the monthly
 // proposal allowance of the plan they mirror.
 const planDefinitions = [
+  {
+    slug: 'br-trial',
+    name: 'Teste grátis',
+    currency: 'BRL',
+    amountCents: 0,
+    proposalsPerMonth: TRIAL_PROPOSALS,
+    isUnlimited: false,
+    isAnnual: false,
+    isTrial: true,
+    stripePriceId: ''
+  },
   {
     slug: 'br-50',
     name: 'Plano Essencial',
@@ -12,6 +25,7 @@ const planDefinitions = [
     proposalsPerMonth: 50,
     isUnlimited: false,
     isAnnual: false,
+    isTrial: false,
     stripePriceId: env.STRIPE_PRICE_BR_50
   },
   {
@@ -22,6 +36,7 @@ const planDefinitions = [
     proposalsPerMonth: 50,
     isUnlimited: false,
     isAnnual: true,
+    isTrial: false,
     stripePriceId: env.STRIPE_PRICE_BR_50_ANNUAL
   },
   {
@@ -32,6 +47,7 @@ const planDefinitions = [
     proposalsPerMonth: 100,
     isUnlimited: false,
     isAnnual: false,
+    isTrial: false,
     stripePriceId: env.STRIPE_PRICE_BR_100
   },
   {
@@ -42,6 +58,7 @@ const planDefinitions = [
     proposalsPerMonth: 100,
     isUnlimited: false,
     isAnnual: true,
+    isTrial: false,
     stripePriceId: env.STRIPE_PRICE_BR_100_ANNUAL
   },
   {
@@ -52,6 +69,7 @@ const planDefinitions = [
     proposalsPerMonth: null,
     isUnlimited: true,
     isAnnual: false,
+    isTrial: false,
     stripePriceId: env.STRIPE_PRICE_BR_UNLIMITED
   },
   {
@@ -62,7 +80,19 @@ const planDefinitions = [
     proposalsPerMonth: null,
     isUnlimited: true,
     isAnnual: true,
+    isTrial: false,
     stripePriceId: env.STRIPE_PRICE_BR_UNLIMITED_ANNUAL
+  },
+  {
+    slug: 'us-trial',
+    name: 'Free trial',
+    currency: 'USD',
+    amountCents: 0,
+    proposalsPerMonth: TRIAL_PROPOSALS,
+    isUnlimited: false,
+    isAnnual: false,
+    isTrial: true,
+    stripePriceId: ''
   },
   {
     slug: 'us-50',
@@ -72,6 +102,7 @@ const planDefinitions = [
     proposalsPerMonth: 50,
     isUnlimited: false,
     isAnnual: false,
+    isTrial: false,
     stripePriceId: env.STRIPE_PRICE_US_50
   },
   {
@@ -82,6 +113,7 @@ const planDefinitions = [
     proposalsPerMonth: 50,
     isUnlimited: false,
     isAnnual: true,
+    isTrial: false,
     stripePriceId: env.STRIPE_PRICE_US_50_ANNUAL
   },
   {
@@ -92,6 +124,7 @@ const planDefinitions = [
     proposalsPerMonth: 100,
     isUnlimited: false,
     isAnnual: false,
+    isTrial: false,
     stripePriceId: env.STRIPE_PRICE_US_100
   },
   {
@@ -102,6 +135,7 @@ const planDefinitions = [
     proposalsPerMonth: 100,
     isUnlimited: false,
     isAnnual: true,
+    isTrial: false,
     stripePriceId: env.STRIPE_PRICE_US_100_ANNUAL
   },
   {
@@ -112,6 +146,7 @@ const planDefinitions = [
     proposalsPerMonth: null,
     isUnlimited: true,
     isAnnual: false,
+    isTrial: false,
     stripePriceId: env.STRIPE_PRICE_US_UNLIMITED
   },
   {
@@ -122,6 +157,7 @@ const planDefinitions = [
     proposalsPerMonth: null,
     isUnlimited: true,
     isAnnual: true,
+    isTrial: false,
     stripePriceId: env.STRIPE_PRICE_US_UNLIMITED_ANNUAL
   }
 ];
@@ -136,6 +172,7 @@ export default fp(async (app) => {
         proposalsPerMonth: plan.proposalsPerMonth,
         isUnlimited: plan.isUnlimited,
         isAnnual: plan.isAnnual,
+        isTrial: plan.isTrial,
         stripePriceId: plan.stripePriceId || null
       };
       return app.prisma.plan.upsert({

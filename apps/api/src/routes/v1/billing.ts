@@ -4,7 +4,7 @@ import type Stripe from 'stripe';
 import env from '@cota/config';
 
 import { getStripe, isStripeEnabled } from '../../lib/stripe.js';
-import { getBillingOverview, getDefaultPlanSlug } from '../../services/billing.js';
+import { getBillingOverview, getTrialPlanSlug } from '../../services/billing.js';
 import { exigirPermissao } from '../../utils/permissions.js';
 
 const STATUS_PAGOS = ['active', 'trialing'];
@@ -93,13 +93,15 @@ async function sincronizarAssinatura(app: FastifyInstance, subscriptionId: strin
     return;
   }
 
-  // This subscription no longer pays: fall back to another paid subscription of
-  // the account, or to the default plan new accounts start on.
+  // This subscription no longer pays: fall back to another paid Stripe
+  // subscription of the account, or to the free trial. A trial that already
+  // ended lets nothing new be created, so a cancelled account can't keep making
+  // proposals for free; what it already sent stays online.
   const outraPaga = await app.prisma.subscription.findFirst({
     where: {
       accountId: account.id,
       status: { in: STATUS_PAGOS },
-      stripeSubscriptionId: { not: assinatura.id },
+      AND: [{ stripeSubscriptionId: { not: null } }, { stripeSubscriptionId: { not: assinatura.id } }],
     },
     orderBy: { updatedAt: 'desc' },
   });
@@ -110,8 +112,8 @@ async function sincronizarAssinatura(app: FastifyInstance, subscriptionId: strin
     if ((plan ?? account.currentPlan)?.currency === 'USD') {
       localePadrao = 'en';
     }
-    const padrao = await app.prisma.plan.findUnique({ where: { slug: getDefaultPlanSlug(localePadrao) } });
-    planoSeguinte = padrao?.id;
+    const teste = await app.prisma.plan.findUnique({ where: { slug: getTrialPlanSlug(localePadrao) } });
+    planoSeguinte = teste?.id;
   }
 
   if (planoSeguinte && planoSeguinte !== account.currentPlanId) {
@@ -148,9 +150,11 @@ const billingRoutes: FastifyPluginAsync = async (app) => {
     return reply.send({ data: overview });
   });
 
+  // The trial is never sold, so it is not listed.
   app.get('/plans', async (_request, reply) => {
     const plans = await app.prisma.plan.findMany({
-      orderBy: [{ currency: 'asc' }, { amountCents: 'asc' }],
+      where: { isTrial: false },
+      orderBy: [{ currency: 'asc' }, { isAnnual: 'asc' }, { amountCents: 'asc' }],
     });
 
     return reply.send({ data: plans });
@@ -165,7 +169,7 @@ const billingRoutes: FastifyPluginAsync = async (app) => {
 
     const plan = await app.prisma.plan.findUnique({ where: { slug: body.planSlug } });
 
-    if (!plan || !plan.stripePriceId) {
+    if (!plan || !plan.stripePriceId || plan.isTrial) {
       return reply.status(404).send({ message: 'Plano não encontrado.' });
     }
 
