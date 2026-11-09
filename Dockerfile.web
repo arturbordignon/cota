@@ -23,6 +23,9 @@ FROM base AS build
 COPY . .
 ARG NEXT_PUBLIC_API_URL=http://localhost:3333/api/v1
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+# Connector address shown on the account page; empty hides the card.
+ARG NEXT_PUBLIC_MCP_URL=
+ENV NEXT_PUBLIC_MCP_URL=$NEXT_PUBLIC_MCP_URL
 # Read by next.config.mjs to allow direct photo uploads in the CSP.
 ARG S3_ENDPOINT=http://localhost:9000
 ENV NEXT_TELEMETRY_DISABLED=1
