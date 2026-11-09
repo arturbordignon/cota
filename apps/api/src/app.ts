@@ -1,4 +1,4 @@
-import Fastify, { type FastifyError } from 'fastify';
+import Fastify, { type FastifyError, type FastifyRequest } from 'fastify';
 import rawBody from 'fastify-raw-body';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
@@ -65,6 +65,22 @@ function buscarOrigensPermitidas() {
   return Array.from(new Set(origens.filter((origem): origem is string => Boolean(origem))));
 }
 
+// Only a token this API signed counts; anything else is limited by address.
+function chaveDoLimite(request: FastifyRequest) {
+  const cabecalho = request.headers.authorization;
+  if (cabecalho?.startsWith('Bearer ')) {
+    try {
+      const dados = request.server.jwt.verify<{ sub?: string }>(cabecalho.slice(7));
+      if (dados.sub) {
+        return `usuario:${dados.sub}`;
+      }
+    } catch {
+      // Expired or forged: fall through to the address.
+    }
+  }
+  return request.ip;
+}
+
 function buscarConfiancaProxy(): boolean | string {
   const valor = env.TRUST_PROXY.trim();
   if (valor === '' || valor === 'false') {
@@ -96,12 +112,15 @@ export async function buildServer() {
   });
 
   // Counters live in Redis so every API replica shares the same limits.
+  // Signed-in calls are counted per person: the assistant server sends every
+  // user's calls from one address, and so do offices behind one connection.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await app.register(rateLimit as any, {
     max: env.RATE_LIMIT_MAX,
     timeWindow: '1 minute',
     redis: app.redis,
     nameSpace: 'cota-rate-limit:',
+    keyGenerator: chaveDoLimite,
     addHeaders: {
       'x-ratelimit-limit': false,
       'x-ratelimit-remaining': false,
