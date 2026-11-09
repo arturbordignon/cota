@@ -45,7 +45,7 @@ This is not a CRM, not an invoice tool, not "proposal software for teams". It is
 | Commercial | Pipeline board with custom stages and potential value per stage. Reports: proposals sent per month, acceptance rate, value in pipeline, average ticket, who on the team closed the most. |
 | Team | Invite people, group them in departments, set what each department can see and do. Activity log of who did what. |
 | Assistant | The user connects their Cota account to **Claude or ChatGPT** and asks for a proposal in plain words. See the dedicated section below. |
-| Plans | Paid by number of proposals per month. There is an unlimited plan. Monthly or annual. Each proposal created counts toward the month. Prices are shown inside the app. |
+| Plans | Paid by number of proposals per month. There is an unlimited plan. Monthly or annual. New accounts get a 14-day free trial with up to 10 proposals. The assistant is in every plan. Each proposal created counts toward the month, from the dashboard or the assistant; editing, a new PDF or resending does not. Prices are shown inside the app. |
 | Language | Interface in Portuguese and English. |
 
 Do not claim anything that is not in this table: no WhatsApp integration (the user pastes the link), no automatic e-mail to the client, no e-signature, no invoicing, no import from spreadsheets, no mobile app to install.
@@ -430,7 +430,7 @@ Three facts in a row, separated by vertical rules:
 - **Plano ilimitado** — para quem manda proposta todo dia.
 - **Mensal ou anual** — mude de plano quando precisar.
 
-Line under: `Os valores aparecem na página de planos assim que você cria a conta.`
+Line under: `Teste grátis por 14 dias, com até 10 propostas. Os valores aparecem na página de planos assim que você cria a conta.`
 Button: `Criar conta`
 
 ### 14. FAQ — surface muted `#F6F7F8`
@@ -498,10 +498,10 @@ Use this copy exactly.
   Não. O Cota funciona no navegador, no computador ou no celular.
 
 - **Quanto custa?**
-  Os planos são pelo número de propostas por mês, e há um plano ilimitado. Você vê os valores na página de planos assim que cria a conta.
+  Você começa com 14 dias grátis, com até 10 propostas. Depois, os planos são pelo número de propostas por mês, e há um plano ilimitado. Você vê os valores na página de planos assim que cria a conta.
 
 - **O que conta como uma proposta no plano?**
-  Cada proposta criada no mês conta uma vez. Gerar o PDF de novo ou reenviar o link não conta outra.
+  Cada proposta criada no mês conta uma vez, pelo painel ou pelo assistente. Corrigir, gerar o PDF de novo ou reenviar o link não conta outra.
 
 - **Posso colocar a minha equipe?**
   Sim. Você convida por e-mail, separa por departamento e define o que cada pessoa pode ver e fazer.
