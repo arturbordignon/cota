@@ -2,7 +2,7 @@ import env from '@cota/config';
 import type { FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { chamar, criarApp, ipAleatorio, sufixo } from './helpers.js';
+import { chamar, criarApp, ipAleatorio, registrarConta, sufixo } from './helpers.js';
 
 async function criarAppComProxy(valor: string) {
   const anterior = env.TRUST_PROXY;
@@ -155,6 +155,48 @@ describe('limits on sensitive endpoints', () => {
       chamar(app, { method: 'POST', url: '/api/v1/auth/refresh', ip, payload: { refreshToken: 'x' } }),
     );
     expect(codigos[30]).toBe(429);
+  });
+});
+
+describe('limits for signed-in calls', () => {
+  let app: FastifyInstance;
+  const anterior = env.RATE_LIMIT_MAX;
+
+  beforeAll(async () => {
+    env.RATE_LIMIT_MAX = 5;
+    try {
+      app = await criarApp();
+    } finally {
+      env.RATE_LIMIT_MAX = anterior;
+    }
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  // The assistant server calls the API for every connected user from one address.
+  it('counts each person separately when they share an address', async () => {
+    const ip = ipAleatorio();
+    const ana = await registrarConta(app);
+    const bruno = await registrarConta(app);
+    const codigos: number[] = [];
+    for (let i = 0; i < 6; i += 1) {
+      codigos.push((await chamar(app, { method: 'GET', url: '/api/v1/auth/me', token: ana.accessToken, ip })).statusCode);
+    }
+    expect(codigos.slice(0, 5).every((codigo) => codigo === 200)).toBe(true);
+    expect(codigos[5]).toBe(429);
+    expect((await chamar(app, { method: 'GET', url: '/api/v1/auth/me', token: bruno.accessToken, ip })).statusCode).toBe(200);
+  });
+
+  it('limits a forged token by address', async () => {
+    const ip = ipAleatorio();
+    const codigos: number[] = [];
+    for (let i = 0; i < 6; i += 1) {
+      const falso = `eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ4${i}In0.assinatura`;
+      codigos.push((await chamar(app, { method: 'GET', url: '/api/v1/auth/me', token: falso, ip })).statusCode);
+    }
+    expect(codigos[5]).toBe(429);
   });
 });
 
