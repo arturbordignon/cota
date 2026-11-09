@@ -220,7 +220,15 @@ export const enMessages = {
     "perYear": "{price} / year",
     "unlimited": "Unlimited proposals",
     "limit": "{count} proposals per month",
-    "noPermission": "Only people who manage the plan can switch to another plan."
+    "noPermission": "Only people who manage the plan can switch to another plan.",
+    "everything": "Everything included: templates, PDF, link, team and the assistant in Claude or ChatGPT",
+    "cycle": {
+      "label": "Billing",
+      "monthly": "Monthly",
+      "annual": "Annual",
+      "saving": "2 months free",
+      "perMonthEquivalent": "Works out to {price} per month"
+    }
   },
   "services": {
     "page": {

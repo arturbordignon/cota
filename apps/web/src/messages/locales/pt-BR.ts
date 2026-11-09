@@ -220,7 +220,15 @@ export const ptBRMessages = {
     "perYear": "{price} / ano",
     "unlimited": "Propostas ilimitadas",
     "limit": "{count} propostas por mês",
-    "noPermission": "Somente quem administra o plano pode contratar outro plano."
+    "noPermission": "Somente quem administra o plano pode contratar outro plano.",
+    "everything": "Tudo incluso: modelos, PDF, link, equipe e assistente no Claude ou ChatGPT",
+    "cycle": {
+      "label": "Cobrança",
+      "monthly": "Mensal",
+      "annual": "Anual",
+      "saving": "2 meses grátis",
+      "perMonthEquivalent": "Equivale a {price} por mês"
+    }
   },
   "services": {
     "page": {
