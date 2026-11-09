@@ -130,11 +130,16 @@ async function main() {
     },
   });
 
+  // The demo works like an account that pays for Essencial, so it never runs
+  // into the end of the free trial in the middle of a recording.
+  await prisma.subscription.deleteMany({
+    where: { accountId: account.id, status: 'trialing', stripeSubscriptionId: null },
+  });
   const subscription = await prisma.subscription.findFirst({
     where: {
       accountId: account.id,
       planId: plan.id,
-      status: 'trialing',
+      status: 'active',
     },
   });
 
@@ -143,7 +148,7 @@ async function main() {
       data: {
         accountId: account.id,
         planId: plan.id,
-        status: 'trialing',
+        status: 'active',
       },
     });
   }
