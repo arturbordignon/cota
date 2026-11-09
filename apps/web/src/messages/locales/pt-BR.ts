@@ -1676,6 +1676,21 @@ export const ptBRMessages = {
       "error": "Não foi possível salvar os dados da empresa.",
       "ownerOnly": "Somente o proprietário da conta pode alterar estes dados."
     },
+    "defaults": {
+      "title": "Padrões das propostas",
+      "description": "Condições comerciais, equipe e validade que toda proposta nova já traz preenchidas, aqui e no assistente.",
+      "terms": "Condições comerciais",
+      "termsPlaceholder": "Pagamento: 40% na confirmação e 60% na conclusão.\nInclui operador, combustível e seguro RC.",
+      "team": "Equipe",
+      "teamPlaceholder": "Operador certificado\nRigger com ART",
+      "validity": "Validade (dias)",
+      "oneLine": "Uma por linha.",
+      "save": "Salvar padrões",
+      "saving": "Salvando...",
+      "saved": "Padrões salvos.",
+      "error": "Não foi possível salvar os padrões.",
+      "noPermission": "Somente quem edita modelos pode alterar os padrões."
+    },
     "deleteAccount": {
       "title": "Excluir conta",
       "description": "Apaga o workspace, a equipe, os clientes, as propostas, as fotos e os PDFs, e cancela a assinatura. Não é possível desfazer.",

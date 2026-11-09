@@ -123,6 +123,17 @@ export interface BillingOverviewResponse {
   };
 }
 
+/** Terms, crew and validity a new proposal starts with. */
+export interface ProposalDefaults {
+  terms: string[];
+  team: string[];
+  validityDays: number | null;
+}
+
+export interface ProposalDefaultsResponse {
+  data: ProposalDefaults;
+}
+
 export interface PlanSummary {
   id: string;
   slug: string;

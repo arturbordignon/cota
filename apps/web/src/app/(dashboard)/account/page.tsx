@@ -7,6 +7,7 @@ import { SignOut } from "@phosphor-icons/react";
 
 import { CompanyForm } from "@/components/account/company-form";
 import { DeleteAccountCard } from "@/components/account/delete-account-card";
+import { ProposalDefaultsForm } from "@/components/account/proposal-defaults-form";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
@@ -55,7 +56,10 @@ export default function AccountPage() {
       <TrialNotice showPlansLink />
 
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
-        <CompanyForm />
+        <div className="min-w-0 space-y-6">
+          <CompanyForm />
+          <ProposalDefaultsForm />
+        </div>
 
         <div className="space-y-6">
           <PlanUsageSnapshot />

@@ -11,6 +11,8 @@ import type {
   CreateProposalResponse,
   EquipmentResponse,
   EquipmentSummary,
+  ProposalDefaults,
+  ProposalDefaultsResponse,
   TemplateDetail,
   TemplatesResponse,
 } from "@/types/api";
@@ -126,13 +128,23 @@ function separarLinhas(texto: string) {
     .filter((linha) => linha.length > 0);
 }
 
-function preencherComModelo(modelo: TemplateDetail) {
+// The company's saved terms and crew (Minha conta) win over the template's
+// sample text; scope always comes from the template.
+function preencherComModelo(modelo: TemplateDetail, padroes?: ProposalDefaults) {
   const dados = (modelo.defaultDataJson || {}) as DadosModelo;
   return {
     escopo: juntarLinhas(dados.job?.scope),
-    equipe: juntarLinhas(dados.team),
-    condicoes: juntarLinhas(dados.terms),
+    equipe: padroes?.team.length ? padroes.team.join("\n") : juntarLinhas(dados.team),
+    condicoes: padroes?.terms.length ? padroes.terms.join("\n") : juntarLinhas(dados.terms),
+    ...preencherValidade(padroes),
   };
+}
+
+function preencherValidade(padroes?: ProposalDefaults) {
+  if (!padroes?.validityDays) {
+    return {};
+  }
+  return { validadeDias: String(padroes.validityDays) };
 }
 
 function converterNumero(valor: string) {
@@ -299,6 +311,13 @@ export default function NewProposalPage() {
     enabled: api.isAuthenticated && temPermissao("services", "view"),
   });
 
+  const padroesQuery = useQuery({
+    queryKey: ["account", "proposal-defaults"],
+    queryFn: () => api.get<ProposalDefaultsResponse>("/account/proposal-defaults"),
+    enabled: api.isAuthenticated,
+  });
+  const padroes = padroesQuery.data?.data;
+
   const clientes = useMemo(() => clientsQuery.data?.data || [], [clientsQuery.data]);
   const catalogo = useMemo(() => equipmentQuery.data?.data || [], [equipmentQuery.data]);
   // Templates in the account's language come first.
@@ -369,7 +388,7 @@ export default function NewProposalPage() {
   const selecionarModelo = (modelo: TemplateDetail) => {
     setModeloId(modelo.id);
     setEmBranco(false);
-    setFormulario((anterior) => ({ ...anterior, ...preencherComModelo(modelo) }));
+    setFormulario((anterior) => ({ ...anterior, ...preencherComModelo(modelo, padroes) }));
     setStepIndex(1);
   };
 
@@ -377,8 +396,10 @@ export default function NewProposalPage() {
   // which starts on the details step with that template chosen.
   const modeloDaUrl = searchParams.get("templateId");
   const [modeloDaUrlAplicado, setModeloDaUrlAplicado] = useState(false);
+  // Waits for the saved terms so they fill in on this path too.
+  const padroesCarregando = padroesQuery.isPending && api.isAuthenticated;
   useEffect(() => {
-    if (modeloDaUrlAplicado || !modeloDaUrl) {
+    if (modeloDaUrlAplicado || !modeloDaUrl || padroesCarregando) {
       return;
     }
     const modelo = modelos.find((item) => item.id === modeloDaUrl);
@@ -388,7 +409,7 @@ export default function NewProposalPage() {
     }
     // selecionarModelo only sets state; it is safe to leave out of the deps.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [modeloDaUrl, modeloDaUrlAplicado, modelos]);
+  }, [modeloDaUrl, modeloDaUrlAplicado, modelos, padroesCarregando]);
 
   const selecionarEmBranco = () => {
     if (!modeloPadrao) {
@@ -397,7 +418,13 @@ export default function NewProposalPage() {
     }
     setModeloId(modeloPadrao.id);
     setEmBranco(true);
-    setFormulario((anterior) => ({ ...anterior, escopo: "", equipe: "", condicoes: "" }));
+    setFormulario((anterior) => ({
+      ...anterior,
+      escopo: "",
+      equipe: padroes?.team.join("\n") ?? "",
+      condicoes: padroes?.terms.join("\n") ?? "",
+      ...preencherValidade(padroes),
+    }));
     setStepIndex(1);
   };
 

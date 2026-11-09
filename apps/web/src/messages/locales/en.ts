@@ -1676,6 +1676,21 @@ export const enMessages = {
       "error": "We couldn't save the company details.",
       "ownerOnly": "Only the account owner can change these details."
     },
+    "defaults": {
+      "title": "Proposal defaults",
+      "description": "Commercial terms, crew and validity every new proposal starts with, here and in the assistant.",
+      "terms": "Commercial terms",
+      "termsPlaceholder": "Payment: 40% on confirmation and 60% on completion.\nIncludes operator, fuel and liability insurance.",
+      "team": "Crew",
+      "teamPlaceholder": "Certified operator\nRigger",
+      "validity": "Validity (days)",
+      "oneLine": "One per line.",
+      "save": "Save defaults",
+      "saving": "Saving...",
+      "saved": "Defaults saved.",
+      "error": "We couldn't save the defaults.",
+      "noPermission": "Only people who edit templates can change the defaults."
+    },
     "deleteAccount": {
       "title": "Delete account",
       "description": "Deletes the workspace, the team, clients, proposals, photos and PDFs, and cancels the subscription. This can't be undone.",
