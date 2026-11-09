@@ -35,6 +35,7 @@ const createProposalSchema = z.object({
 
 const updateProposalSchema = z.object({
   title: z.string().optional(),
+  clientId: z.string().uuid().optional(),
   locale: z.enum(['pt-BR', 'en']).optional(),
   payload: z.record(z.any()).optional(),
   totals: totalsSchema.optional(),
@@ -258,6 +259,10 @@ const proposalRoutes: FastifyPluginAsync = async (app) => {
       return reply.status(404).send({ message: 'Proposal not found' });
     }
 
+    if (!(await clientePertenceConta(request, body.clientId))) {
+      return reply.status(404).send({ message: 'Client not found' });
+    }
+
     // Photos already attached keep their stored type; new ones must be a key
     // issued for this proposal and an actual image within the size limit.
     const tiposDasFotos = new Map(proposal.assets.map((asset) => [asset.s3ObjectKey, asset.mimeType]));
@@ -282,6 +287,9 @@ const proposalRoutes: FastifyPluginAsync = async (app) => {
     }
     if (body.locale) {
       dados.locale = body.locale;
+    }
+    if (body.clientId) {
+      dados.client = { connect: { id: body.clientId } };
     }
     if (body.payload) {
       dados.payloadJson = body.payload;
