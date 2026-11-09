@@ -12,6 +12,8 @@ export class ApiError extends Error {
   constructor(
     message: string,
     readonly status: number,
+    /** Machine-readable reason some answers carry, e.g. TRIAL_ENDED on a 402. */
+    readonly code?: string,
   ) {
     super(message);
     this.name = "ApiError";
@@ -24,17 +26,17 @@ interface RequestOptions extends RequestInit {
 
 async function parseError(response: Response) {
   try {
-    const data = (await response.clone().json()) as { message?: string };
+    const data = (await response.clone().json()) as { message?: string; code?: string };
     if (data?.message) {
-      return data.message;
+      return { message: data.message, code: data.code };
     }
   } catch (err) {
     const text = await response.text();
     if (text) {
-      return text;
+      return { message: text };
     }
   }
-  return `Request failed with status ${response.status}`;
+  return { message: `Request failed with status ${response.status}` };
 }
 
 export function useApi() {
@@ -78,8 +80,8 @@ export function useApi() {
       }
 
       if (!response.ok) {
-        const message = await parseError(response);
-        throw new ApiError(message, response.status);
+        const { message, code } = await parseError(response);
+        throw new ApiError(message, response.status, code);
       }
 
       if (response.status === 204) {
