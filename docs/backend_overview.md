@@ -60,13 +60,17 @@ Worker (BullMQ consumer) handling PDF rendering + notifications
 Everything lives under `/api/v1`; `pnpm smoke:api` calls each route once.
 
 - Auth: `POST /auth/register`, `/auth/login`, `/auth/refresh`, `/auth/logout`; `GET /auth/me` (profile and permissions).
-- Account: `GET /account`, `PUT /account/company` (details printed on proposals), `DELETE /account` (owner, with password).
+- Account: `GET /account`, `PUT /account/company` (details printed on proposals), `GET`/`PUT /account/proposal-defaults`
+  (terms, crew and validity new proposals start with; editing needs the templates permission), `DELETE /account`
+  (owner, with password).
 - Clients: CRUD on `/clients`. Deleting a client keeps its proposals without a client.
 - Services (equipment catalog): CRUD on `/equipment`.
 - Templates: list (`?scope=system|custom&locale=`), CRUD on `/templates` (delete deactivates),
   `GET /templates/:id/preview` renders the template with sample data and the account's company.
 - Proposals: list with filters (`status`, `clientId`, `from`, `to`), create, read by id or slug, update
-  (title, values, payload, photos), `POST /:id/generate` (queues the PDF), `POST /:id/send`, `GET /:id/pdf`.
+  (title, client, values, payload, photos; never counts against the plan), `POST /:id/generate` (queues the PDF),
+  `POST /:id/send`, `GET /:id/pdf`. Creating answers 402 with `code` and `plansUrl` when the month's allowance is
+  used or the free trial ended.
 - Photos: `POST /assets/upload-url` hands out a signed upload URL (PNG/JPEG/WebP up to 5 MB, 5 per proposal).
 - Public proposal page: `GET /public/proposals/:slug`, `POST /:slug/accept`, `POST /:slug/decline` (no login).
 - Pipeline: `/pipeline/stages` (list, create, rename, reorder, delete when empty) and `/pipeline/leads` (create, move).
@@ -76,8 +80,8 @@ Everything lives under `/api/v1`; `pnpm smoke:api` calls each route once.
   with per-module permissions, and `/team/ranking`.
 - Notifications: `GET /notifications`, `POST /notifications/:id/read`, `POST /notifications/read-all`.
 - Activity log (owner): `GET /audit-events` with `category` and `search`.
-- Billing: `GET /billing/plans`, `GET /billing/overview`, `POST /billing/checkout`, `POST /billing/portal`,
-  `POST /billing/webhook` (Stripe).
+- Billing: `GET /billing/plans` (on sale; the trial is left out), `GET /billing/overview` (plan, usage, `trial`,
+  `canCreate`), `POST /billing/checkout`, `POST /billing/portal`, `POST /billing/webhook` (Stripe).
 
 ## Localization Strategy
 - API accepts `Accept-Language` header; default to account locale.

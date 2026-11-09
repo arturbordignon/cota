@@ -6,7 +6,8 @@ Mono-repo for the bilingual (pt-BR/en-US) Cota proposal SaaS. The workspace hous
 - `apps/api` – Fastify REST API
 - `apps/worker` – BullMQ worker for background jobs (PDF generation, notifications)
 - `apps/web` – Next.js 15 (App Router) frontend with Tailwind design system & next-intl
-- `apps/mcp` – MCP server so an AI can list clients and save a full proposal from the user's words. See `docs/mcp.md`.
+- `apps/mcp` – MCP server so Claude or ChatGPT can build and save proposals from the user's words: hosted over
+  HTTP with OAuth (each person signs in with their own account) or local over stdio. See `docs/mcp.md`.
 - `packages/*` – shared configuration, database access, i18n, PDF stub, storage helpers
 - `docker-compose.yml` – local dev stack (Postgres, Redis, MinIO, Mailhog), bound to 127.0.0.1
 - `docker-compose.aws.yml` – production stack (see "Production stack" below)
@@ -106,13 +107,16 @@ most twice in a row; a third run leaves its throwaway account behind.
 
 ## Docker builds
 The images run as the unprivileged `node` user and contain only production dependencies:
-`Dockerfile.api` (API), `Dockerfile.worker` (PDF worker with Alpine Chromium) and `Dockerfile.web`
-(Next.js standalone server). `Dockerfile.api` also has a `migrate` target that applies Prisma migrations.
+`Dockerfile.api` (API), `Dockerfile.worker` (PDF worker with Alpine Chromium), `Dockerfile.web`
+(Next.js standalone server) and `Dockerfile.mcp` (hosted MCP server). `Dockerfile.api` also has a `migrate`
+target that applies Prisma migrations.
 
 ```bash
 docker build -f Dockerfile.api -t cota-api .
 docker build -f Dockerfile.worker -t cota-worker .
-docker build -f Dockerfile.web --build-arg NEXT_PUBLIC_API_URL=https://api.example.com/api/v1 -t cota-web .
+docker build -f Dockerfile.web --build-arg NEXT_PUBLIC_API_URL=https://api.example.com/api/v1 \
+  --build-arg NEXT_PUBLIC_MCP_URL=https://mcp.example.com/mcp -t cota-web .
+docker build -f Dockerfile.mcp -t cota-mcp .
 ```
 
 ### Production stack
@@ -125,7 +129,8 @@ docker build -f Dockerfile.web --build-arg NEXT_PUBLIC_API_URL=https://api.examp
    docker compose -f docker-compose.aws.yml --env-file .env.production run --rm migrate
    docker compose -f docker-compose.aws.yml --env-file .env.production up -d
    ```
-3. Put a TLS-terminating proxy or load balancer in front: the API and web publish only on `127.0.0.1`.
+3. Put a TLS-terminating proxy or load balancer in front: the API, web and MCP server publish only on
+   `127.0.0.1`. The MCP server must be reachable at `MCP_PUBLIC_URL` over https.
    Set `TRUST_PROXY` to the proxy addresses (`uniquelocal` for an ALB on private subnets) so rate limits
    see the real client IP.
 
@@ -136,7 +141,8 @@ photos and PDFs are always served through signed URLs.
 - See `docs/frontend_overview.md` for navigation map, design tokens, and component strategy.
 - Localization handled by `next-intl` with `pt-BR` default + `en` fallback.
 - Locale detection is cookie-based (with Accept-Language fallback) so routes stay clean: `/dashboard`, `/proposals`, etc.
-- Stripe billing targets proposal-based plans (BR/US) rather than credits; see `/plans` for UI and expect to configure `price_` ids per tier.
+- Plans are paid by proposals per month (BR/US), monthly or annual; see `/plans` and configure a `price_` id per
+  tier. New accounts start on a 14-day free trial with up to 10 proposals.
 - Design system components live under `apps/web/src/components/ui` & `layout`.
 - Every screen is translated (Portuguese and English); the switcher is in the user menu, on the landing page and on
   the sign-in pages. The client's public proposal page follows the proposal's language instead.
@@ -167,8 +173,13 @@ photos and PDFs are always served through signed URLs.
 - Let builder templates be edited after saving (today they can be duplicated, renamed or deleted).
 
 ## Stripe & Billing
-- Preencha as variáveis `STRIPE_API_KEY` e `STRIPE_WEBHOOK_SECRET` no `.env`, além dos price IDs (`STRIPE_PRICE_*`) gerados no painel da Stripe para cada plano (BRL e USD).
+- Toda conta nova começa no **teste grátis** (`br-trial` / `us-trial`): 14 dias e até 10 propostas. Ele não aparece em
+  Planos e não é vendido. Quando termina, novas propostas pedem um plano; o que já foi enviado continua no ar. Uma
+  assinatura cancelada volta para o teste já encerrado, não para um plano grátis.
+- Planos: Essencial (50/mês), Profissional (100/mês) e Ilimitado, cada um mensal ou anual. O anual custa 10 meses e
+  mantém a franquia mensal. O assistente (MCP) vem em todos.
+- Preencha as variáveis `STRIPE_API_KEY` e `STRIPE_WEBHOOK_SECRET` no `.env`, além dos price IDs (`STRIPE_PRICE_*`) gerados no painel da Stripe para cada plano (BRL e USD), incluindo os anuais (`STRIPE_PRICE_BR_50_ANNUAL`, `STRIPE_PRICE_BR_100_ANNUAL`, `STRIPE_PRICE_US_50_ANNUAL`, `STRIPE_PRICE_US_100_ANNUAL`). Plano sem price ID aparece na tela, mas o checkout recusa.
 - O endpoint de checkout (`POST /api/v1/billing/checkout`) cria uma sessão com o preço escolhido; o portal de gerenciamento está em `POST /api/v1/billing/portal`.
 - Configure o webhook da Stripe apontando para `/api/v1/billing/webhook` (método POST) e utilize o secret correspondente.
 - O backend atual atualiza assinaturas e uso mensal de propostas (`ProposalUsage`) automaticamente via webhook.
-- O limite de propostas é aplicado na criação de novos registros — ao atingir o teto mensal o endpoint responde com `402 Payment Required`.
+- O limite de propostas é aplicado na criação de novos registros — ao atingir o teto mensal ou o fim do teste o endpoint responde com `402 Payment Required`, `code` (`PROPOSAL_LIMIT_REACHED` ou `TRIAL_ENDED`) e `plansUrl`. Editar, gerar PDF e reenviar não contam.
