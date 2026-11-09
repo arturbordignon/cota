@@ -21,7 +21,8 @@
     "dev:web": "pnpm --filter web dev",
     "build:web": "pnpm --filter web build",
     "lint:web": "pnpm --filter web lint",
-    "dev:mcp": "pnpm --filter mcp start"
+    "dev:mcp": "pnpm --filter mcp start",
+    "dev:mcp:http": "pnpm --filter mcp dev:http"
   },
   "devDependencies": {
     "eslint-import-resolver-typescript": "^4.4.4"

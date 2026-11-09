@@ -88,3 +88,64 @@ export function carregarConfiguracao(): ConfiguracaoMcp {
     senha,
   };
 }
+
+export type ConfiguracaoHttp = {
+  urlApi: string;
+  urlWeb: string;
+  // Public address of this server, e.g. https://mcp.cota.app. The connector
+  // address people paste into Claude or ChatGPT is this plus /mcp.
+  urlPublica: string;
+  host: string;
+  porta: number;
+  redis: { host: string; porta: number; senha?: string } | null;
+  confiarProxy: string | boolean;
+  producao: boolean;
+};
+
+function lerConfiancaProxy(valor: string): string | boolean {
+  const texto = valor.trim();
+  if (texto === '' || texto === 'false') {
+    return false;
+  }
+  if (texto === 'true') {
+    return true;
+  }
+  return texto;
+}
+
+// The hosted server: every person signs in with their own Cota account
+// through OAuth, so there are no credentials here.
+export function carregarConfiguracaoHttp(): ConfiguracaoHttp {
+  lerEnvArquivos();
+
+  const producao = process.env.NODE_ENV === 'production';
+  const porta = Number(buscarTexto(process.env.MCP_PORT, '3334'));
+  const urlPublica = buscarTexto(process.env.MCP_PUBLIC_URL, `http://localhost:${porta}`).replace(/\/$/, '');
+  const urlWeb = buscarTexto(process.env.COTA_WEB_URL, buscarTexto(process.env.FRONTEND_BASE_URL, 'http://localhost:3001'));
+
+  if (producao && !urlPublica.startsWith('https://')) {
+    throw new Error('MCP_PUBLIC_URL precisa ser um endereço https:// em produção.');
+  }
+
+  // Without Redis the server keeps connections in memory: fine on one
+  // machine for development, lost on restart. Production needs Redis.
+  let redis: ConfiguracaoHttp['redis'] = null;
+  if (process.env.REDIS_HOST || producao) {
+    redis = {
+      host: buscarTexto(process.env.REDIS_HOST, 'localhost'),
+      porta: Number(buscarTexto(process.env.REDIS_PORT, '6379')),
+      senha: process.env.REDIS_PASSWORD || undefined,
+    };
+  }
+
+  return {
+    urlApi: buscarTexto(process.env.COTA_API_URL, 'http://localhost:3333/api/v1').replace(/\/$/, ''),
+    urlWeb: urlWeb.replace(/\/$/, ''),
+    urlPublica,
+    host: buscarTexto(process.env.MCP_HOST, '0.0.0.0'),
+    porta,
+    redis,
+    confiarProxy: lerConfiancaProxy(process.env.MCP_TRUST_PROXY ?? ''),
+    producao,
+  };
+}
