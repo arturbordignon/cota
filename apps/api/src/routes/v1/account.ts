@@ -5,6 +5,7 @@ import { apagarPrefixo } from '@cota/storage';
 
 import { getStripe, isStripeEnabled } from '../../lib/stripe.js';
 import { buscarEmpresa } from '../../services/proposal-render.js';
+import { exigirPermissao } from '../../utils/permissions.js';
 import { conferirSenha } from '../../utils/senhas.js';
 
 const companySchema = z.object({
@@ -15,6 +16,35 @@ const companySchema = z.object({
   address: z.string().trim().default(''),
   tagline: z.string().trim().default(''),
 });
+
+// What a new proposal starts with when the person doesn't say otherwise: the
+// company's usual commercial terms, crew and validity. The proposal wizard and
+// the assistant both fill these in, so they are typed once.
+const linhas = (maximoPorLinha: number) => z.array(z.string().trim().min(1).max(maximoPorLinha)).max(30);
+
+const proposalDefaultsSchema = z.object({
+  terms: linhas(500).default([]),
+  team: linhas(300).default([]),
+  validityDays: z.number().int().min(1).max(365).nullable().default(null),
+});
+
+type PadroesDeProposta = z.infer<typeof proposalDefaultsSchema>;
+
+function lerPadroes(configuracoes: unknown): PadroesDeProposta {
+  const salvos = (configuracoes as { proposalDefaults?: unknown } | null)?.proposalDefaults;
+  const lidos = proposalDefaultsSchema.safeParse(salvos ?? {});
+  if (lidos.success) {
+    return lidos.data;
+  }
+  return { terms: [], team: [], validityDays: null };
+}
+
+function lerConfiguracoes(valor: unknown): Prisma.JsonObject {
+  if (valor && typeof valor === 'object' && !Array.isArray(valor)) {
+    return valor as Prisma.JsonObject;
+  }
+  return {};
+}
 
 const excluirContaSchema = z.object({
   password: z.string().min(1),
@@ -60,10 +90,7 @@ const accountRoutes: FastifyPluginAsync = async (app) => {
       return reply.status(404).send({ message: 'Account not found' });
     }
 
-    let configuracoes: Prisma.JsonObject = {};
-    if (conta.settingsJson && typeof conta.settingsJson === 'object') {
-      configuracoes = conta.settingsJson as Prisma.JsonObject;
-    }
+    const configuracoes = lerConfiguracoes(conta.settingsJson);
 
     await app.prisma.account.update({
       where: { id: request.user.accountId },
@@ -71,6 +98,33 @@ const accountRoutes: FastifyPluginAsync = async (app) => {
     });
 
     return reply.send({ data: { company: body } });
+  });
+
+  app.get('/proposal-defaults', async (request, reply) => {
+    const conta = await app.prisma.account.findUnique({
+      where: { id: request.user.accountId },
+      select: { settingsJson: true },
+    });
+    if (!conta) {
+      return reply.status(404).send({ message: 'Account not found' });
+    }
+    return reply.send({ data: lerPadroes(conta.settingsJson) });
+  });
+
+  app.put('/proposal-defaults', { preHandler: exigirPermissao('templates', 'edit') }, async (request, reply) => {
+    const body = proposalDefaultsSchema.parse(request.body);
+    const conta = await app.prisma.account.findUnique({
+      where: { id: request.user.accountId },
+      select: { settingsJson: true },
+    });
+    if (!conta) {
+      return reply.status(404).send({ message: 'Account not found' });
+    }
+    await app.prisma.account.update({
+      where: { id: request.user.accountId },
+      data: { settingsJson: { ...lerConfiguracoes(conta.settingsJson), proposalDefaults: body } },
+    });
+    return reply.send({ data: body });
   });
 
   // Right to erasure (LGPD/GDPR): the owner deletes the workspace and every
