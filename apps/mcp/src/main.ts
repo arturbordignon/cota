@@ -1,12 +1,12 @@
 // eslint-disable-next-line import/no-unresolved
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-// eslint-disable-next-line import/no-unresolved
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 
 import { ClienteCota, SessaoPorSenha } from './cliente-api.js';
 import { carregarConfiguracao } from './config.js';
-import { registrarFerramentas } from './ferramentas.js';
+import { criarServidor } from './servidor.js';
 
+// Local use over stdio (Cursor, Claude Desktop): one account from the .env.
+// The hosted server that customers connect to is http.ts.
 async function iniciar() {
   const configuracao = carregarConfiguracao();
   const sessao = new SessaoPorSenha(configuracao.urlApi, {
@@ -16,22 +16,8 @@ async function iniciar() {
   });
   const api = new ClienteCota(sessao, configuracao);
 
-  const servidor = new McpServer({
-    name: 'cota',
-    version: '0.1.0',
-    title: 'Cota',
-    description: [
-      'Cota gera propostas de serviços pesados.',
-      'O usuário descreve a operação. Você pergunta só o que falta e chama as ferramentas.',
-      'Fluxo: listar_clientes, listar_servicos, listar_modelos, depois montar_proposta.',
-      'Salve a proposta. Só gere PDF ou envie se o usuário pedir.',
-    ].join(' '),
-  });
-
-  registrarFerramentas(servidor, api);
-
-  const transporte = new StdioServerTransport();
-  await servidor.connect(transporte);
+  const servidor = criarServidor(api);
+  await servidor.connect(new StdioServerTransport());
 }
 
 iniciar().catch((erro) => {
